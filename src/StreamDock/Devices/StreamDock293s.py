@@ -51,24 +51,25 @@ class StreamDock293s(StreamDock):
         os.remove("Temporary.jpg")
         return returnvalue
         #向图片传入二进制数据，width：图片的宽默认80，height：图片的高默认80
-    def set_key_imagedata(self, imagedata, key,width=100,height=100):
-        print()
-        if len(imagedata) != width*height*3:
-            print("width与height与实际大小不符合")
-            return -1
-        image = Image.new('RGB', (width, height))
-        for y in range(height):
-            for x in range(width):
-                r=ord(imagedata[width*height*3-y*width*3-x*3-2-1])
-                g=ord(imagedata[width*height*3-y*width*3-x*3-1-1])
-                b=ord(imagedata[width*height*3-y*width*3-x*3-1])
-                image.putpixel((x, y), (r, g, b))
-        buffer = BytesIO()
-        rotated_image = image.rotate(-90)
-        rotated_image.save(buffer, format='JPEG')
-        jpg_data = buffer.getvalue()
-        returnvalue =self.transport.setKeyImgdata(jpg_data,key,width,height)
-        return returnvalue
+        
+    # def set_key_imageData(self, imagedata, key,width=100,height=100):
+    #     print()
+    #     if len(imagedata) != width*height*3:
+    #         print("width与height与实际大小不符合")
+    #         return -1
+    #     image = Image.new('RGB', (width, height))
+    #     for y in range(height):
+    #         for x in range(width):
+    #             r=ord(imagedata[width*height*3-y*width*3-x*3-2-1])
+    #             g=ord(imagedata[width*height*3-y*width*3-x*3-1-1])
+    #             b=ord(imagedata[width*height*3-y*width*3-x*3-1])
+    #             image.putpixel((x, y), (r, g, b))
+    #     buffer = io.BytesIO()
+    #     rotated_image = image.rotate(-90)
+    #     rotated_image.save(buffer, format='JPEG')
+    #     jpg_data = buffer.getvalue()
+    #     returnvalue =self.transport.setKeyImgdata(jpg_data,key,width,height)
+    #     return returnvalue
 
          
 

@@ -39,11 +39,11 @@ class StreamDock293(StreamDock):
         if isinstance(image_buff, str):
             self.transport.setKeyImg(bytes(image_buff,'utf-8'), key)
             return
-        return self.set_key_imagedata(key, image_buff)
+        return self.set_key_imageData(key, image_buff)
 
     #向图片传入二进制数据，width：图片的宽默认100，height：图片的高默认100
-    def set_key_imagedata(self, key, image_buff, width=100, height=100):
-        return self.transport.setKeyImgdata(image_buff, key, width, height)
+    # def set_key_imageData(self, key, image_buff, width=100, height=100):
+    #     return self.transport.setKeyImgdata(image_buff, key, width, height)
     
     # 获取设备的固件版本号
     def get_serial_number(self,length):
