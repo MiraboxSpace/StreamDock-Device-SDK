@@ -127,8 +127,8 @@ class StreamDock(ABC):
     def cleaerIcon(self, index):
         origin = index
         index = self.key(index)
-        if index not in range(1, 15):
-            print(f"key '{origin}' out of range. you should set (11 ~ 14)")
+        if index not in range(1, 16):
+            print(f"key '{origin}' out of range. you should set (1 ~ 15)")
             return -1
         self.transport.keyClear(index)
         

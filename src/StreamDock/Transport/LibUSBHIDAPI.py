@@ -145,7 +145,7 @@ class LibUSBHIDAPI:
             pass
 
     def read_(self, lenth):
-        # 调用 C 函数来读取数据
+        # 调用C函数来读取数据
         MAX_LENGTH = 13
         result_ptr = my_transport_lib.TranSport_read_(self.transport, MAX_LENGTH)
         
@@ -167,7 +167,6 @@ class LibUSBHIDAPI:
                 return result_bytes, ack_response, ok_response, key, status
             else:
                 print("Received empty data.")
-
         
         return None  
 
@@ -198,8 +197,9 @@ class LibUSBHIDAPI:
                 print(f"Usage Page: {current_device.contents.usage_page}")
                 print(f"Usage: {current_device.contents.usage}")
                 print(f"Interface Number: {current_device.contents.interface_number}")
+                print(f"Release Number: {current_device.contents.release_number}")
                 print('-' * 20) 
-                if 1:
+                if current_device.contents.interface_number == 0:
                     device_list.append({
                         'path': current_device.contents.path.decode('utf-8'),
                         'vendor_id': current_device.contents.vendor_id,

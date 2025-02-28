@@ -51,4 +51,5 @@ g_products = [
     # N4
     (USBVendorIDs.USB_VIDN4, USBProductIDs.USB_PID_STREAMDOCK_N4, StreamDockN4),
     (USBVendorIDs.USB_VIDN4EN, USBProductIDs.USB_PID_STREAMDOCK_N4EN, StreamDockN4),
+
 ]
