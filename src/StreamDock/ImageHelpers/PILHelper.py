@@ -28,7 +28,7 @@ def _scale_image(image, image_format, margins=[0, 0, 0, 0], background='black'):
 
 def _to_native_format(image, image_format):
     if image_format["format"].lower() != "jpeg" and image_format["format"].lower() != "jpg":
-        raise ValueError(f"no support format: {image_format['format']}. only 'jpeg' 或 'jpg' is supported")
+        raise ValueError(f"no support format: {image_format['format']}. only 'jpeg' or 'jpg' is supported")
     
     _expand = True
     if image.size[1] == image_format["size"][0] and image.size[0] == image_format["size"][1]:
