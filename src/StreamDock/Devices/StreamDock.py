@@ -112,7 +112,13 @@ class StreamDock(ABC):
     def open(self):
         self.transport.open(bytes(self.path,'utf-8'))
         self._setup_reader(self._read)
-        
+
+    # 初始化
+    def init(self):
+        self.wakeScreen()
+        self.set_brightness(100)
+        self.clearAllIcon()
+        self.refresh()
 
     # 关闭设备
     def close(self):

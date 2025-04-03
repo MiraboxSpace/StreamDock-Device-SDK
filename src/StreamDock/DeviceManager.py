@@ -1,6 +1,5 @@
 import pyudev
 # import pywinusb.hid as hid
-
 from .ProductIDs import USBVendorIDs, USBProductIDs, g_products
 from .Transport.LibUSBHIDAPI import LibUSBHIDAPI
 
@@ -23,43 +22,51 @@ class DeviceManager:
 
     def listen(self):
         products = g_products
-
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         monitor.filter_by(subsystem='usb')
-        flag1=0
-        flag2=0
-  
+
         for device in iter(monitor.poll, None):
-            if device.action == 'add' or device.action == 'remove':
-                if  device.action == 'add':
-                    if flag1==0:
-                        flag1=1
-                        vendor_id = device.get('ID_VENDOR_ID')
-                        product_id = device.get('ID_MODEL_ID')
-                    elif flag1==1:
-                        flag1=0
-                        
-                        for vid, pid, class_type in products:
-                            if int(vendor_id, 16)==vid and int(product_id, 16)==pid:
-                                found_devices = self.transport.enumerate(int(vendor_id, 16), int(product_id, 16))
-                                # print(device.device_path)
-                                for current_device in found_devices:
-                                    if device.device_path.find(current_device['path'])!=-1:
-                                        self.streamdocks.append(class_type(self.transport,current_device))
-                                        print("创建成功(create successed!)")
-                                    
-                                
-                elif  device.action == 'remove':
-                    if flag2==0:
-                        index=0
-                        for streamdock in self.streamdocks:
-                            if device.device_path.find(streamdock.getPath())!=-1:
-                                self.streamdocks.pop(index)
-                                del streamdock
-                                print("删除成功(remove successed!)")
+            action = device.action
+            
+            if action not in ['add', 'remove']:
+                continue
+            if device.action == 'remove':
+                for willRemoveDevice in self.streamdocks:
+                    if device.device_path.find(willRemoveDevice.getPath()) != -1:
+                        print("[remove] path: " + willRemoveDevice.getPath())
+                        del willRemoveDevice
+                        break
+                    
+            vendor_id_str = device.get('ID_VENDOR_ID')
+            product_id_str = device.get('ID_MODEL_ID')
+
+            if not vendor_id_str or not product_id_str:
+                continue
+
+            try:
+                vendor_id = int(vendor_id_str, 16)
+                product_id = int(product_id_str, 16)
+            except ValueError:
+                continue
+
+            for vid, pid, class_type in products:
+                if vendor_id == vid and product_id == pid:
+                    if action == 'add':
+                        dev_path = device.device_path.split('/')[-1] + ":1.0"  
+                        full_path = dev_path  
+
+                        found_devices = self.transport.enumerate(vid, pid)
+                        for d in found_devices:
+                            if d['path'].endswith(full_path):
+                                print("[add] path:", d['path'])
+                                newDevice = class_type(self.transport, d)
+                                self.streamdocks.append(newDevice)
+                                newDevice.open()
+                                # your reconnect logic like the next two line
+                                # newDevice.set_key_image(1, "../img/tiga64.png")
+                                # newDevice.refresh()
                                 break
-                            index=index+1
-                        flag2=1
-                    elif flag2==1:
-                        flag2=0
+
+            
+

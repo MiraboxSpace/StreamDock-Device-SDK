@@ -131,6 +131,8 @@ class LibUSBHIDAPI:
     my_transport_lib.TranSport_close.restype = None
     my_transport_lib.TranSport_close.argtypes = [c_void_p]
     
+    my_transport_lib.TranSport_switchMode.restype = c_int
+    my_transport_lib.TranSport_switchMode.argtypes = [c_void_p, c_int]
     
     def __init__(self):
         self.transport=my_transport_lib.TranSport_new()
@@ -180,7 +182,6 @@ class LibUSBHIDAPI:
         my_transport_lib.TranSport_freeEnumerate(self.transport,devs)
 
     def enumerate(self,vid,pid):
-        
         vendor_id = vid 
         product_id = pid 
         device_list = []
@@ -188,18 +189,18 @@ class LibUSBHIDAPI:
         if device_enumeration:
             current_device = device_enumeration
             while current_device:
-                print(f"Path: {current_device.contents.path.decode('utf-8')}")
-                print(f"Vendor ID: {current_device.contents.vendor_id}")
-                print(f"Product ID: {current_device.contents.product_id}")
-                print(f"Serial Number: {current_device.contents.serial_number}")
-                print(f"Manufacturer: {current_device.contents.manufacturer_string}")
-                print(f"Product: {current_device.contents.product_string}")
-                print(f"Usage Page: {current_device.contents.usage_page}")
-                print(f"Usage: {current_device.contents.usage}")
-                print(f"Interface Number: {current_device.contents.interface_number}")
-                print(f"Release Number: {current_device.contents.release_number}")
-                print('-' * 20) 
                 if current_device.contents.interface_number == 0:
+                    print(f"Path: {current_device.contents.path.decode('utf-8')}")
+                    print(f"Vendor ID: {current_device.contents.vendor_id}")
+                    print(f"Product ID: {current_device.contents.product_id}")
+                    print(f"Serial Number: {current_device.contents.serial_number}")
+                    print(f"Manufacturer: {current_device.contents.manufacturer_string}")
+                    print(f"Product: {current_device.contents.product_string}")
+                    print(f"Usage Page: {current_device.contents.usage_page}")
+                    print(f"Usage: {current_device.contents.usage}")
+                    print(f"Interface Number: {current_device.contents.interface_number}")
+                    print(f"Release Number: {current_device.contents.release_number}")
+                    print('-' * 20) 
                     device_list.append({
                         'path': current_device.contents.path.decode('utf-8'),
                         'vendor_id': current_device.contents.vendor_id,
@@ -248,7 +249,8 @@ class LibUSBHIDAPI:
     
     def close(self):
         return my_transport_lib.TranSport_close(self.transport)
-    
+    def switchMode(self, mode):
+        return my_transport_lib.TranSport_switchMode(self.transport, mode)
     # def screen_Off(self):
     #     return my_transport_lib.TranSport_screenOff(self.transport)
     # def screen_On(self):

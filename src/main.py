@@ -1,5 +1,5 @@
 from StreamDock.DeviceManager import DeviceManager
-from StreamDock.ImageHelpers import PILHelper
+from StreamDock.Devices.StreamDockN1 import StreamDockN1
 import threading
 import time
 
@@ -8,19 +8,17 @@ if __name__ == "__main__":
     streamdocks= manner.enumerate()
     # 监听设备插拔
     t = threading.Thread(target=manner.listen)
-    t.daemon = True # detach
+    t.daemon = True 
     t.start()
     print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
     for device in streamdocks:
         # 打开设备
         device.open()
-        device.wakeScreen()
+        device.init()
         # 开线程获取设备反馈
         t = threading.Thread(target = device.whileread)
-        t.daemon = True # detach
+        t.daemon = True
         t.start()
-        # 设置设备亮度0-100
-        device.set_brightness(50)
         #设置背景图片
         res = device.set_touchscreen_image("../img/YiFei320.png")
         device.refresh()
@@ -35,10 +33,11 @@ if __name__ == "__main__":
         time.sleep(1)
         # 清空所有按键的图标
         device.clearAllIcon()
-        time.sleep(1)
+        device.refresh()
+        time.sleep(0)
+        # N1 switch mode
+        if isinstance(device, StreamDockN1):
+            device.switch_mode(0)
         # 关闭设备
         # device.close()
     time.sleep(10000)
-    
-    
-    

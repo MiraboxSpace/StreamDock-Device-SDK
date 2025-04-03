@@ -11,6 +11,7 @@ class USBVendorIDs:
     USB_VIDN3E = 0x6602
     USB_VIDN4 = 0x6602
     USB_VIDN4EN = 0x6603
+    USB_VIDN1 = 0x6603
 
 
 class USBProductIDs:
@@ -28,12 +29,14 @@ class USBProductIDs:
     USB_PID_STREAMDOCK_N3V25 = 0x3001
     USB_PID_STREAMDOCK_N4 = 0x1001
     USB_PID_STREAMDOCK_N4EN = 0x1007
+    USB_PID_STREAMDOCK_N1 = 0x1000
 
 from .Devices.StreamDock293 import StreamDock293
 from .Devices.StreamDock293s import StreamDock293s
 from .Devices.StreamDock293V3 import StreamDock293V3
 from .Devices.StreamDockN3 import StreamDockN3
 from .Devices.StreamDockN4 import StreamDockN4
+from .Devices.StreamDockN1 import StreamDockN1
 g_products = [
     # 293 serial
     (USBVendorIDs.USB_VID_293, USBProductIDs.USB_PID_STREAMDOCK_293, StreamDock293),
@@ -52,4 +55,6 @@ g_products = [
     (USBVendorIDs.USB_VIDN4, USBProductIDs.USB_PID_STREAMDOCK_N4, StreamDockN4),
     (USBVendorIDs.USB_VIDN4EN, USBProductIDs.USB_PID_STREAMDOCK_N4EN, StreamDockN4),
 
+    #N1
+    (USBVendorIDs.USB_VIDN1, USBProductIDs.USB_PID_STREAMDOCK_N1, StreamDockN1),
 ]

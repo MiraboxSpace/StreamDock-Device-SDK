@@ -49,9 +49,11 @@ class StreamDockN4(StreamDock):
             if not os.path.exists(path):
                 print(f"Error: The image file '{path}' does not exist.")
                 return -1
-            if origin not in range(1, 11):
-                print(f"key '{origin}' out of range. you should set (11 ~ 14)")
+            if origin not in range(1, 15):
+                print(f"key '{origin}' out of range. you should set (1 ~ 15)")
                 return -1
+            if origin in range(11, 15):
+                return self.set_seondscreen_image(origin, path)
             
             # open formatter
             image = Image.open(path)
