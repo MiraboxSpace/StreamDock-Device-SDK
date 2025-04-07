@@ -1,0 +1,35 @@
+安装好python运行环境最好是python3以上。测试环境为ubuntu20.04, python3.8.10
+
+安装linux软件
+    如果你想一个一个安装, 请注意安装顺序libusb-1.0-0-dev需要在libhidapi-libusb0之前安装
+    sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
+    如果遇到找不到get_input_report()函数定义, 你可以选择把/usr/local/lib/libhidapi-libusb.so.0该文件替换成我们在Transport中提供的libhidapi-libusb.so.0文件
+    
+
+需要安装PIL库    pip install PIL
+    pyudev库    pip install pyudev
+
+某些库可能你的python版本已经继承不需要安装
+    threading库     pip install threading
+    ctypes库    pip install ctypes
+    time库      pip install time
+    abc库       pip install abc
+
+Install Python Environment
+It is recommended to use Python 3 or above. Test environment: Ubuntu 20.04, Python 3.8.10
+
+Install Linux Software
+If you want to install them one by one, please pay attention to the installation order:
+    libusb-1.0-0-dev needs to be installed before libhidapi-libusb0.
+    sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
+    If you encounter the error "undefined reference to get_input_report()", you can replace the /usr/local/lib/libhidapi-libusb.so.0 file with the libhidapi-libusb.so.0 file we provided in the Transport folder.
+
+Required Libraries
+Install the following libraries via pip:
+    PIL library: pip install PIL
+    pyudev library: pip install pyudev
+Some libraries might already be inherited by your Python version and may not need to be installed:
+    threading library: pip install threading
+    ctypes library: pip install ctypes
+    time library: pip install time
+    abc library: pip install abc
