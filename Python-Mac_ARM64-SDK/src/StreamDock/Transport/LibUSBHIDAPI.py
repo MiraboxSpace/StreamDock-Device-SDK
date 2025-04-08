@@ -189,7 +189,7 @@ class LibUSBHIDAPI:
         if device_enumeration:
             current_device = device_enumeration
             while current_device:
-                if current_device.contents.interface_number == 0:
+                if current_device.contents.usage == 1:
                     print(f"Path: {current_device.contents.path.decode('utf-8')}")
                     print(f"Vendor ID: {current_device.contents.vendor_id}")
                     print(f"Product ID: {current_device.contents.product_id}")
