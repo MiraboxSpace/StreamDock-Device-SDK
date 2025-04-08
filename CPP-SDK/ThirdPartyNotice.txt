@@ -1,0 +1,35 @@
+## 第三方库使用声明 / Third-Party Library Notice
+
+本 SDK 使用了以下第三方开源库，这些库遵循其各自的开源许可证。我们在此致谢并遵守相应协议条款。  
+This SDK uses the following third-party open-source libraries, each of which is governed by its respective open-source license. We acknowledge and comply with the terms of these licenses.
+
+---
+
+### 1. FreeImage  
+- **用途 / Purpose**：图像加载与处理 / Image loading and processing  
+- **官网 / Website**：[http://freeimage.sourceforge.net/](http://freeimage.sourceforge.net/)  
+- **许可证 / License**：FreeImage Public License v1.0  
+- **说明 / Notes**：本 SDK 使用了 FreeImage 提供的图像解码与格式转换功能。  
+  This SDK uses FreeImage for image decoding and format conversion.
+
+---
+
+### 2. hidapi  
+- **用途 / Purpose**：USB HID 设备的数据传输与控制 / USB HID device data communication and control  
+- **GitHub**：[https://github.com/libusb/hidapi](https://github.com/libusb/hidapi)  
+- **许可证 / License**：BSD 3-Clause License  
+- **说明 / Notes**：本 SDK 使用 hidapi 实现对 HID 设备的跨平台访问与管理。  
+  This SDK uses hidapi to provide cross-platform access and management for HID devices.
+
+---
+
+### 3. libudev（系统依赖 / System Dependency）  
+- **用途 / Purpose**：设备插拔事件监听（仅限 Linux 平台） / Device plug/unplug monitoring (Linux only)  
+- **许可证 / License**：LGPL v2.1  
+- **说明 / Notes**：仅在 Linux 系统上使用 libudev 获取 USB 插拔事件信息。libudev 属于 Linux 系统组件之一。  
+  Used only on Linux systems for USB device event handling. libudev is part of the Linux system libraries.
+
+---
+
+如需了解各库的详细许可证内容，请参见相应库的官方网站或源码包中的 LICENSE 文件。若您将本 SDK 集成至您的产品或进行再分发，请确保一并遵守这些开源协议。  
+For full license texts, please refer to the respective library’s website or LICENSE file within the source package. If you include this SDK in your product or redistribute it, please make sure to comply with the associated licenses.
