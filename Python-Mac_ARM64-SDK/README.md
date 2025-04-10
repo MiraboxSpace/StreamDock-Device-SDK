@@ -1,50 +1,33 @@
-# StreamDock SDK for Linux (English & Chinese Documentation)
+# StreamDock SDK for Mac 
 
-## English Version
+### 🔧 Mac-Arm64 Platform Support for StreamDock SDK
 
-### 🔧 Linux-x86_64 Platform Support for StreamDock SDK
-
-> ✅ Recommended environment: ​**Ubuntu 20.04**​, **Python 3.8.10** or above
-
----
-
-### 🐍 Python Dependencies
-
-Install the required Python libraries:
-
-```bash
-pip install pillow pyudev
-```
-
-> `threading`, `ctypes`, `time`, and `abc` are part of the Python standard library and ​**do not require installation**​.
+> ✅ Recommended environment: **Python 3.8.10** or above
 
 ---
 
 ### 📦 System Dependencies
 
-To use the SDK on Linux, install the following system packages:
+To use the SDK on Mac, install the following system packages:
 
 ```bash
-sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
+sudo brew install hidapi
 ```
+---
 
-> ⚠️ Note: `libusb-1.0-0-dev` must be installed **before**`libhidapi-libusb0`.
+### 🐍 Python Dependencies
 
-If you encounter the error:
+Install the required Python libraries:
+If you have install homebrew, you have to use `pip install` by add option --break-system-packages
 
+```bash
+python3 -m pip install Pillow --break-system-packages
+python3 -m pip install hid --break-system-packages
 ```
-undefined reference to `get_input_report()`
-```
-
-Replace the file at:
-
-```
-/usr/local/lib/libhidapi-libusb.so.0
-```
-
-with the `libhidapi-libusb.so.0` file provided in the **Transport** folder.
+> `threading`, `ctypes`, `time`, and `abc` are part of the Python standard library and ​**do not require installation**​.
 
 ---
+
 
 ### 🚀 Quick Start Example
 
@@ -58,11 +41,8 @@ if __name__ == "__main__":
     manner = DeviceManager()
     streamdocks= manner.enumerate()
     # listen plug/unplug
-    t = threading.Thread(target=manner.listen)
-    t.daemon = True 
-    t.start()
-    print("Found {} Stream Dock(s).
-".format(len(streamdocks)))
+    manner.listen()
+    print("Found {} Stream Dock(s).".format(len(streamdocks)))
     for device in streamdocks:
         # open device
         device.open()
@@ -72,11 +52,11 @@ if __name__ == "__main__":
         t.daemon = True
         t.start()
         # set background image
-        res = device.set_touchscreen_image("../img/YiFei320.png")
+        res = device.set_touchscreen_image("../img/YiFei320.jpg")
         device.refresh()
         time.sleep(2)
         for i in range(1, 19):
-            device.set_key_image(i, "../img/tiga64.png")
+            device.set_key_image(i, "../img/tiga64.jpg")
             device.refresh()
         time.sleep(2)
         # clear specialize key
@@ -127,7 +107,7 @@ You can customize your reconnect logic right after the device is re-detected:
 
 ```python
 # your reconnect logic like the next two line
-newDevice.set_key_image(1, "../img/tiga64.png")
+newDevice.set_key_image(1, "../img/tiga64.jpg")
 newDevice.refresh()
 ```
 
@@ -140,4 +120,4 @@ newDevice.autoInit()  # e.g., reset icons, refresh screen, set mode
 
 This ensures the reconnected device resumes its previous working state.
 
-> On macOS, this uses internal polling (`hid.enumerate()`); on Linux, it uses pyudev to detect events in real time.
+> On macOS, this uses polling (via `hid.enumerate()`) every 1 second to simulate plug/unplug events.

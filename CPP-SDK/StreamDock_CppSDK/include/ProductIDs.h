@@ -14,6 +14,7 @@ enum USBVendorIDs {
     USB_VIDN3V2 = 0xEEEF,
     USB_VIDN4 = 0x6602,
     USB_VIDN4EN = 0x6603,
+    USB_VIDN1EN = 0x6603,
     USB_VIDN1 = 0x6603
 
 };
@@ -30,7 +31,8 @@ enum USBProductIDs {
     USB_PID_STREAMDOCK_N3V2 = 0x2929,
     USB_PID_STREAMDOCK_N4 = 0x1001,
     USB_PID_STREAMDOCK_N4EN = 0x1007,
-    USB_PID_STREAMDOCK_N1 = 0x1000
+    USB_PID_STREAMDOCK_N1EN = 0x1000,
+    USB_PID_STREAMDOCK_N1 = 0x1011
 };
 enum DeivceType
 {
@@ -52,4 +54,5 @@ const std::map<std::pair<USBVendorIDs, USBProductIDs>, DeivceType> StreamDockDev
     {{USB_VIDN4, USB_PID_STREAMDOCK_N4}, Device293N4},
     {{USB_VIDN4, USB_PID_STREAMDOCK_N4EN}, Device293N4},
     {{USB_VIDN1, USB_PID_STREAMDOCK_N1}, Device293N1},
+    {{USB_VIDN1EN, USB_PID_STREAMDOCK_N1EN}, Device293N1},
 };

@@ -1,6 +1,6 @@
 # Linux-x86_64 platform
 
-### 🔧 Linux-x86\_64 平台 SDK 配置指南
+### 🔧 Linux-x86_64 平台 SDK 配置指南
 
 > 【推荐环境】Ubuntu 20.04 + Python 3.8.10 或更新版
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     t = threading.Thread(target=manner.listen)
     t.daemon = True 
     t.start()
-    print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
+    print("Found {} Stream Dock(s).".format(len(streamdocks)))
     for device in streamdocks:
         # 打开设备
         device.open()
@@ -83,6 +83,7 @@ if __name__ == "__main__":
         # device.close()
     time.sleep(10000)
 ```
+
 根据需求修改图片路径
 
 ---
@@ -105,3 +106,26 @@ if __name__ == "__main__":
 | 293 / 293s | ❌ 不支持                | 必须等图片设置完成后才能监听 |
 
 在老型设备上，如 293 和 293s，当调用 `setKeyImg` 或 `setTouchScreen`时，设备无法同时响应用户按键操作，必须等待调用结束，确保设备处于空闲状态后，才能进行键盘监听。
+
+#### 3. 🔌 热插拔与自动恢复
+
+当设备被拔出并重新插入时，`DeviceManager.listen()` 会自动识别新插入的设备并进行重连。
+
+你可以在设备重新连接后执行个性化的初始化逻辑，例如设置按键图标、刷新状态：
+
+```python
+# your reconnect logic like the next two line
+newDevice.set_key_image(1, "../img/tiga64.png")
+newDevice.refresh()
+```
+
+建议将这些逻辑封装为一个初始化函数，例如 `autoInit()`，以便统一调用：
+
+```python
+newDevice.open()
+newDevice.autoInit()  # 比如设置按键图标、刷新屏幕、切换模式等
+```
+
+确保设备在断开并重连后能自动恢复到之前的工作状态。
+
+> macOS 平台通过轮询（`hid.enumerate()`）方式模拟监听；Linux 则使用 pyudev 提供的 USB 插拔事件。
