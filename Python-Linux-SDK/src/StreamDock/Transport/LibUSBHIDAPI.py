@@ -10,7 +10,7 @@ def getDllName():
         },
         "Linux": {
             "x86_64": ["libtransport.so"], 
-            "arm64": ["libtransport_arm.so"] 
+            "aarch64": ["libtransport_arm.so"] 
         },
         "Darwin": {
             "x86_64": ["libtransport_mac.dylib"],
@@ -18,21 +18,23 @@ def getDllName():
         }
     }
     platform_name = platform.system()
-    arch_type  = platform.architecture()[0] 
-    machine_type = platform.machine().lower()
+    machine_type = platform.machine().lower()  
+    platform_search_library_names = None
     if platform_name == "Windows":
         platform_search_library_names = search_library_names["Windows"]["x86_64"][0]
     elif platform_name == "Linux":
         if "x86_64" in machine_type or "amd64" in machine_type:
             platform_search_library_names = search_library_names["Linux"]["x86_64"][0]
-        elif "arm64" in machine_type:
-            platform_search_library_names = search_library_names["Linux"]["arm64"][0]
+        elif "aarch64" in machine_type or "arm64" in machine_type:
+            platform_search_library_names = search_library_names["Linux"]["aarch64"][0]
     elif platform_name == "Darwin":
         if "x86_64" in machine_type or "amd64" in machine_type:
             platform_search_library_names = search_library_names["Darwin"]["x86_64"][0]
         elif "arm64" in machine_type:
             platform_search_library_names = search_library_names["Darwin"]["arm64"][0]
-    # print(platform_search_library_names)
+    if not platform_search_library_names:
+        raise RuntimeError(f"Unsupported platform/architecture: {platform_name} / {machine_type}")
+    # print(f"Using library: {platform_search_library_names}")
     return platform_search_library_names
     
 

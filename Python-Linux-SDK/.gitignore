@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 !libtransport.so
+!libtransport_arm.so
 *.dylib
 
 # Distribution / packaging
