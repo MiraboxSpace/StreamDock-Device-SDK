@@ -406,3 +406,5 @@ windowsUSB.cpp
 
 *.ilk
 *.pdb
+*.exe
+build/
