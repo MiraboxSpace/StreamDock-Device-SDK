@@ -127,3 +127,12 @@
   };
   ws.send(JSON.stringify(disconnected));
 }
+
+{
+  // getDeviceIdentifier
+  const getDeviceIdentifier = {
+    "event": "getDeviceIdentifier",
+    "path": path,
+  };
+  ws.send(JSON.stringify(getDeviceIdentifier));
+}
