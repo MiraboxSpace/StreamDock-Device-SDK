@@ -90,6 +90,11 @@ std::map<std::string, std::shared_ptr<StreamDock>> DeviceManager::enumerate()
 					m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockN1(this->transport, deviceInfo));
 					break;
 				}
+				case Device293M18:
+				{
+					m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockM18(this->transport, deviceInfo));
+					break;
+				}
 				default:
 				{
 					break;
@@ -240,6 +245,11 @@ int DeviceManager::listen(bool autoReconnect)
 									case Device293N1:
 									{
 										manager->m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockN1(manager->transport, deviceInfo));
+										break;
+									}
+									case Device293M18:
+									{
+										manager->m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockM18(manager->transport, deviceInfo));
 										break;
 									}
 									default:

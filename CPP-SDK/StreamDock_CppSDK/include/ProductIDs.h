@@ -5,6 +5,7 @@
 #include "StreamDockN3V25.h"
 #include "StreamDockN4.h"
 #include "StreamDockN1.h"
+#include "StreamDockM18.h"
 enum USBVendorIDs {
     USB_VID = 0x5500,
     USB_VID293s = 0x5548,
@@ -15,8 +16,11 @@ enum USBVendorIDs {
     USB_VIDN4 = 0x6602,
     USB_VIDN4EN = 0x6603,
     USB_VIDN1EN = 0x6603,
-    USB_VIDN1 = 0x6603
-
+    USB_VIDN1 = 0x6603,
+    USB_VIDM18 = 0x6603,
+    USB_VIDM18E = 0x6603,
+    USB_VIDM18V3 = 0x5548,
+    
 };
 
 enum USBProductIDs {
@@ -32,7 +36,10 @@ enum USBProductIDs {
     USB_PID_STREAMDOCK_N4 = 0x1001,
     USB_PID_STREAMDOCK_N4EN = 0x1007,
     USB_PID_STREAMDOCK_N1EN = 0x1000,
-    USB_PID_STREAMDOCK_N1 = 0x1011
+    USB_PID_STREAMDOCK_N1 = 0x1011,
+    USB_PID_STREAMDOCK_M18 = 0x1009,
+    USB_PID_STREAMDOCK_M18E = 0x1012,
+    USB_PID_STREAMDOCK_M18V3 = 0x1012,
 };
 enum DeivceType
 {
@@ -42,6 +49,7 @@ enum DeivceType
     Device293N3V25,
     Device293N4,
     Device293N1,
+    Device293M18,
 };
 
 const std::map<std::pair<USBVendorIDs, USBProductIDs>, DeivceType> StreamDockDevices = {
@@ -56,4 +64,7 @@ const std::map<std::pair<USBVendorIDs, USBProductIDs>, DeivceType> StreamDockDev
     {{USB_VIDN4EN, USB_PID_STREAMDOCK_N4EN}, Device293N4},
     {{USB_VIDN1, USB_PID_STREAMDOCK_N1}, Device293N1},
     {{USB_VIDN1EN, USB_PID_STREAMDOCK_N1EN}, Device293N1},
+    {{USB_VIDM18, USB_PID_STREAMDOCK_M18}, Device293N1},
+    {{USB_VIDM18E, USB_PID_STREAMDOCK_M18E}, Device293M18},
+    {{USB_VIDM18V3, USB_PID_STREAMDOCK_M18V3}, Device293M18},
 };
