@@ -15,10 +15,6 @@ if __name__ == "__main__":
         # 打开设备
         device.open()
         device.init()
-        # 开线程获取设备反馈
-        t = threading.Thread(target = device.whileread)
-        t.daemon = True
-        t.start()
         #设置背景图片
         res = device.set_touchscreen_image("../img/YiFei320.png")
         device.refresh()

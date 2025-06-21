@@ -90,6 +90,16 @@ std::map<std::string, std::shared_ptr<StreamDock>> DeviceManager::enumerate()
 					m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockN1(this->transport, deviceInfo));
 					break;
 				}
+				case Device293M18:
+				{
+					m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockM18(this->transport, deviceInfo));
+					break;
+				}
+				case Device293SV3:
+				{
+					m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDock293sV3(this->transport, deviceInfo));
+					break;
+				}
 				default:
 				{
 					break;
@@ -240,6 +250,16 @@ int DeviceManager::listen(bool autoReconnect)
 									case Device293N1:
 									{
 										manager->m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockN1(manager->transport, deviceInfo));
+										break;
+									}
+									case Device293M18:
+									{
+										manager->m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDockM18(manager->transport, deviceInfo));
+										break;
+									}
+									case Device293SV3:
+									{
+										manager->m_deviceMap[std::string(deviceInfo->path)] = std::shared_ptr<StreamDock>(new StreamDock293sV3(manager->transport, deviceInfo));
 										break;
 									}
 									default:
@@ -420,6 +440,12 @@ int DeviceManager::listen(bool autoReconnect)
 											break;
 										case Device293N1:
 											m_deviceMap[hidapi_path] = std::make_shared<StreamDockN1>(this->transport, deviceInfo);
+											break;
+										case Device293M18:
+											m_deviceMap[hidapi_path] = std::make_shared<StreamDockM18>(this->transport, deviceInfo);
+											break;
+										case Device293SV3:
+											m_deviceMap[hidapi_path] = std::make_shared<StreamDock293sV3>(this->transport, deviceInfo);
 											break;
 										default:
 											break;
