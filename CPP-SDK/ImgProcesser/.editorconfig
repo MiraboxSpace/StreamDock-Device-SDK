@@ -1,0 +1,4 @@
+# 设置所有文件默认换行符为 CRLF
+[*]
+end_of_line = crlf
+charset = utf-8
