@@ -4,12 +4,13 @@
 
 本项目是一个基于 C++17 开发的 SDK，旨在让用户能够通过代码直接控制 Stream Dock 设备。
 
-该 SDK 提供了 Linux 与 Windows 的跨平台支持，用户可以根据自身的操作系统选择合适的构建方式进行编译和使用。目前 SDK 支持对部分设备的控制，例如：**293**、**293V3**、**N4**、**N3** 等型号，用户可通过查看第五节的使用示例，快速上手并调用我们提供的接口对设备进行操作。
+该 SDK 提供了 Linux 与 Windows 的跨平台支持，用户可以根据自身的操作系统选择合适的构建方式进行编译和使用。目前 SDK 支持对部分设备的控制，例如：**293**、**293V3**、**N4**、**N3**、**N1** 等型号，用户可通过查看第五节的使用示例，快速上手并调用我们提供的接口对设备进行操作。
 
 SDK 中可能依赖一些第三方库，例如：
 
-- **FreeImage**：用于图像加载与处理；
+- **OpenCV**：用于图像加载与处理；
 - **hidapi**：用于 USB 设备的数据传输与控制；
+- **giflib**：用于 处理动态图片 gif 的处理；
 - 其他系统相关库（如 libudev）。
 
 请根据自身平台及使用需求，参考第二节（Linux 构建）或第三节（Windows 构建），安装所需的依赖库并完成构建流程。
@@ -27,48 +28,44 @@ SDK 中可能依赖一些第三方库，例如：
 - **CMake**：构建系统
 - **libudev-dev**：用于监听 USB 设备插拔（仅限 Linux）
 - **libusb-1.0-0-dev**：hidapi 的底层依赖（使用 libusb 版本）
-- **hidapi**（libusb 版本）：用于与 USB HID 设备通信
+- **libgif-dev**：gif 图像处理
 
 #### 安装命令（适用于 Ubuntu / Debian）
 
 ```bash
 sudo apt update
 sudo apt install build-essential cmake
-sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
+sudo apt install -y libudev-dev libusb-1.0-0-dev=2:1.0.23-2build1 libgif-dev
 ```
 
-除此之外，SDK 还需要你安装 FreeImage 库。你可以访问以下仓库下载源码：👉 [https://github.com/xiaochufuji/FreeImage_clone](https://github.com/xiaochufuji/FreeImage_clone)) 进入 `FreeImage_clone` 文件夹后，执行以下命令进行编译和安装：
+除此之外，SDK 还需要你安装 OpenCV 库。
 
 ```bash
-make -f Makefile.fip
-sudo make -f Makefile.fip install
+sudo apt install libopencv-dev
 ```
 
-这些命令你都能在`Readme.linux`中看到
+当然你可以使用裁剪过后的 `OpenCV`库，具体裁剪可以使用 `CMake-GUI`或命令行的方式进行裁剪，裁剪的目标是读写大部分的图片类型并支持他们进行编码至 `BGR888`、`BGR565`、`jpeg`和 `png`类型，确保 `SDK`正常运行。如果你觉得裁剪麻烦，请直接根据上述命令直接安装即可。
 
 ### 2.2 构建步骤
 
 安装好依赖项后，进入项目主目录，你会看到如下结构：
+
 ```
 ├── bin
 ├── build
-├── build.bat
-├── build.sh
+├── cmake
 ├── CMakeLists.txt
-├── CMakePresets.json
-├── README.md
-└── StreamDock_CppSDK
+├── ImgProcesser
+├── lib
+├── src
+└── third_party
 ```
+
 你可以直接在命令行中执行以下命令进行构建：
 
 ```bash
-./build.sh
-```
-
-如果命令执行失败，请你使用`ll`命令查看`build.sh`的执行权限，给`build.sh`增加执行权限
-
-```
 chmod +x build.sh
+./build.sh
 ```
 
 当然你也可以使用自己的方式通过 CMake 构建，具体参数和配置可以查看 `build.sh` 脚本内容，自行构建。
@@ -76,7 +73,7 @@ chmod +x build.sh
 
 ### 2.3 运行示例
 
-进入`bin`目录， 然后使用管理员权限执行即可，当然你可以修改cmake可执行文件输出的路径，但是这个时候你需要注意代码中自己修改的图片文件的相对路径
+进入 `bin`目录， 然后使用管理员权限执行即可，如果此处你不希望使用sudo，就需要把你的设备添加到你的用户设备权限列表中，当然你可以修改cmake可执行文件输出的路径，但是这个时候你需要注意代码中自己修改的图片文件的相对路径
 
 ```
 sudo ./main
@@ -86,70 +83,72 @@ sudo ./main
 
 ## 3. 🪟 Windows 构建
 
-### 3.1 环境准备
+### 3.1 环境设置
 
-在 Windows 中，你并不需要安装太多的第三方库，因为我们已经提前将所需的库编译成了动态链接库，并放在了 `bin` 目录中。你只需要关注自己的环境配置即可。
+在 Windows 上，你不需要手动安装大多数第三方库。我们已经预编译了所需的 `.dll` 文件并将它们包含在 `bin` 目录中。
 
-我们的测试环境如下：
+测试环境：
 
 - 编译器：Visual Studio 17 2022
-- 语言标准：C++17（也支持更新版本）
+- 语言标准：C++17（也支持 C++20）
 
-如果你也是使用 Visual Studio 2022 且开启了 C++17 或更新的标准，那么你可以直接跳转到构建章节查看构建方法。
+如果你使用的是 Visual Studio 2022 且支持 C++17 或更新版本，可以直接跳转到构建说明。
 
-如果你的环境和我们的不同，请继续阅读本节内容了解构建步骤。
+否则，请阅读本节以获取更多指导。
 
-目前本 SDK 只使用 **MSVC 工具链** 进行了完整测试，因此我们推荐使用 **MSVC** 进行构建。
+此 SDK 仅使用 **MSVC** 工具链进行了测试。我们建议使用 MSVC 以确保完全兼容。
 
-在使用 CMake 构建时，可以通过 `-G` 参数显式指定构建器，例如：
+在 CMake 中指定生成器：
 
 ```bash
 cmake -B build -G "Visual Studio 17 2022" -A x64
 ```
 
-### 💡 关于 C++ 标准支持
+### 💡 关于 C++ 标准
 
-SDK 默认使用 **C++17** 进行开发和构建，原因是代码中使用了部分 C++17 的新特性（如 `std::filesystem`）。
+SDK 默认使用 C++17，因为使用了现代特性如 `std::filesystem`。
 
-如果你希望使用 **C++14** 或 **C++11** 进行构建，可以自行修改代码。修改量并不大，主要集中在 `std::filesystem` 的替换部分，改为传统文件路径操作即可。
-⚠️ 如果你希望使用 MinGW 或其他编译器构建本项目，请自行测试兼容性，我们未进行适配。
+如果你更喜欢使用 **C++14** 或 **C++11**，可以修改代码。大多数需要的更改涉及将 `std::filesystem` 的使用替换为传统文件处理。这可以启用旧标准。
+
+⚠️ 使用 MinGW 或其他编译器构建未经测试，不受官方支持。
+
+---
 
 ### 3.2 使用 CMake 构建
 
-你可以将整个工程文件夹（即 `bin` 目录的上一层目录）直接拖入 Visual Studio 2022 中。
+你可以将整个项目文件夹（`bin/` 上面的那个）拖入 Visual Studio 2022。
 
-此时 Visual Studio 会自动识别并配置 CMake 项目，你只需等待其完成加载和配置。
-
-配置完成后，按下以下任一快捷键进行构建：
+Visual Studio 将自动检测并配置 CMake 项目。配置完成后，使用以下快捷键进行构建：
 
 - `Ctrl + B`
 - `Ctrl + Shift + B`
 
-构建成功后，生成的可执行文件将位于 `bin` 目录下。
+输出可执行文件将在 `bin` 目录下生成。
 
-如果你不使用 Visual Studio 进行代码编辑或者更喜欢命令行方式，也可以使用 **Visual Studio 提供的命令行工具**：
+或者，你可以使用 Visual Studio 命令行进行构建：
 
 > `x64 Native Tools Command Prompt for VS 2022`
 
-进入项目文件夹后，执行以下命令：
+在项目目录中运行以下命令：
 
 ```bat
 build.bat
 ```
 
-这样也可以完成构建。
+这也会生成可执行文件。
+
+---
 
 ### 3.3 注意事项
 
-我们已经提前编译好了所有必要的第三方库，并在 SDK 中提供了完整的动态链接库，包括但不限于：
+我们已经预编译了所有必需的第三方库，并将它们包含在 SDK 的 `bin` 目录中：
 
-- `FreeImage.dll`
-- `FreeImagePlus.dll`
+- `opencv_core4120.dll`
+- `opencv_imgcodecs4120.dll`
+- `opencv_imgproc4120.dll`
 - `hidapi.dll`
 
-这些动态库都在bin文件夹中，你只需要在编译 SDK 后，将这些 `.dll` 文件与编译后生成的可执行程序放在同一目录下（例如 `bin/` 目录），即可正常运行程序，无需单独安装这些库。
-
----
+构建 SDK 后，只需将这些 `.dll` 文件复制到与可执行文件相同的目录中（例如 `bin/`），你就可以运行了 - 不需要额外安装。
 
 ## 4. ⚠️ 注意事项
 
@@ -172,7 +171,7 @@ make: *** [Makefile:91: all] Error 2
 sudo find / -name libhidapi-libusb.so.0
 ```
 
-假设说找到的路径为`/usr/lib/x86_64-linux-gnu/libhidapi-libusb.so.0`，那么你只需要使用如下命令进行替换即可:
+假设说找到的路径为 `/usr/lib/x86_64-linux-gnu/libhidapi-libusb.so.0`，那么你只需要使用如下命令进行替换即可:
 
 ```
 sudo cp ./lib/libhidapi-libusb.so.0 /usr/lib/x86_64-linux-gnu
@@ -199,10 +198,10 @@ sudo ./bin/main
 
 * 没有管理员权限将导致设备无法被正确访问。
 * **设备的 PID / VID 未在 SDK 中注册**
-  请打开项目中的 `ProductIDs.h` 文件，检查你的设备的 **PID（Product ID）** 和 **VID（Vendor ID）** 是否包含在其中。
+  请打开项目中的 `StreamDockXXX.h` 文件，检查你的设备的 **PID（Product ID）** 和 **VID（Vendor ID）** 是否包含在其中。
   如果不在列表中，请通过以下两种方式解决：
   1. 联系我们，我们可以协助你添加该设备；
-  2. 或者你也可以根据示例，自行在 `ProductIDs.h` 中添加你的设备信息。
+  2. 或者你也可以根据示例，自行模仿类中的 `bool`类型 `registerX`变量注册即可
 
 添加完成后重新编译即可识别。
 
@@ -210,26 +209,23 @@ sudo ./bin/main
 
 在设置设备图片时，SDK 通常为每种设备提供了两套接口函数：
 
-- 一个是 **带 `data` 参数** 的版本（直接传入图像数据）
-- 一个是 **不带 `data` 参数** 的版本（通过图像文件路径加载）
+- 一个是 **stream接口** 的版本（直接传入图像数据）
+- 一个是 **file接口** 的版本（通过图像文件路径加载）
 
-我们**强烈建议**优先使用 **不带 `data` 参数** 的版本。该方式更安全、更稳定，适用于大多数平台和设备。
+我们**强烈建议**优先使用 **file接口名** 的版本。该方式更安全、更稳定，适用于大多数平台和设备。
 
-#### ⚠️ 关于带 `data` 的接口函数
+#### ⚠️ 关于 `stream接口` 的接口函数
 
 - 这些函数主要用于兼容一些第三方图像处理库（如你自己读取并处理图像内存数据的场景）；
-- 除了旧型号设备（如 293）外，其他设备使用 `data` 接口的意义并不大；
-- 后续版本我们可能会增加一个新接口，支持直接内存流发送（`memory data`），提升图像传输速度；
-- **当前阶段仍优先推荐使用文件路径接口**。
 
-#### ⚠️ 使用 `data` 接口存在的风险
+#### ⚠️ 使用 `stream接口` 接口存在的风险
 
-使用带 `data` 参数的接口需要极其小心，如果参数填写不当，可能对设备造成较大，严重的需要返厂重新烧录固件程序，例如：
+使用 **stream接口**需要极其小心，如果参数填写不当，可能对设备造成较大，严重的需要返厂重新烧录固件程序，例如：
 
 - 图像数据越界导致设备内部卡死
 - 图像大小/格式错误导致写入失败
 
-因此，**请务必认真阅读 `StreamDock.h` 中相关函数的注释说明**，确保理解每个参数的含义及使用方式。
+因此，**请务必认真阅读 `streamdock.h` 中相关函数的注释说明**，确保理解每个参数的含义及使用方式。
 
 错误使用此接口，后果自负。
 
@@ -256,10 +252,10 @@ sudo ./bin/main
 
 #### 💡 ROM 与 RAM 操作差异
 
-- `setBackground()` —— 设置开机背景图，写入的是设备的 **ROM**：
+- `setBackgroundImgFile()` —— 设置开机背景图，写入的是设备的 **ROM**：
   - 写入速度较慢；
   - 但重启后仍然保留；
-- `setKeyImg()` —— 设置按键图标，写入的是设备的 **RAM**：
+- `setKeyImgFile()` —— 设置按键图标，写入的是设备的 **RAM**：
   - 写入速度较快；
   - 但断电后会丢失，需重新设置。
 
@@ -271,143 +267,124 @@ sudo ./bin/main
 
 本节提供一个完整的 SDK 使用示例，包括以下几个方面：
 
-- 枚举设备并打开
+- 枚举设备
 - 唤醒屏幕，设置亮度
-- 设置背景图片（文件 / 内存数据）
-- 设置按键图片（文件 / 内存数据）
+- 设置背景图片
+- 设置按键图片
 
 ---
 
-### 5.1 设置背景图片（使用文件路径）
+### 5.1 设置背景图片
 
 ```cpp
-void test1(const std::shared_ptr<StreamDock> &s, bool test)
-{
-    if (!test)
-        return;
-    s->setBackgroundImg("./img/YiFei320.png");
-    s->refresh();
-}
+device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // 在调用关联图片操作的接口时, 前提必须设置编码器
+device->setBackgroundImgFile("YiFei.jpg");                   // 设置开机 logo 为路径 ./YiFei.jpg 的静态图片
+device->refresh();
 ```
 
 使用本地图片路径设置背景图。推荐使用该方式，简单安全。
 
-### 5.2 设置背景图片（使用内存数据）
+### 5.2 设置按键图片
 
 ```cpp
-void test2(const std::shared_ptr<StreamDock> &s, bool test)
-{
-    if (!test)
-        return;
-    fipImage img;
-    img.load("./img/YiFei.png");
-    s->setBackgroundImgData(img.accessPixels(), RgbaFormat::RGBA, 800, 480);
-    s->refresh();
-}
+device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // 在调用关联图片操作的接口时, 前提必须设置编码器
+device->setKeyImgFile("YiFei.jpg", 9);                       // 在按键 9 的位置设置路径为 ./YiFei.jpg 的静态图片
+device->refresh();
 ```
 
-使用内存中加载的像素数据设置背景图。需要确保图像格式和尺寸匹配。
-⚠️ 图像格式和尺寸都为当前在内存中图像数据的格式和尺寸。
+为第 9 个按键位置设置图片，使用本地文件路径。
 
-### 5.3 设置按键图片（使用文件路径）
+### 5.3 设置按键动图（必须是 `bool isDualDevice = true;`）
 
 ```cpp
-void test3(const std::shared_ptr<StreamDock> &s, bool test)
-{
-    if (!test)
-        return;
-    s->setKeyImg("./img/tiga112.png", 3);
-    s->refresh();
-}
+device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // 在调用关联图片操作的接口时, 前提必须设置编码器
+device->gifer()->setKeyGifFile("1.gif", 1);                  // 在按键 1 的位置设置路径为 ./1.gif 的动态图片
+device->gifer()->startGifLoop();                             // 启动 gif 发送线程
 ```
 
-为第 3 个按键设置图片，使用本地文件路径。
-
-### 5.4 设置按键图片（使用内存数据）
+### 5.4 设置按键反馈回调处理
 
 ```cpp
-void test4(const std::shared_ptr<StreamDock> &s, bool test)
-{
-    if (!test)
-        return;
-    fipImage img;
-    img.load("./img/tiga112.png");
-    s->setKeyImgData(img.accessPixels(), 2, RgbaFormat::RGBA, 112, 112);
-    s->refresh();
-}
+device->reader()->startReadLoop();  // 调用注册按键读函数前或后, 必须开启读循环, 否则不会处理任何消息
+// 此处第一个参数为注册的按键实际值, 需要查找这个值的你需要去`HotspotDevice/StreamDockXXX.cpp`里面查找`_readValueMap`中的`key`值
+device->reader()->registerReadCallback(11, []()
+		{ ToolKit::print("Key 11 pressed"); }, RegisterEvent::EveryThing);
 ```
-
-为第 2 个按键设置图像像素数据。使用内存数据版本时，请特别注意格式正确性。
-⚠️ 图像格式和尺寸都为当前在内存中图像数据的格式和尺寸。
 
 ### 5.5 主函数入口：设备枚举与调用测试函数
 
 ```cpp
-int main()
-{
-    std::unique_ptr<DeviceManager> manager(new DeviceManager());
-	  auto streamDocks = manager->enumerate();
-	  std::cout << "find [" << streamDocks.size() << "] device" << "\n";
-	  manager->asyncListen();
-	  joining_thread j;
-	  for (auto it = streamDocks.begin(); it != streamDocks.end(); it++)
-	  {
-	  	// get device manager instance
-	  	auto s = it->second;
-	  	s->open();
-	  	s->init();
-	  	j = joining_thread(std::thread([](decltype(s) st) {
-	  		while (1)
-	  		{
-	  			auto a = st->read();
-	  			auto str = StreamDock::parseRead(a);
-	  			if (!str.empty()) std::cout << str << std::endl;
-	  		}
-	  		}, s));
-	  	test1(s, true);
-	  	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	  	test2(s, true);
-	  	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	  	test3(s, true);
-	  	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	  	test4(s, true);
-	  }
+ToolKit::disable_output = false;         // 禁用当前 sdk ToolKit打印
+StreamDock::disableOutput(false);        // 启动 Transport 库内部打印
+DeviceManager::instance().enumerator();  // 枚举当前可连接的 StreamDock 设备
+// 监听设备热插拔，并设置其连接回调处理
+DeviceManager::instance().listen([](std::shared_ptr<StreamDock> device) {
+	doSomething(device);                   // 热插设备后, 会触发此处 dosomething 函数
+	});
+auto& streamdocks = DeviceManager::instance().getStreamDocks(); // 获取当前可连接的所有 StreamDock 设备列表
+for (const auto& device : streamdocks) {
+	try {
+		doSomething(device.second);
+	}
+	catch (...) {
+		std::cerr << "something error" << std::endl;
+	}
 }
 ```
 
-🖼️ 示例图像文件请放置于 `bin/img/` 目录下。
+🖼️ 示例图像文件请放置于 `bin/img` 目录下。
 若出现找不到设备，请参考 [4.2 运行时找不到设备](#42-%E8%BF%90%E8%A1%8C%E6%97%B6%E6%89%BE%E4%B8%8D%E5%88%B0%E8%AE%BE%E5%A4%87-find-0-device)
 
 #### 🔍 函数说明
 
-* `open(AUTOREAD)`
-  在操作设备之前，必须先调用 `open()` 进行连接。
-  其中参数 `AUTOREAD` 的作用是自动开启设备的返回消息监听，例如：
-  
-  * 按键按下事件
-  * 设置背景图成功通知
-    如果你希望关闭自动读取功能，可以调用：
-    ```cpp
-    Transport::stopAutoRead();
-    ```
-* `init()`
-  该函数是自动唤醒、清屏、设置亮度、刷新一体的函数接口
-  通常可以用于`open()`函数之后
-* `asyncListen()`
-  该函数会启动异步设备监听，用于检测设备的插拔操作。
-  实际上是启动了一个线程调用了 `DeviceManager::listen()` 函数。
-* `DeviceManager::listen()` 支持一个布尔参数：
-    ```cpp
-    int listen(bool autoReconnect = false);
-    ```
-* `joining_thread`类
-  这个类自动帮助你在当前作用域将新开辟的线程join而无需太多关注线程的生命周期
-* 当 `autoReconnect = true` 时，监听到插入新设备后会自动执行 `open()` 和 `wakeScreen()`，在`open()`和`wakeup()`之后还有一行注释，你可以在此处增加你自己的重连后的逻辑；
-    ```cpp
-    // reconnect and do something here, like launch a singal to call a function
-    ```
-* 否则你需要手动处理设备插入逻辑。
+- `open(AUTOREAD)`
+  必须在使用设备前调用。
+  `AUTOREAD` 启用自动监听事件，例如：
 
-✅ 建议在主程序启动后立即调用 `asyncListen()`，以便动态响应设备插拔行为。
+  - 按键按下
+  - 图像更新成功
+    要停止自动读取：
+
+  ```cpp
+  Transport::stopAutoRead();
+  ```
+- `init()`
+  此函数作为一个一体化接口，用于自动唤醒、清除屏幕、设置亮度和刷新。
+  通常在 `open()` 函数后使用。
+- `asyncListen()`
+  启动后台线程来监控设备插拔。
+  它内部调用 `DeviceManager::listen()`。
+- `joining_thread` 类
+  这个类在当前作用域内自动 join 新创建的线程，使你无需手动管理线程的生命周期。
+- `listen(bool autoReconnect = false)`
+  如果 `autoReconnect = true`，它会在插入时自动调用 `open()` 和 `wakeScreen()`。
+  你可以在以下位置添加自定义重连逻辑：
+
+  ```cpp
+  // 在这里重新连接并执行某些操作，比如启动信号调用函数
+  ```
+
+✅ 我们建议在启动时调用 `asyncListen()` 来监控实时设备变化。
 
 ---
+
+## 6. 🆕 最新更新
+
+### 版本 1.0.2 - 2025-11-18
+
+#### 新增功能
+
+- 新增设备支持：XL ,M3 ,N3系列, M18;
+
+#### 依赖更新
+
+- C++17 及以上标准
+- [hidapi](https://github.com/libusb/hidapi) `v0.14.0`
+- [libusb-1.0](https://libusb.info/) `v1.0.27`
+- [libudev](https://github.com/systemd/systemd) `v245`（用于 Linux 设备监听）
+
+---
+
+## 7. 🔍 设备具体使用及快速上手
+
+请参考 `src/test.h`文件，本SDK最简单的用法就是直接跟着该文件的对应的设备进行修改即可
