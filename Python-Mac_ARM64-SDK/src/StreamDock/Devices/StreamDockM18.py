@@ -7,6 +7,25 @@ from ..ImageHelpers.PILHelper import *
 import random
 
 
+KEY_MAPPING = {
+    1: 11,
+    2: 12,
+    3: 13,
+    4: 14,
+    5: 15,
+    6: 6,
+    7: 7,
+    8: 8,
+    9: 9,
+    10: 10,
+    11: 1,
+    12: 2,
+    13: 3,
+    14: 4,
+    15: 5,
+}
+
+
 class StreamDockM18(StreamDock):
     KEY_MAP = False
 
@@ -16,6 +35,12 @@ class StreamDockM18(StreamDock):
     # 设置设备的屏幕亮度
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
+
+    def key(self, k):
+        if k in range(1, 16):
+            return KEY_MAPPING[k]
+        else:
+            return k
 
     # 设置设备的背景图片 480 * 272
     def set_touchscreen_image(self, path):
@@ -51,16 +76,9 @@ class StreamDockM18(StreamDock):
         try:
             origin = key
             key = self.key(key)
-            # assert
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-            if origin not in range(1, 15):
+            if origin not in range(1, 16):
                 print(f"key '{origin}' out of range. you should set (1 ~ 15)")
                 return -1
-            if origin in range(11, 15):
-                return self.set_seondscreen_image(origin, path)
-
             # open formatter
             image = Image.open(path)
             image = to_native_key_format(self, image)

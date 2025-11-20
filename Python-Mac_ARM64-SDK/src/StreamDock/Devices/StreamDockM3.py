@@ -7,58 +7,27 @@ from ..ImageHelpers.PILHelper import *
 import random
 
 KEY_MAPPING = {
-    1: 25,
-    2: 26,
-    3: 27,
-    4: 28,
-    5: 29,
-    6: 30,
-    7: 31,
-    8: 32,
-    9: 17,
-    10: 18,
-    11: 19,
-    12: 20,
-    13: 21,
-    14: 22,
-    15: 23,
-    16: 24,
-    17: 9,
-    18: 10,
-    19: 11,
-    20: 12,
-    21: 13,
-    22: 14,
-    23: 15,
-    24: 16,
-    25: 1,
-    26: 2,
-    27: 3,
-    28: 4,
-    29: 5,
-    30: 6,
-    31: 7,
-    32: 8,
+    1 : 11,  2 : 12,  3 : 13,  4 : 14,  5 : 15,
+    6 : 6,   7 : 7,   8 : 8,   9 : 9,   10 : 10,
+    11 : 1,  12 : 2,  13 : 3,  14 : 4,  15 : 5
 }
-
-
-class StreamDockXL(StreamDock):
+class StreamDockM3(StreamDock):
     KEY_MAP = False
-
-    def key(self, k):
-        if k in range(1, 33):
-            return KEY_MAPPING[k]
-        else:
-            return k
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
-
+        
+    def key(self, k):
+        if k in range(1, 16):
+            return KEY_MAPPING[k]
+        else:
+            return k
+    
     # 设置设备的屏幕亮度
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # 设置设备的背景图片 1024 * 600
+    # 设置设备的背景图片 480 * 272
     def set_touchscreen_image(self, path):
         try:
             # assert
@@ -87,13 +56,13 @@ class StreamDockXL(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 设置设备的按键图标 80 * 80
+    # 设置设备的按键图标 64 * 64
     def set_key_image(self, key, path):
         try:
             origin = key
             key = self.key(key)
-            if origin not in range(1, 33):
-                print(f"key '{origin}' out of range. you should set (1 ~ 32)")
+            if origin not in range(1, 16):
+                print(f"key '{origin}' out of range. you should set (1 ~ 15)")
                 return -1
             # open formatter
             image = Image.open(path)
@@ -124,16 +93,16 @@ class StreamDockXL(StreamDock):
 
     def key_image_format(self):
         return {
-            "size": (80, 80),
+            "size": (64, 64),
             "format": "JPEG",
-            "rotation": 180,
+            "rotation": 0,
             "flip": (False, False),
         }
 
     def touchscreen_image_format(self):
         return {
-            "size": (1024, 600),
+            "size": (480, 272),
             "format": "JPEG",
-            "rotation": 180,
+            "rotation": 0,
             "flip": (False, False),
         }
