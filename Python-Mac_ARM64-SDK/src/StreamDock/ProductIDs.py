@@ -70,6 +70,7 @@ from .Devices.StreamDockN4 import StreamDockN4
 from .Devices.StreamDockN1 import StreamDockN1
 from .Devices.StreamDockN4Pro import StreamDockN4Pro
 from .Devices.StreamDockXL import StreamDockXL
+from .Devices.StreamDockM18 import StreamDockM18
 
 g_products = [
     # 293 serial
@@ -98,7 +99,15 @@ g_products = [
     (USBVendorIDs.USB_VID_XL, USBProductIDs.USB_PID_STREAMDOCK_XL, StreamDockXL),
     (USBVendorIDs.USB_VID_XLEN, USBProductIDs.USB_PID_STREAMDOCK_XLEN, StreamDockXL),
     # M18/M18V2/M18V25/M18V3
-
+    (USBVendorIDs.USB_VID_M18, USBProductIDs.USB_PID_STREAMDOCK_M18, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18EN, USBProductIDs.USB_PID_STREAMDOCK_M18EN, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V2, USBProductIDs.USB_PID_STREAMDOCK_M18V2, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V2EN, USBProductIDs.USB_PID_STREAMDOCK_M18V2EN, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V25, USBProductIDs.USB_PID_STREAMDOCK_M18V25, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V25EN, USBProductIDs.USB_PID_STREAMDOCK_M18V25EN, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V3, USBProductIDs.USB_PID_STREAMDOCK_M18V3, StreamDockM18),
+    (USBVendorIDs.USB_VID_M18V3EN, USBProductIDs.USB_PID_STREAMDOCK_M18V3EN, StreamDockM18),
     # M3
+    
 
 ]
