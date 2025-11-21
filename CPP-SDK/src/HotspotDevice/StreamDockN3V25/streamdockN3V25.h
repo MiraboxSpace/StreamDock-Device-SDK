@@ -10,7 +10,7 @@ public:
 	explicit StreamDockN3V25(const hid_device_info &device_info);
 	virtual RegisterEvent dispatchEvent(uint8_t readValue, uint8_t eventValue) override;
 
-	void StreamDockN3V25::changeV2Mode()
+	void changeV2Mode()
 	{
 		_feature->isDualDevice = false;
 		_feature->supportBackGroundGif=false;
