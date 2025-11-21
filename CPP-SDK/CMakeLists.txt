@@ -30,6 +30,46 @@ set(TARGETNAME "main")
 option(BUILD_LIBHIDCPP_SHARED "Build shared libhidcpp libraries" ON)
 option(USE_SHARED_HIDAPI "Link with shared hidapi" ON)
 
+# 检查是否存在源代码文件，如果不存在则使用预编译库
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_c.cpp")
+    set(TRANSPORTDLL_USE_IMPORTED ON CACHE BOOL "Use prebuilt transport library instead of building from source" FORCE)
+    message(STATUS "Source files not found, using prebuilt transport library")
+    
+    # 检查预编译库是否存在
+    if(WIN32)
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport.dll" AND
+           NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transportd.dll")
+            message(FATAL_ERROR "Prebuilt transport DLL not found in ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/")
+        endif()
+    elseif(APPLE)
+        # 检查 macOS 架构
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+            # ARM macOS
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.dylib")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.dylib")
+            endif()
+        else()
+            # Intel macOS
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport.dylib")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport.dylib")
+            endif()
+        endif()
+    elseif(UNIX AND NOT APPLE)
+        # 检查 Linux 架构
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+            # ARM Linux
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
+            endif()
+        else()
+            # x86_64 Linux
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport.so")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport.so")
+            endif()
+        endif()
+    endif()
+endif()
+
 # 可执行程序生成路径 - 分离 Debug 和 Release
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/bin/Release)
@@ -76,8 +116,8 @@ add_executable(${TARGETNAME}
     "src/ToolKit/toolkit.h"
 )
 
-# 链接 
-target_link_libraries(${TARGETNAME} PRIVATE TransportCWrapper ImgProcesser) # 依赖库
+# 链接
+target_link_libraries(${TARGETNAME} PRIVATE TransportCWrapper ImgProcesser TransportDLL) # 依赖库
 target_include_directories(${TARGETNAME} # 依赖头文件
     PRIVATE
     "src"

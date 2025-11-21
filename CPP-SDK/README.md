@@ -153,7 +153,47 @@ We've precompiled all required third-party libraries and included them in the SD
 
 After building the SDK, simply copy these `.dll` files into the same directory as the executable (e.g., `bin/`), and you're ready to run — no extra installation needed.
 
-## 4. ⚠️ Troubleshooting
+---
+
+## 4. 🍎 macOS Build
+
+### 4.1 Dependencies Installation
+
+On macOS, the SDK includes pre-built OpenCV libraries for macOS. Before building, you need to prepare the OpenCV dependencies.
+
+Navigate to the `ImgProcesser/third_party` directory and run the following script to create symbolic links for OpenCV libraries:
+
+```bash
+bash link_opencv_symlinks.sh
+```
+
+This script will create the necessary symlinks in `opencv/mac/lib` to allow CMake to properly locate the OpenCV libraries.
+
+### 4.2 Build Steps
+
+After preparing the dependencies, go to the project root directory. You will see the following structure:
+
+```
+├── bin
+├── build
+├── cmake
+├── CMakeLists.txt
+├── ImgProcesser
+├── lib
+├── src
+└── third_party
+```
+
+Run the following command to build:
+
+```bash
+chmod +x build.sh
+./build.sh
+```
+
+You can also build manually using CMake. Refer to `build.sh` for configuration details.
+
+## 5. ⚠️ Troubleshooting
 
 ### 4.1 Compile Error: undefined reference to `hid_get_input_report`
 
@@ -195,14 +235,15 @@ No connected devices were found.
 
 - **Insufficient permissions on Linux**
   Run the executable with `sudo`:
-  
+
   ```bash
   sudo ./bin/main
   ```
+
   Lack of administrator privileges will prevent the device from being accessed correctly.
 - **Device PID/VID not registered**
   Check the `StreamDockXXX.h` file to confirm your device's PID/VID is listed. If not:
-  
+
   1. Contact us to add your device;
   2. Or manually add your device entry based on existing examples by imitating the `bool` type `registerX` variable in the class.
 
@@ -343,11 +384,11 @@ If no devices are found, please refer to [4.2 Device Not Found](#42-device-not-f
 - `open(AUTOREAD)`
   Must be called before using the device.
   `AUTOREAD` enables automatic listening to events such as:
-  
+
   - Button press
   - Image update success
     To stop auto-read:
-  
+
   ```cpp
   Transport::stopAutoRead();
   ```
@@ -362,7 +403,7 @@ If no devices are found, please refer to [4.2 Device Not Found](#42-device-not-f
 - `listen(bool autoReconnect = false)`
   If `autoReconnect = true`, it will auto-call `open()` and `wakeScreen()` on insert.
   You can add custom reconnection logic at:
-  
+
   ```cpp
   // reconnect and do something here, like launch a signal to call a function
   ```

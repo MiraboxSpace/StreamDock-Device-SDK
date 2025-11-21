@@ -1,4 +1,4 @@
-#include "StreamDockXL.h"
+#include "streamdockXL.h"
 #include <iostream>
 
 static constexpr auto VID_STREAMDOCK_XL = 0x5548;

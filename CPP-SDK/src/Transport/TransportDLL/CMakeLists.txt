@@ -1,8 +1,25 @@
-option(TRANSPORTDLL_USE_IMPORTED "Use prebuilt transport library instead of building from source" ON)
+option(TRANSPORTDLL_USE_IMPORTED "Use prebuilt transport library instead of building from source" OFF)
+
+# 根据平台和架构设置库名称后缀
+if(WIN32)
+    set(TRANSPORT_ARCH_SUFFIX "")
+elseif(APPLE)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+        set(TRANSPORT_ARCH_SUFFIX "_arm64")
+    else()
+        set(TRANSPORT_ARCH_SUFFIX "")
+    endif()
+elseif(UNIX AND NOT APPLE)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+        set(TRANSPORT_ARCH_SUFFIX "_arm64")
+    else()
+        set(TRANSPORT_ARCH_SUFFIX "")
+    endif()
+endif()
 
 if(NOT TRANSPORTDLL_USE_IMPORTED)
     message(STATUS "BUILD TRANSPORT LIBRARY WITH SOURCE CODE")
-    set(TRANSPORT_TRAGET "transport")
+    set(TRANSPORT_TRAGET "transport${TRANSPORT_ARCH_SUFFIX}")
 
     add_library(TransportDLL SHARED
         transport_c.cpp
@@ -28,8 +45,8 @@ if(NOT TRANSPORTDLL_USE_IMPORTED)
         target_compile_definitions(TransportDLL PRIVATE TRANSPORTDLL_EXPORTS) # 导出函数设置
         target_compile_definitions(TransportDLL PRIVATE _AMD64_)
         set_target_properties(TransportDLL PROPERTIES
-            OUTPUT_NAME_DEBUG "transportd"
-            OUTPUT_NAME_RELEASE "transport"
+            OUTPUT_NAME_DEBUG "transportd${TRANSPORT_ARCH_SUFFIX}"
+            OUTPUT_NAME_RELEASE "transport${TRANSPORT_ARCH_SUFFIX}"
         )
         # 从源码编译时，DLL会自动输出到 CMAKE_RUNTIME_OUTPUT_DIRECTORY
         # 但为了确保DLL在正确位置，添加额外的复制命令
@@ -53,6 +70,13 @@ if(NOT TRANSPORTDLL_USE_IMPORTED)
             ${IOKIT_FRAMEWORK}
             ${APPLICATIONSERVICES_FRAMEWORK}
         )
+    elseif(UNIX AND NOT APPLE)
+        # Linux下需要确保符号被正确导出
+        target_compile_options(TransportDLL PRIVATE -fvisibility=hidden)
+        target_compile_definitions(TransportDLL PRIVATE TRANSPORTDLL_EXPORTS)
+        set_target_properties(TransportDLL PROPERTIES
+            LINK_FLAGS "-Wl,--no-undefined"
+        )
     endif()
 
 else()
@@ -60,19 +84,19 @@ else()
     add_library(TransportDLL SHARED IMPORTED GLOBAL)
 
     if(WIN32)
-        # do nothing 
+        # do nothing
     elseif(APPLE)
-        set(TRANSPORT_LIB_FILENAME "libtransport.dylib")
+        set(TRANSPORT_LIB_FILENAME "libtransport${TRANSPORT_ARCH_SUFFIX}.dylib")
     elseif(UNIX AND NOT APPLE)
-        set(TRANSPORT_LIB_FILENAME "libtransport.so")
+        set(TRANSPORT_LIB_FILENAME "libtransport${TRANSPORT_ARCH_SUFFIX}.so")
     endif()
 
     if(WIN32)
         set_target_properties(TransportDLL PROPERTIES
-            IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_LIST_DIR}/transportd.lib"
-            IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_LIST_DIR}/transportd.dll"
-            IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_LIST_DIR}/transport.lib"
-            IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/transport.dll"
+            IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_LIST_DIR}/transportd${TRANSPORT_ARCH_SUFFIX}.lib"
+            IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_LIST_DIR}/transportd${TRANSPORT_ARCH_SUFFIX}.dll"
+            IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_LIST_DIR}/transport${TRANSPORT_ARCH_SUFFIX}.lib"
+            IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/transport${TRANSPORT_ARCH_SUFFIX}.dll"
             INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}"
         )
         # 拷贝已编译的 transport 动态库到运行目录（支持分离的 Debug/Release 目录）
@@ -80,17 +104,17 @@ else()
         add_custom_target(copy_transport_dll_debug
             COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Debug"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_LIST_DIR}/transportd.dll"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Debug/transportd.dll"
-            COMMENT "📦 Copying prebuilt transportd.dll to bin/Debug"
+            "${CMAKE_CURRENT_LIST_DIR}/transportd${TRANSPORT_ARCH_SUFFIX}.dll"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Debug/transportd${TRANSPORT_ARCH_SUFFIX}.dll"
+            COMMENT "📦 Copying prebuilt transportd${TRANSPORT_ARCH_SUFFIX}.dll to bin/Debug"
         )
         # Release 配置
         add_custom_target(copy_transport_dll_release
             COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Release"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_LIST_DIR}/transport.dll"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Release/transport.dll"
-            COMMENT "📦 Copying prebuilt transport.dll to bin/Release"
+            "${CMAKE_CURRENT_LIST_DIR}/transport${TRANSPORT_ARCH_SUFFIX}.dll"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Release/transport${TRANSPORT_ARCH_SUFFIX}.dll"
+            COMMENT "📦 Copying prebuilt transport${TRANSPORT_ARCH_SUFFIX}.dll to bin/Release"
         )
     else()
         set_target_properties(TransportDLL PROPERTIES
