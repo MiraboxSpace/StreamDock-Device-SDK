@@ -59,9 +59,9 @@ elseif(APPLE)
     target_link_libraries(ImgProcesser PUBLIC gif_lib OpenCV)
 elseif(UNIX AND NOT APPLE)
     message(STATUS "OpenCV include dirs: ${OpenCV_INCLUDE_DIRS}")
-    target_link_libraries(ImgProcesser PRIVATE gif ${OpenCV_LIBS})
+    target_link_libraries(ImgProcesser PUBLIC gif ${OpenCV_LIBS})
     target_include_directories(ImgProcesser PUBLIC ${OpenCV_INCLUDE_DIRS})
-    message(STATUS ${OpenCV_LIBS})
+    message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
 endif()
 
 # Windows预编译OpenCV库文件拷贝

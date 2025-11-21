@@ -25,7 +25,7 @@ add_subdirectory(TransportDLL)
 # TransportCWrapper 使用 TransportDLL 提供的 API
 add_library(TransportCWrapper STATIC TransportCWrapper.cpp)
 
-# 链接 C wrapper 动态库 和 hidapi 库Add commentMore actions
+# 链接 C wrapper 动态库 和 hidapi 库
 target_link_libraries(TransportCWrapper
     PUBLIC hidapi::hidapi
     PRIVATE TransportDLL
