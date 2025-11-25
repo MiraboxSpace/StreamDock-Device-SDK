@@ -46,6 +46,8 @@ StreamDockN1::StreamDockN1(const hid_device_info& device_info)
 	_info->keyHeight = 96;
 	_info->minKey = 1;
 	_info->maxKey = 15;
+	_info->width = 480;
+	_info->height = 854;
 	_info->key_rotate_angle = 0.0f;
 	_info->bg_rotate_angle = 0.0f;
 	_feature->isDualDevice = true;
