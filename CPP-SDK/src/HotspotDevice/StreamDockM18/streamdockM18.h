@@ -7,6 +7,7 @@ class StreamDockM18 : public StreamDock
 public:
 	explicit StreamDockM18(const hid_device_info &device_info);
 	virtual RegisterEvent dispatchEvent(uint8_t readValue, uint8_t eventValue) override;
+	void changeFirmwareVersionMode();
 	void changeV2Mode();
 private:
 	static bool registered_M18;

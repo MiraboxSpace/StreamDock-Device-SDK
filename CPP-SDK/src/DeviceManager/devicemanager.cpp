@@ -29,36 +29,6 @@ void DeviceManager::enumerator()
 			if (dock->info())
 			{
 				dock->info()->firmwareVersion = dock->getFirmwareVersion();
-				if (dock->getFirmwareVersion().find("V2.M18") != std::string::npos)
-				{
-					if (StreamDockM18 *dev = dynamic_cast<StreamDockM18 *>(dock.get()))
-					{
-						dev->changeV2Mode();
-						std::wcout << "StreamDockM18V2: " << dev->info()->serialNumber << std::endl;
-					}
-				}
-				else if (dock->getFirmwareVersion().find("V25.M18") != std::string::npos)
-				{
-					if (StreamDockM18 *dev = dynamic_cast<StreamDockM18 *>(dock.get()))
-					{
-						dev->changeV2Mode();
-						std::wcout << "StreamDockM18V25: " << dev->info()->serialNumber << std::endl;
-					}
-				}
-				else if (dock->getFirmwareVersion().find("M18") != std::string::npos)
-					std::wcout << "StreamDockM18: " << dock->info()->serialNumber << std::endl;
-				else if (dock->getFirmwareVersion().find("V25.N3") != std::string::npos)
-				{
-					if (StreamDockN3V25 *dev = dynamic_cast<StreamDockN3V25 *>(dock.get()))
-					{
-						dev->changeV2Mode();
-						std::wcout << "StreamDockN3V25: " << dev->info()->serialNumber << std::endl;
-					}
-				}
-				else if (dock->getFirmwareVersion().find("V3.N3") != std::string::npos)
-					std::wcout << "StreamDockN3V3: " << dock->info()->serialNumber << std::endl;
-				else if (dock->getFirmwareVersion().find("N3") != std::string::npos)
-					std::wcout << "StreamDockN3: " << dock->info()->serialNumber << std::endl;
 				ToolKit::print("Firmware Version:", dock->getFirmwareVersion());
 			}
 			streamdocks_[device->_path] = std::move(dock);

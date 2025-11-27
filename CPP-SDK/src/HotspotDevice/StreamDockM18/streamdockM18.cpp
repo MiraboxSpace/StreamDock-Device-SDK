@@ -8,32 +8,32 @@ static constexpr auto VID_STREAMDOCK_M18E = 0x6603;
 static constexpr auto PID_STREAMDOCK_M18E = 0x1012;
 
 bool StreamDockM18::registered_M18 = []()
-	{
-		StreamDockFactory::instance().registerDevice(VID_STREAMDOCK_M18, PID_STREAMDOCK_M18,
-			[](const hid_device_info& device_info)
-			{
-				auto device = std::make_unique<StreamDockM18>(device_info);
-				device->init();
-				device->initImgHelper();
-				return device;
-			});
-		return true;
-	}();
+{
+	StreamDockFactory::instance().registerDevice(VID_STREAMDOCK_M18, PID_STREAMDOCK_M18,
+												 [](const hid_device_info &device_info)
+												 {
+													 auto device = std::make_unique<StreamDockM18>(device_info);
+													 device->init();
+													 device->initImgHelper();
+													 return device;
+												 });
+	return true;
+}();
 
 bool StreamDockM18::registered_M18E = []()
-	{
-		StreamDockFactory::instance().registerDevice(VID_STREAMDOCK_M18E, PID_STREAMDOCK_M18E,
-			[](const hid_device_info& device_info)
-			{
-				auto device = std::make_unique<StreamDockM18>(device_info);
-				device->init();
-				device->initImgHelper();
-				return device;
-			});
-		return true;
-	}();
+{
+	StreamDockFactory::instance().registerDevice(VID_STREAMDOCK_M18E, PID_STREAMDOCK_M18E,
+												 [](const hid_device_info &device_info)
+												 {
+													 auto device = std::make_unique<StreamDockM18>(device_info);
+													 device->init();
+													 device->initImgHelper();
+													 return device;
+												 });
+	return true;
+}();
 
-StreamDockM18::StreamDockM18(const hid_device_info& device_info)
+StreamDockM18::StreamDockM18(const hid_device_info &device_info)
 	: StreamDock(device_info)
 {
 	_transport->setReportSize(513, 1025, 0);
@@ -53,6 +53,7 @@ StreamDockM18::StreamDockM18(const hid_device_info& device_info)
 	_feature->isDualDevice = true;
 	_feature->hasRGBLed = true;
 	_feature->ledCounts = 24;
+	// clang-format off
 	_readValueMap = {
 		/// Normal keys, starting from the bottom-left corner, counted left to right and bottom to top, correspond to keys 1 to 15
 		{1, 0x0B}, {2, 0x0C}, {3, 0x0D}, {4, 0x0E}, {5, 0x0F},
@@ -61,11 +62,14 @@ StreamDockM18::StreamDockM18(const hid_device_info& device_info)
 		/// The following three buttons, from left to right, are 25, 30, and 31
 		{16,0x25}, {17,0x30}, {18,0x31}
 	};
+	// clang-format on
+	changeFirmwareVersionMode();
 }
 
-void StreamDockM18::changeV2Mode(){
+void StreamDockM18::changeV2Mode()
+{
 	_feature->isDualDevice = false;
-	_feature->supportBackGroundGif=false;
+	_feature->supportBackGroundGif = false;
 }
 
 RegisterEvent StreamDockM18::dispatchEvent(uint8_t readValue, uint8_t eventValue)
@@ -79,4 +83,43 @@ RegisterEvent StreamDockM18::dispatchEvent(uint8_t readValue, uint8_t eventValue
 	else if ((0x25 <= readValue && readValue <= 0x31) && eventValue == 0x01)
 		return RegisterEvent::KeyPress; /// Bottom button press event
 	return RegisterEvent::EveryThing;
+}
+
+void StreamDockM18::changeFirmwareVersionMode()
+{
+	auto changeV2Mode = [this]
+	{
+		_feature->isDualDevice = false;
+		_feature->supportBackGroundGif = false;
+		_feature->hasRGBLed = false;
+	};
+
+	auto changeV25Mode = [this]
+	{
+		_feature->isDualDevice = true;
+		_feature->supportBackGroundGif = false;
+		_feature->hasRGBLed = false;
+	};
+
+	auto changeV3Mode = [this, changeV25Mode]
+	{
+		changeV25Mode();
+	};
+
+	std::string firmwareVersion = getFirmwareVersion();
+	if (firmwareVersion.find("V2.M18") != std::string::npos)
+	{
+		changeV2Mode();
+		std::wcout << "StreamDockM18V2: " << _info->serialNumber << std::endl;
+	}
+	else if (firmwareVersion.find("V25.M18") != std::string::npos)
+	{
+		changeV25Mode();
+		std::wcout << "StreamDockM18V25: " << _info->serialNumber << std::endl;
+	}
+	else if (firmwareVersion.find("V3.M18") != std::string::npos)
+	{
+		changeV3Mode();
+		std::wcout << "StreamDockM18V3: " << _info->serialNumber << std::endl;
+	}
 }
