@@ -15,12 +15,6 @@ bool StreamDockN4Pro::registered_N4Pro = []()
 				auto device = std::make_unique<StreamDockN4Pro>(device_info);
 				device->init();
 				device->initImgHelper();
-				auto firmwareVersion = device->getFirmwareVersion();
-				if (firmwareVersion.size() == 0)
-				{
-					std::cout << "StreamDockN4Pro Firmware Version: " << "unknown" << std::endl;
-				}
-				std::cout << "StreamDockN4Pro Firmware Version: " << firmwareVersion << std::endl;
 				return device;
 			});
 		return true;
