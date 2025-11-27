@@ -77,6 +77,9 @@ if(NOT TRANSPORTDLL_USE_IMPORTED)
         set_target_properties(TransportDLL PROPERTIES
             LINK_FLAGS "-Wl,--no-undefined"
         )
+        # 添加 pthread 库链接
+        find_package(Threads REQUIRED)
+        target_link_libraries(TransportDLL PRIVATE Threads::Threads)
     endif()
 
 else()
