@@ -35,7 +35,7 @@ Before building the SDK, make sure the following dependencies are installed:
 ```bash
 sudo apt update
 sudo apt install build-essential cmake
-sudo apt install -y libudev-dev libusb-1.0-0-dev=2:1.0.23-2build1 libgif-dev
+sudo apt install -y libudev-dev libusb-1.0-0-dev libgif-dev
 ```
 
 Additionally, the SDK requires the OpenCV library.

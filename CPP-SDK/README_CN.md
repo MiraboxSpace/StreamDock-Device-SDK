@@ -35,7 +35,7 @@ SDK 中可能依赖一些第三方库，例如：
 ```bash
 sudo apt update
 sudo apt install build-essential cmake
-sudo apt install -y libudev-dev libusb-1.0-0-dev=2:1.0.23-2build1 libgif-dev
+sudo apt install -y libudev-dev libusb-1.0-0-dev libgif-dev
 ```
 
 除此之外，SDK 还需要你安装 OpenCV 库。
