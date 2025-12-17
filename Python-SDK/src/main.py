@@ -51,6 +51,9 @@ def main():
             device.set_key_image(i, "img/button_test.jpg")
             device.refresh()
         time.sleep(0.5)
+        if isinstance(device, StreamDockN4Pro):
+            device.set_led_brightness(100)
+            device.set_led_color(0, 0, 255)
         device.set_key_callback(key_callback)
         
 
