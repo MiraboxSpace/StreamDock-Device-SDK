@@ -137,7 +137,10 @@ class StreamDockXL(StreamDock):
             "rotation": 180,
             "flip": (False, False),
         }
+
     # 设置设备参数
     def set_device(self):
         self.transport.set_report_size(513, 1025, 0)
+        self.feature_option.hasRGBLed = True
+        self.feature_option.ledCounts = 6
         pass

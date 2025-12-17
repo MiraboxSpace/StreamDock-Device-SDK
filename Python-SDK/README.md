@@ -2,11 +2,11 @@
 
 ## Supported Platforms
 
-| Platform            | Support Status | Description                                   |
-| ------------------- | -------------- | --------------------------------------------- |
-| Linux (x64, arm64)  | ✅ Supported   | Ubuntu 20.04+ recommends using pyudev for device monitoring |
-| Windows (x64)       | ✅ Supported   | Supports WMI and polling mode                 |
-| macOS (x64, arm64)  | ✅ Supported   | Uses polling mode for device monitoring       |
+| Platform           | Support Status | Description                                                 |
+| ------------------ | -------------- | ----------------------------------------------------------- |
+| Linux (x64, arm64) | ✅ Supported   | Ubuntu 20.04+ recommends using pyudev for device monitoring |
+| Windows (x64)      | ✅ Supported   | Supports WMI and polling mode                               |
+| macOS (x64, arm64) | ✅ Supported   | Uses polling mode for device monitoring                     |
 
 ## Installation Guide
 
@@ -75,67 +75,71 @@ from StreamDock.Devices.StreamDockN4Pro import StreamDockN4Pro
 import threading
 import time
 
+
 def key_callback(device, key, state):
-    """Key event callback function"""
-    action = "pressed" if state == 1 else "released"
-    print(f"Key {key} was {action}", flush=True)
+    try:
+        action = "pressed" if state == 1 else "released"
+        print(f"Key {key} was {action}", flush=True)
+    except Exception as e:
+        print(f"Key callback error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
 
 def main():
-    # Create device manager
-    manager = DeviceManager()
+    # Wait a moment to ensure previous instances release resources
+    time.sleep(0.5)
 
-    # Enumerate all connected Stream Dock devices
-    streamdocks = manager.enumerate()
+    manner = DeviceManager()
+    streamdocks = manner.enumerate()
 
     if not streamdocks:
         print("No Stream Dock device found")
         return
 
-    # Start device listening thread (supports hotplug)
-    listen_thread = threading.Thread(target=manager.listen)
-    listen_thread.daemon = True
-    listen_thread.start()
+    # Listen for device plug/unplug
+    t = threading.Thread(target=manner.listen)
+    t.daemon = True
+    t.start()
 
-    print(f"Found {len(streamdocks)} Stream Dock device(s)")
+    print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
 
-    # Iterate through and initialize each device
     for device in streamdocks:
+        # Open device
         try:
-            # Open and initialize device
             device.open()
             device.init()
-
-            # Display device information
-            print(f"Device path: {device.path}")
-            print(f"Firmware version: {device.firmware_version}")
-            print(f"Serial number: {device.serial_number}")
-
-            # Set touchscreen background image
-            device.set_touchscreen_image("img/background.png")
-
-            # Set key icons
-            for i in range(1, 5):  # Set icons for first 4 keys
-                device.set_key_image(i, f"img/button_{i}.jpg")
-
-            # Refresh screen display
-            device.refresh()
-
-            # Register key event callback
-            device.set_key_callback(key_callback)
-
         except Exception as e:
-            print(f"Failed to initialize device: {e}")
+            print(f"Failed to open device: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+        print(f"path: {device.path}, firmware_version: {device.firmware_version} serial_number: {device.serial_number}")
+        # Set background image
+        res = device.set_touchscreen_image("img/backgroud_test.png")
+        device.refresh()
+        time.sleep(2)
+        for i in range(1,2):
+            device.set_key_image(i, "img/button_test.jpg")
+            device.refresh()
+        time.sleep(0.5)
+        if isinstance(device, StreamDockN4Pro):
+            device.set_led_brightness(100)
+            device.set_led_color(0, 0, 255)
+        device.set_key_callback(key_callback)
 
     print("Program is running, press Ctrl+C to exit...")
-
     try:
-        # Main loop
         while True:
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("\nShutting down devices...")
+    except Exception as e:
+        print(f"\nMain loop exception: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        # Clean up resources
+        # Ensure all devices are properly closed
         for device in streamdocks:
             try:
                 device.close()
@@ -144,7 +148,16 @@ def main():
         print("Program exited")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as e:
+        print(f"\nProgram terminated by SystemExit: {e}")
+        import traceback
+        traceback.print_exc()
+    except Exception as e:
+        print(f"\nUncaught exception: {e}")
+        import traceback
+        traceback.print_exc()
 ```
 
 ### Basic Steps Explanation
@@ -154,21 +167,18 @@ if __name__ == "__main__":
    ```python
    from StreamDock.DeviceManager import DeviceManager
    ```
-
 2. **Enumerate devices**
 
    ```python
    manager = DeviceManager()
    devices = manager.enumerate()
    ```
-
 3. **Open and initialize device**
 
    ```python
    device.open()
    device.init()
    ```
-
 4. **Set images**
 
    ```python
@@ -181,8 +191,14 @@ if __name__ == "__main__":
    # Refresh display
    device.refresh()
    ```
+5. **LED Control (e.g. N4 Pro)**
 
-5. **Listen for key events**
+   ```python
+   if isinstance(device, StreamDockN4Pro):
+       device.set_led_brightness(100)  # Set LED brightness (0-100)
+       device.set_led_color(0, 0, 255)  # Set LED color (R, G, B)
+   ```
+6. **Listen for key events**
 
    ```python
    def key_callback(device, key, state):
@@ -191,8 +207,7 @@ if __name__ == "__main__":
 
    device.set_key_callback(key_callback)
    ```
-
-6. **Clean up resources**
+7. **Clean up resources**
 
    ```python
    device.close()
@@ -210,10 +225,10 @@ if __name__ == "__main__":
 
 Only newer platforms support **asynchronous response** to key events and device response events:
 
-| Platform                                 | Listen to keys while setting images | Notes             |
-| ---------------------------------------- | ----------------------------------- | ----------------- |
-| 293V3 / N4 / N4Pro / XL / M18 / M3       | ✅ Supported                        | Multi-tasking     |
-| 293 / 293s                               | ❌ Not supported                    | Must wait for operation completion |
+| Platform                           | Listen to keys while setting images | Notes                              |
+| ---------------------------------- | ----------------------------------- | ---------------------------------- |
+| 293V3 / N4 / N4Pro / XL / M18 / M3 | ✅ Supported                        | Multi-tasking                      |
+| 293 / 293s                         | ❌ Not supported                    | Must wait for operation completion |
 
 On older devices (like 293 and 293s), when calling `set_key_image` or `set_touchscreen_image`, the device cannot simultaneously respond to key operations.
 

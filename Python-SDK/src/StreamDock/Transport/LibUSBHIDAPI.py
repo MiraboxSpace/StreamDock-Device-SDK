@@ -559,13 +559,14 @@ class LibUSBHIDAPI:
         """
         if not self._handle:
             return
-        _transport_lib.transport_set_led_color(self._handle, count, r, g, b)
+        res = _transport_lib.transport_set_led_color(self._handle, count, r, g, b)
 
-    def reset_led_color(self) -> None:
+    def reset_led_color(self) -> None|int:
         """Reset LED colors to default."""
         if not self._handle:
             return
-        _transport_lib.transport_reset_led_color(self._handle)
+        res = _transport_lib.transport_reset_led_color(self._handle)
+        return res
 
     # ========== Device Configuration ==========
 

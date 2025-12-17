@@ -8,6 +8,8 @@ import ctypes.util
 import threading
 import traceback
 from typing import Optional
+
+from ..FeatrueOption import FeatrueOption
 from ..Transport.LibUSBHIDAPI import LibUSBHIDAPI
 
 
@@ -76,6 +78,8 @@ class StreamDock(ABC):
     __metaclass__ = ABCMeta
     __seconds = 300
 
+    feature_option: FeatrueOption
+
     def __init__(self, transport1: LibUSBHIDAPI, devInfo):
         self.transport = transport1
         self.vendor_id = devInfo["vendor_id"]
@@ -85,7 +89,7 @@ class StreamDock(ABC):
         self.firmware_version = ""
         self.read_thread = None
         self.run_read_thread = False
-
+        self.feature_option = FeatrueOption()
         self.key_callback = None
         # CRITICAL: Add lock to protect callback access in multi-threaded environment
         self._callback_lock = threading.Lock()
@@ -154,7 +158,22 @@ class StreamDock(ABC):
     @abstractmethod
     def set_device(self):
         pass
-    
+
+    # 设置设备的LED亮度
+    def set_led_brightness(self, percent):
+        if self.feature_option.hasRGBLed:
+            return self.transport.set_led_brightness(percent)
+
+    # 设置设备的LED颜色
+    def set_led_color(self, r, g, b):
+        if self.feature_option.hasRGBLed:
+            return self.transport.set_led_color(self.feature_option.ledCounts, r, g, b)
+
+    # 重置设备的LED效果
+    def reset_led_effect(self):
+        if self.feature_option.hasRGBLed:
+            return self.transport.reset_led_color()
+
     # 关闭设备
     def close(self):
         # print(f"[DEBUG] 关闭设备: {self.path}")
@@ -177,7 +196,6 @@ class StreamDock(ABC):
             self.transport.close()
         except Exception as e:
             print(f"[WARNING] 关闭transport时出错: {e}")
-        
         # Clear callback to break any circular references
         with self._callback_lock:
             self.key_callback = None
@@ -326,21 +344,22 @@ class StreamDock(ABC):
                                     new = 0
                                 if new == 0x01:
                                     new = 1
-                                
+
                                 # CRITICAL: Thread-safe callback invocation with proper isolation
                                 # Make copies of everything BEFORE acquiring lock to minimize lock time
                                 key_copy = int(k) if isinstance(k, int) else k
                                 state_copy = int(new)
-                                
+
                                 # Get callback reference with lock
                                 with self._callback_lock:
                                     callback = self.key_callback
-                                
+
                                 # Call callback OUTSIDE of lock to avoid deadlocks
                                 if callback is not None:
                                     try:
                                         # Import threading to ensure GIL is properly managed
                                         import threading
+
                                         # Call callback - Python threading will handle GIL
                                         callback(self, key_copy, state_copy)
                                     except Exception as callback_error:
@@ -350,7 +369,9 @@ class StreamDock(ABC):
                                         )
                                         traceback.print_exc()
                             except Exception as key_error:
-                                print(f"处理按键数据时发生错误: {key_error}", flush=True)
+                                print(
+                                    f"处理按键数据时发生错误: {key_error}", flush=True
+                                )
                                 traceback.print_exc()
                     # else:
                     #     print("read control", arr)
