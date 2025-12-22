@@ -207,7 +207,7 @@ class StreamDock(ABC):
         self.transport.disconnected()
 
     # 清除某个按键的图标
-    def cleaerIcon(self, index):
+    def clearIcon(self, index):
         origin = index
         index = self.key(index)
         if index not in range(1, 16):
