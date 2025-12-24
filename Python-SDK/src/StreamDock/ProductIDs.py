@@ -29,6 +29,8 @@ class USBVendorIDs:
     # USB_VID_M18V3 = 0x6603
     # USB_VID_M18V3EN = 0x6603
     USB_VID_M3 = 0x5548
+    USB_VID_K1_PRO = 0x6603
+    USB_VID_K1_PROEU = 0x6603
 
 
 class USBProductIDs:
@@ -63,6 +65,8 @@ class USBProductIDs:
     # USB_PID_STREAMDOCK_M18V3 = 0x1009
     # USB_PID_STREAMDOCK_M18V3EN = 0x1012
     USB_PID_STREAMDOCK_M3 = 0x1020
+    USB_PID_K1_PRO = 0x1015
+    USB_PID_K1_PROEU = 0x1019
 
 
 from .Devices.StreamDock293 import StreamDock293
@@ -76,6 +80,7 @@ from .Devices.StreamDockN4Pro import StreamDockN4Pro
 from .Devices.StreamDockXL import StreamDockXL
 from .Devices.StreamDockM18 import StreamDockM18
 from .Devices.StreamDockM3 import StreamDockM3
+from .Devices.K1Pro import K1Pro
 
 g_products = [
     # 293 serial
@@ -115,5 +120,8 @@ g_products = [
     # (USBVendorIDs.USB_VID_M18V3EN, USBProductIDs.USB_PID_STREAMDOCK_M18V3EN, StreamDockM18),
     # M3
     (USBVendorIDs.USB_VID_M3, USBProductIDs.USB_PID_STREAMDOCK_M3, StreamDockM3),
+    # K1 Pro
+    (USBVendorIDs.USB_VID_K1_PRO, USBProductIDs.USB_PID_K1_PRO, K1Pro),
+    (USBVendorIDs.USB_VID_K1_PROEU, USBProductIDs.USB_PID_K1_PROEU, K1Pro),
 
 ]

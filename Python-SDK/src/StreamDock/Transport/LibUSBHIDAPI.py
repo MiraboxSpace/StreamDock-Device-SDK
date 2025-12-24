@@ -35,9 +35,36 @@ import re
 from typing import Optional, List, Tuple
 
 
+def _get_glibc_version() -> Tuple[int, int]:
+    """
+    Get the system's glibc version.
+
+    Returns:
+        Tuple[int, int]: (major_version, minor_version)
+    """
+    try:
+        import ctypes.util
+
+        # Try to get glibc version via libc
+        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+        # gnu_get_libc_version() returns a string like "2.39"
+        gnu_get_libc_version = libc.gnu_get_libc_version
+        gnu_get_libc_version.restype = c_char_p
+        version_str = gnu_get_libc_version().decode("utf-8")
+        parts = version_str.split(".")
+        if len(parts) >= 2:
+            return (int(parts[0]), int(parts[1]))
+    except Exception:
+        pass
+    return (2, 0)  # Default to a low version if detection fails
+
+
 def _get_dll_name() -> str:
     """
     Determine the appropriate transport library name based on platform and architecture.
+
+    For Linux, searches for libraries with glibc version suffixes (e.g., libtransport_glibc2.39.so)
+    and selects the best match for the system's glibc version.
 
     Returns:
         str: The library filename to load
@@ -47,7 +74,6 @@ def _get_dll_name() -> str:
     """
     search_library_names = {
         "Windows": {"x86_64": "transport.dll"},
-        "Linux": {"x86_64": "libtransport.so", "aarch64": "libtransport_arm64.so"},
         "Darwin": {"x86_64": "libtransport.dylib", "arm64": "libtransport_arm64.dylib"},
     }
 
@@ -56,16 +82,62 @@ def _get_dll_name() -> str:
 
     if platform_name == "Windows":
         return search_library_names["Windows"]["x86_64"]
-    elif platform_name == "Linux":
-        if "x86_64" in machine_type or "amd64" in machine_type:
-            return search_library_names["Linux"]["x86_64"]
-        elif "aarch64" in machine_type or "arm64" in machine_type:
-            return search_library_names["Linux"]["aarch64"]
     elif platform_name == "Darwin":
         if "x86_64" in machine_type or "amd64" in machine_type:
             return search_library_names["Darwin"]["x86_64"]
         elif "arm64" in machine_type:
             return search_library_names["Darwin"]["arm64"]
+    elif platform_name == "Linux":
+        # For Linux, search for glibc-versioned libraries
+        dll_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "TransportDLL")
+
+        # Determine architecture prefix
+        if "aarch64" in machine_type or "arm64" in machine_type:
+            arch_prefix = "arm64"
+            fallback_name = "libtransport_arm64.so"
+        elif "x86_64" in machine_type or "amd64" in machine_type:
+            arch_prefix = ""
+            fallback_name = "libtransport.so"
+        else:
+            raise RuntimeError(
+                f"Unsupported architecture on Linux: {machine_type}"
+            )
+
+        # Pattern for glibc-versioned libraries:
+        # libtransport[_arm64]_glibcX.XX.so or libtransport_glibcX.XX.so
+        pattern = re.compile(
+            rf"^libtransport(_{arch_prefix})?_glibc(\d+)\.(\d+)\.so$"
+        )
+
+        # Search for matching libraries
+        candidates = []
+        if os.path.exists(dll_dir):
+            for filename in os.listdir(dll_dir):
+                match = pattern.match(filename)
+                if match:
+                    major = int(match.group(2))
+                    minor = int(match.group(3))
+                    candidates.append((major, minor, filename))
+
+        if candidates:
+            # Get system glibc version
+            sys_glibc = _get_glibc_version()
+
+            # Find the best match: highest version that doesn't exceed system version
+            best_match = None
+            for major, minor, filename in sorted(candidates, key=lambda x: (x[0], x[1])):
+                if major < sys_glibc[0] or (major == sys_glibc[0] and minor <= sys_glibc[1]):
+                    best_match = filename
+                elif best_match is None:
+                    # If no compatible version found, use the lowest version as fallback
+                    best_match = filename
+                    break
+
+            if best_match:
+                return best_match
+
+        # Fallback to old naming convention
+        return fallback_name
 
     raise RuntimeError(
         f"Unsupported platform/architecture: {platform_name} / {machine_type}"
@@ -240,6 +312,30 @@ _transport_lib.transport_raw_hid_last_error.argtypes = [
 _transport_lib.transport_disable_output.restype = c_uint32
 _transport_lib.transport_disable_output.argtypes = [ctypes.c_int8]
 
+# ========== Keyboard Lighting Functions ==========
+_transport_lib.transport_set_keyboard_backlight_brightness.restype = c_uint32
+_transport_lib.transport_set_keyboard_backlight_brightness.argtypes = [
+    c_void_p,
+    c_uint8,
+]
+
+_transport_lib.transport_set_keyboard_lighting_effects.restype = c_uint32
+_transport_lib.transport_set_keyboard_lighting_effects.argtypes = [c_void_p, c_uint8]
+
+_transport_lib.transport_set_keyboard_lighting_speed.restype = c_uint32
+_transport_lib.transport_set_keyboard_lighting_speed.argtypes = [c_void_p, c_uint8]
+
+_transport_lib.transport_set_keyboard_rgb_backlight.restype = c_uint32
+_transport_lib.transport_set_keyboard_rgb_backlight.argtypes = [
+    c_void_p,
+    c_uint8,
+    c_uint8,
+    c_uint8,
+]
+
+_transport_lib.transport_keyboard_os_mode_switch.restype = c_uint32
+_transport_lib.transport_keyboard_os_mode_switch.argtypes = [c_void_p, c_uint8]
+
 # Add missing function signature
 _transport_lib.transport_get_last_error_info.restype = c_uint32  # TransportResult
 _transport_lib.transport_get_last_error_info.argtypes = [
@@ -304,10 +400,29 @@ class LibUSBHIDAPI:
         # This maintains compatibility with the existing StreamDock API
 
     def __del__(self):
-        """Destructor - automatically releases the transport handle."""
+        """
+        Destructor - automatically releases the transport handle.
+
+        CRITICAL: This is called during garbage collection which may happen
+        during interpreter shutdown. We need to be extremely careful about
+        calling C code here as it can cause segmentation faults.
+        """
+        # Only destroy if we have a handle and Python interpreter is still running
         if self._handle:
-            _transport_lib.transport_destroy(self._handle)
-            self._handle = None
+            try:
+                # Check if Python interpreter is shutting down
+                import sys
+                if sys.is_finalizing():
+                    # During interpreter shutdown, skip C calls to avoid segfault
+                    # The OS will clean up resources when process exits
+                    return
+                _transport_lib.transport_destroy(self._handle)
+            except (AttributeError, TypeError, ValueError):
+                # C library may already be unloaded or corrupted state
+                # Silently skip to avoid cascading failures during shutdown
+                pass
+            finally:
+                self._handle = None
 
     def __enter__(self):
         """Context manager support."""
@@ -561,12 +676,75 @@ class LibUSBHIDAPI:
             return
         res = _transport_lib.transport_set_led_color(self._handle, count, r, g, b)
 
-    def reset_led_color(self) -> None|int:
+    def reset_led_color(self) -> None | int:
         """Reset LED colors to default."""
         if not self._handle:
             return
         res = _transport_lib.transport_reset_led_color(self._handle)
         return res
+
+    # ========== Keyboard Control ==========
+
+    def set_keyboard_backlight_brightness(self, brightness: int) -> None:
+        """
+        Set the keyboard backlight brightness.
+
+        Args:
+            brightness: Brightness value (0-6)
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_set_keyboard_backlight_brightness(
+            self._handle, brightness
+        )
+
+    def set_keyboard_lighting_effects(self, effect: int) -> None:
+        """
+        Set the keyboard lighting effect.
+        0 is static lighting.
+        Args:
+            effect: Effect mode identifier (0-9)
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_set_keyboard_lighting_effects(self._handle, effect)
+
+    def set_keyboard_lighting_speed(self, speed: int) -> None:
+        """
+        Set the keyboard lighting effect speed.
+
+        Args:
+            speed: Speed value for lighting effects (0-7)
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_set_keyboard_lighting_speed(self._handle, speed)
+
+    def set_keyboard_rgb_backlight(self, red: int, green: int, blue: int) -> None:
+        """
+        Set the keyboard RGB backlight color.
+
+        Args:
+            red: Red component (0-255)
+            green: Green component (0-255)
+            blue: Blue component (0-255)
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_set_keyboard_rgb_backlight(
+            self._handle, red, green, blue
+        )
+
+    def keyboard_os_mode_switch(self, os_mode: int) -> None:
+        """
+        Switch the keyboard OS mode.
+
+        Args:
+            os_mode: OS mode enum value (e.g., 0 for Windows, 1 for macOS)
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_keyboard_os_mode_switch(self._handle, os_mode)
 
     # ========== Device Configuration ==========
 
@@ -779,9 +957,7 @@ class LibUSBHIDAPI:
             current = dev_info_ptr
             while current:
                 info = current.contents
-
-                # Only include interface 0 to avoid duplicates
-                if info.interface_number == 0:
+                if info.usage_page > 1025 and info.usage == 1:
                     device_list.append(
                         {
                             "path": info.path.decode("utf-8") if info.path else "",
@@ -804,7 +980,6 @@ class LibUSBHIDAPI:
                             "interface_number": info.interface_number,
                         }
                     )
-
                 current = info.next
         finally:
             # Free the enumeration list
@@ -896,16 +1071,23 @@ class LibUSBHIDAPI:
         return True
 
     def close(self) -> None:
-        """Close the device connection and release resources."""
+        """
+        Close the device connection and release resources.
+
+        This method should be called explicitly before object destruction to ensure
+        clean shutdown of the C library resources.
+        """
         # CRITICAL: Ensure clean shutdown even if called multiple times
         if not self._is_open and not self._handle:
             return
 
         if self._handle:
             try:
+                # Attempt clean shutdown via C library
                 _transport_lib.transport_destroy(self._handle)
             except Exception as e:
-                print(f"[ERROR] Failed to destroy transport: {e}", flush=True)
+                # Log but don't raise - close() should be idempotent and safe
+                print(f"[WARNING] Failed to destroy transport: {e}", flush=True)
             finally:
                 self._handle = None
                 self._is_open = False
