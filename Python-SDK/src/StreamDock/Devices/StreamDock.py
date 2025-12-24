@@ -9,8 +9,9 @@ import threading
 import traceback
 from typing import Optional
 
-from ..FeatrueOption import FeatrueOption
+from ..FeatrueOption import FeatrueOption, device_type
 from ..Transport.LibUSBHIDAPI import LibUSBHIDAPI
+from ..InputTypes import InputEvent, ButtonKey
 
 
 class TransportError(Exception):
@@ -24,25 +25,6 @@ class TransportError(Exception):
         if self.code:
             return f"[Error Code {self.code}] {super().__str__()}"
         return super().__str__()
-
-
-KEY_MAPPING = {
-    1: 11,
-    2: 12,
-    3: 13,
-    4: 14,
-    5: 15,
-    6: 6,
-    7: 7,
-    8: 8,
-    9: 9,
-    10: 10,
-    11: 1,
-    12: 2,
-    13: 3,
-    14: 4,
-    15: 5,
-}
 
 
 class StreamDock(ABC):
@@ -102,13 +84,29 @@ class StreamDock(ABC):
         """
         Delete handler for the StreamDock, automatically closing the transport
         if it is currently open and terminating the transport reader thread.
+
+        CRITICAL: This is called during garbage collection which may happen during
+        interpreter shutdown. We need to be extremely careful to avoid calling
+        C code during shutdown as it can cause segmentation faults.
         """
+        import sys
+
+        # CRITICAL: Don't call C code during interpreter shutdown
+        if sys.is_finalizing():
+            # During interpreter shutdown, skip cleanup to avoid segfault
+            # The OS will clean up resources when process exits
+            return
+
         try:
-            self._setup_reader(None)
-        except (TransportError, ValueError):
+            # Stop the reader thread (safe operation)
+            self.run_read_thread = False
+            if self.read_thread and self.read_thread.is_alive():
+                self.read_thread.join(timeout=0.5)  # Short timeout during __del__
+        except (TransportError, ValueError, RuntimeError):
             pass
 
         try:
+            # Close transport - this may call C code but we checked is_finalizing above
             self.close()
         except TransportError:
             pass
@@ -128,12 +126,6 @@ class StreamDock(ABC):
         the deck.
         """
         # self.update_lock.release()
-
-    def key(self, k):
-        if self.KEY_MAP:
-            return KEY_MAPPING[k]
-        else:
-            return k
 
     # 打开设备
     def open(self):
@@ -176,26 +168,38 @@ class StreamDock(ABC):
 
     # 关闭设备
     def close(self):
+        """
+        关闭设备并释放所有资源。
+
+        CRITICAL: This method must be called before the object is destroyed to ensure
+        clean shutdown of the C library and prevent segmentation faults.
+        """
         # print(f"[DEBUG] 关闭设备: {self.path}")
+
         # CRITICAL: Stop reader thread first and wait for it to finish
         self.run_read_thread = False
+
         if self.read_thread and self.read_thread.is_alive():
             try:
+                # Give thread time to exit naturally
                 self.read_thread.join(timeout=2.0)  # 等待最多2秒
+                if self.read_thread.is_alive():
+                    print(f"[WARNING] 读取线程未能及时退出", flush=True)
             except Exception as e:
-                print(f"[WARNING] 等待读取线程退出时出错: {e}")
+                print(f"[WARNING] 等待读取线程退出时出错: {e}", flush=True)
 
-        # 发送断开连接命令
+        # 发送断开连接命令 (may fail if device already disconnected)
         try:
             self.disconnected()
         except Exception as e:
-            print(f"[WARNING] 发送断开命令时出错: {e}")
+            print(f"[WARNING] 发送断开命令时出错: {e}", flush=True)
 
         # CRITICAL: Close transport properly to release HID device
         try:
             self.transport.close()
         except Exception as e:
-            print(f"[WARNING] 关闭transport时出错: {e}")
+            print(f"[WARNING] 关闭transport时出错: {e}", flush=True)
+
         # Clear callback to break any circular references
         with self._callback_lock:
             self.key_callback = None
@@ -209,11 +213,12 @@ class StreamDock(ABC):
     # 清除某个按键的图标
     def clearIcon(self, index):
         origin = index
-        index = self.key(index)
-        if index not in range(1, 16):
-            print(f"key '{origin}' out of range. you should set (1 ~ 15)")
+        if origin not in range(1, self.KEY_COUNT + 1):
+            print(f"key '{origin}' out of range. you should set (1 ~ {self.KEY_COUNT})")
             return -1
-        self.transport.keyClear(index)
+        logical_key = ButtonKey(origin) if isinstance(origin, int) else origin
+        hardware_key = self.get_image_key(logical_key)
+        self.transport.keyClear(hardware_key)
 
     # 清除所有按键的图标
     def clearAllIcon(self):
@@ -234,43 +239,36 @@ class StreamDock(ABC):
     # 获取设备反馈的信息
     def read(self):
         """
-        :argtypes:存放信息的字节数组, 字节数组的长度建议512
+        :argtypes:存放信息的字节数组, 字节数组的长度建议1024
 
         """
-        data = self.transport.read_(13)
+        data = self.transport.read_(1024)
         return data
 
     # 一直检测设备有无信息反馈，建议开线程使用
     def whileread(self):
+        """
+        @deprecated 建议使用内置的异步回调机制，而不是直接调用此方法
+        """
+        from ..InputTypes import EventType
         while 1:
             try:
                 data = self.read()
                 if data != None and len(data) >= 11:
-                    # if data[9] == 0xFF:
-                    #     print("写入成功")
-                    if 0:
+                    try:
+                        event = self.decode_input_event(data[9], data[10])
+                        if event.event_type == EventType.BUTTON:
+                            action = "按下" if event.state == 1 else "抬起"
+                            print(f"按键{event.key.value if event.key else '?'}被{action}")
+                        elif event.event_type == EventType.KNOB_ROTATE:
+                            print(f"旋钮{event.knob_id.value if event.knob_id else '?'}向{event.direction.value if event.direction else '?'}旋转")
+                        elif event.event_type == EventType.KNOB_PRESS:
+                            action = "按下" if event.state == 1 else "抬起"
+                            print(f"旋钮{event.knob_id.value if event.knob_id else '?'}被{action}")
+                        elif event.event_type == EventType.SWIPE:
+                            print(f"滑动手势: {event.direction.value if event.direction else '?'}")
+                    except Exception:
                         pass
-                    else:
-                        if data[:3].decode("utf-8", errors="ignore") == "ACK" and data[
-                            5:7
-                        ].decode("utf-8", errors="ignore"):
-                            # print(data[0: 10])
-                            if data[10] == 0x01 and data[9] > 0x00 and data[9] <= 0x0F:
-                                if self.KEY_MAP:
-                                    print(
-                                        "按键{}".format(KEY_MAPPING[data[9]]) + "被按下"
-                                    )
-                                else:
-                                    print("按键{}".format(data[9]) + "被按下")
-                            elif (
-                                data[10] == 0x00 and data[9] > 0x00 and data[9] <= 0x0F
-                            ):
-                                if self.KEY_MAP:
-                                    print(
-                                        "按键{}".format(KEY_MAPPING[data[9]]) + "抬起"
-                                    )
-                                else:
-                                    print("按键{}".format(data[9]) + "抬起")
                 # self.transport.deleteRead()
             except Exception as e:
                 print("发生错误：")
@@ -285,16 +283,18 @@ class StreamDock(ABC):
     # #唤醒屏幕
     # def screen_On(self):
     #     return self.transport.screen_On()
-    # 设置定时器时间
-    def set_seconds(self, data):
-        self.__seconds = data
-        self.reset_Countdown(self.__seconds)
+    # # 设置定时器时间
+    # def set_seconds(self, data):
+    #     self.__seconds = data
+    #     self.reset_Countdown(self.__seconds)
 
-    # 重启定时器
-    def reset_Countdown(self, data):
-        self.screenlicent.cancel()
-        self.screenlicent = threading.Timer(data, self.screen_Off)
-        self.screenlicent.start()
+    # # 重启定时器
+    # def reset_Countdown(self, data):
+    #     if self.screenlicent is not None:
+    #         self.screenlicent.cancel()
+    #     if hasattr(self, 'screen_Off'):
+    #         self.screenlicent = threading.Timer(data, self.screen_Off)
+    #         self.screenlicent.start()
 
     def get_serial_number(self):
         """Return the device serial number."""
@@ -313,7 +313,34 @@ class StreamDock(ABC):
         pass
 
     @abstractmethod
-    def set_touchscreen_image(self, image):
+    def set_touchscreen_image(self, path):
+        pass
+
+    @abstractmethod
+    def get_image_key(self, logical_key: ButtonKey) -> int:
+        """
+        将逻辑键值转换为硬件键值（用于设置图片）
+
+        Args:
+            logical_key: 逻辑键值枚举
+
+        Returns:
+            int: 硬件键值
+        """
+        pass
+
+    @abstractmethod
+    def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
+        """
+        将硬件事件码解码为统一的 InputEvent
+
+        Args:
+            hardware_code: 硬件事件码
+            state: 状态 (0=释放, 1=按下)
+
+        Returns:
+            InputEvent: 解码后的事件对象
+        """
         pass
 
     def id(self):
@@ -333,23 +360,15 @@ class StreamDock(ABC):
                     arr = self.read()
                     if arr is not None and len(arr) >= 10:
                         if arr[9] == 0xFF:
-                            # print("写入成功")
+                            # 写入成功确认
                             pass
                         else:
-                            # k = KEY_MAPPING[arr[9]]
                             try:
-                                k = self.key(arr[9])
-                                new = arr[10]
-                                if new == 0x02:
-                                    new = 0
-                                if new == 0x01:
-                                    new = 1
-
-                                # CRITICAL: Thread-safe callback invocation with proper isolation
-                                # Make copies of everything BEFORE acquiring lock to minimize lock time
-                                key_copy = int(k) if isinstance(k, int) else k
-                                state_copy = int(new)
-
+                                # 使用设备类的事件解码器
+                                if self.feature_option.deviceType!=device_type.k1pro:
+                                    event = self.decode_input_event(arr[9], arr[10])
+                                else:
+                                    event = self.decode_input_event(arr[10], arr[11])
                                 # Get callback reference with lock
                                 with self._callback_lock:
                                     callback = self.key_callback
@@ -357,20 +376,17 @@ class StreamDock(ABC):
                                 # Call callback OUTSIDE of lock to avoid deadlocks
                                 if callback is not None:
                                     try:
-                                        # Import threading to ensure GIL is properly managed
-                                        import threading
-
-                                        # Call callback - Python threading will handle GIL
-                                        callback(self, key_copy, state_copy)
+                                        # 回调签名: callback(device, event)
+                                        callback(self, event)
                                     except Exception as callback_error:
                                         print(
                                             f"按键回调函数发生错误: {callback_error}",
                                             flush=True,
                                         )
                                         traceback.print_exc()
-                            except Exception as key_error:
+                            except Exception as decode_error:
                                 print(
-                                    f"处理按键数据时发生错误: {key_error}", flush=True
+                                    f"事件解码错误: {decode_error}", flush=True
                                 )
                                 traceback.print_exc()
                     # else:
@@ -414,7 +430,8 @@ class StreamDock(ABC):
     def set_key_callback(self, callback):
         """
         Sets the callback function called each time a button on the StreamDock
-        changes state (either pressed, or released).
+        changes state (either pressed, or released), or a knob is rotated/pressed,
+        or a swipe gesture is detected.
 
         .. note:: This callback will be fired from an internal reader thread.
                   Ensure that the given callback function is thread-safe.
@@ -425,8 +442,16 @@ class StreamDock(ABC):
                      a version compatible with Python 3 `asyncio` asynchronous
                      functions.
 
-        :param function callback: Callback function to fire each time a button
-                                state changes.
+        :param function callback: Callback function with signature:
+                                callback(device: StreamDock, event: InputEvent)
+
+        Example:
+            def on_input(device, event):
+                from StreamDock.InputTypes import EventType
+                if event.event_type == EventType.BUTTON:
+                    print(f"按键 {event.key.value} 被按下")
+                elif event.event_type == EventType.KNOB_ROTATE:
+                    print(f"旋钮旋转")
         """
         with self._callback_lock:
             self.key_callback = callback
@@ -434,8 +459,9 @@ class StreamDock(ABC):
     def set_key_callback_async(self, async_callback, loop=None):
         """
         Sets the asynchronous callback function called each time a button on the
-        StreamDock changes state (either pressed, or released). The given
-        callback should be compatible with Python 3's `asyncio` routines.
+        StreamDock changes state (either pressed, or released), or a knob is
+        rotated/pressed, or a swipe gesture is detected. The given callback
+        should be compatible with Python 3's `asyncio` routines.
 
         .. note:: The asynchronous callback will be fired in a thread-safe
                   manner.
@@ -443,8 +469,8 @@ class StreamDock(ABC):
         .. note:: This will override the callback (if any) set by
                   :func:`~StreamDock.set_key_callback`.
 
-        :param function async_callback: Asynchronous callback function to fire
-                                        each time a button state changes.
+        :param function async_callback: Asynchronous callback function with signature:
+                                        async_callback(device: StreamDock, event: InputEvent)
         :param asyncio.loop loop: Asyncio loop to dispatch the callback into
         """
         import asyncio
