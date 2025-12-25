@@ -26,6 +26,7 @@ enum class DeviceOriginType
 	SDN4Pro = 0x07, ///< StreamDock SDN4Pro
 	SDXL = 0x08,	///< StreamDock StreamDockXL
 	SDM3 = 0x09,	///< StreamDock StreamDockM3
+	K1Pro = 0x0A,	///< StreamDock K1Pro
 };
 
 struct StreamDockInfo

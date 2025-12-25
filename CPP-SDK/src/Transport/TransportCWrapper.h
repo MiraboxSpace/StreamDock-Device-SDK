@@ -215,6 +215,21 @@ public:
 	 */
 	static void disableOutput(bool isDisable = true);
 
+	/** @brief Set keyboard backlight brightness (K1Pro specific). */
+	void setKeyboardBacklightBrightness(uint8_t brightness) const;
+
+	/** @brief Set keyboard lighting effects (K1Pro specific). */
+	void setKeyboardLightingEffects(uint8_t effect) const;
+
+	/** @brief Set keyboard lighting speed (K1Pro specific). */
+	void setKeyboardLightingSpeed(uint8_t speed) const;
+
+	/** @brief Set keyboard RGB backlight color (K1Pro specific). */
+	void setKeyboardRgbBacklight(uint8_t red, uint8_t green, uint8_t blue) const;
+
+	/** @brief Switch keyboard OS mode (K1Pro specific). */
+	void keyboardOsModeSwitch(uint8_t os_mode) const;
+
 public:
 	uint16_t _input_report_size = 0;   ///< Input report size.
 	uint16_t _output_report_size = 0;  ///< Output report size.

@@ -169,7 +169,11 @@ bash link_opencv_symlinks.sh
 
 This script will create the necessary symlinks in `opencv/mac/lib` to allow CMake to properly locate the OpenCV libraries.
 
-### 4.2 Build Steps
+### 4.2 Hot-plug Support
+
+The macOS version supports device hot-plug detection through polling mode. The `listen()` method starts a background thread that automatically detects device insertion and removal events every 2 seconds, providing consistent functionality with Windows and Linux platforms.
+
+### 4.3 Build Steps
 
 After preparing the dependencies, go to the project root directory. You will see the following structure:
 

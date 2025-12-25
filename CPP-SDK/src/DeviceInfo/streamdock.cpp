@@ -124,7 +124,7 @@ void StreamDock::setKeyImgFile(const std::string& filePath, uint8_t keyValue)
 	auto imgData = readImgToString(filePath);
 	std::vector<uint8_t> imgDataVec(imgData.data(), imgData.data() + imgData.size());
 	std::vector<uint8_t> output;
-	if (_encoder->encodeToMemory(output, imgDataVec, 90, *getKyImgHelper(keyValue)))
+	if (_encoder->encodeToMemory(output, imgDataVec, 95, *getKyImgHelper(keyValue)))
 		setKeyImgFileStream(std::string(output.data(), output.data() + output.size()), keyValue);
 }
 
@@ -307,7 +307,7 @@ bool StreamDock::isStreamDockHidDeviceUsage(const hid_device_info& device)
 	auto usage = device.usage;
 	auto usage_page = device.usage_page;
 	auto interface_number = device.interface_number;
-	if ((usage == 1 && usage_page == 65540) || interface_number == 0)
+	if (usage == 1 && usage_page == 65440)
 	{
 		return true;
 	}
