@@ -128,16 +128,16 @@ target_include_directories(${TARGETNAME} # 依赖头文件
 )
 target_compile_features(${TARGETNAME} PRIVATE cxx_std_17)
 
-# Windows 下确保 Transport DLL 被复制
-if(WIN32)
-    # 添加对 Transport DLL 复制目标的依赖
-    if(TARGET copy_transport_dll_debug)
-        add_dependencies(${TARGETNAME} copy_transport_dll_debug)
-    endif()
-    if(TARGET copy_transport_dll_release)
-        add_dependencies(${TARGETNAME} copy_transport_dll_release)
-    endif()
-endif()
+# # Windows 下确保 Transport DLL 被复制
+# if(WIN32)
+#     # 添加对 Transport DLL 复制目标的依赖
+#     if(TARGET copy_transport_dll_debug)
+#         add_dependencies(${TARGETNAME} copy_transport_dll_debug)
+#     endif()
+#     if(TARGET copy_transport_dll_release)
+#         add_dependencies(${TARGETNAME} copy_transport_dll_release)
+#     endif()
+# endif()
 
 # 额外链接
 if(WIN32)
@@ -161,24 +161,29 @@ elseif(UNIX AND NOT APPLE)
     )
 endif()
 
-# Windows下复制需要的DLL到可执行文件目录
+# # Windows下复制需要的DLL到可执行文件目录
+# if(WIN32)
+#     set(OpenCV_BIN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/ImgProcesser/third_party/opencv/windows/x64/vc17/bin")
+
+#     # 定义需要复制的 OpenCV DLL 文件（不带后缀）
+#     set(OpenCV_DLL_NAMES
+#         "opencv_core4120"
+#         "opencv_imgcodecs4120"
+#         "opencv_imgproc4120"
+#     )
+
+#     # 为每个 OpenCV DLL 创建复制命令
+#     foreach(dll_name ${OpenCV_DLL_NAMES})
+#         add_custom_command(TARGET ${TARGETNAME} POST_BUILD
+#             COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#             "${OpenCV_BIN_PATH}/${dll_name}$<$<CONFIG:Debug>:d>.dll"
+#             "$<TARGET_FILE_DIR:${TARGETNAME}>/${dll_name}$<$<CONFIG:Debug>:d>.dll"
+#             COMMENT "📦 Copying ${dll_name}$<$<CONFIG:Debug>:d>.dll to output directory"
+#         )
+#     endforeach()
+# endif()
 if(WIN32)
-    set(OpenCV_BIN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/ImgProcesser/third_party/opencv/windows/x64/vc17/bin")
-
-    # 定义需要复制的 OpenCV DLL 文件（不带后缀）
-    set(OpenCV_DLL_NAMES
-        "opencv_core4120"
-        "opencv_imgcodecs4120"
-        "opencv_imgproc4120"
-    )
-
-    # 为每个 OpenCV DLL 创建复制命令
-    foreach(dll_name ${OpenCV_DLL_NAMES})
-        add_custom_command(TARGET ${TARGETNAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${OpenCV_BIN_PATH}/${dll_name}$<$<CONFIG:Debug>:d>.dll"
-            "$<TARGET_FILE_DIR:${TARGETNAME}>/${dll_name}$<$<CONFIG:Debug>:d>.dll"
-            COMMENT "📦 Copying ${dll_name}$<$<CONFIG:Debug>:d>.dll to output directory"
-        )
-    endforeach()
+add_custom_command(TARGET main POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:main> $<TARGET_FILE_DIR:main>
+COMMAND_EXPAND_LISTS)
 endif()

@@ -1,16 +1,10 @@
 #include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
-#include "TransportCWrapper.h"
 #include <stdexcept>
 #include <iostream>
 
 TransportCWrapper::TransportCWrapper(const hid_device_info& device_info)
 {
-	_handle = transport_create(&device_info);
+	transport_create(&device_info, &_handle);
 }
 
 TransportCWrapper::~TransportCWrapper()
@@ -56,19 +50,17 @@ void TransportCWrapper::clearTaskQueue() const
 
 bool TransportCWrapper::canWrite() const
 {
-	return _handle && transport_can_write(_handle);
+	if (!_handle) return false;
+	int can_write = 0;
+	transport_can_write(_handle, &can_write);
+	return can_write != 0;
 }
 
 void TransportCWrapper::read(uint8_t* response, size_t* length, int32_t timeoutMs) const
 {
 	if (!_handle || !response || !length)
 		throw std::invalid_argument("Invalid arguments for read operation.");
-	size_t resp_length = 0;
-	int result = transport_read(_handle, response, &resp_length, timeoutMs);
-	if (result >= 0)
-	{
-		*length = resp_length;
-	}
+	transport_read(_handle, response, length, timeoutMs);
 }
 
 void TransportCWrapper::wakeupScreen() const
@@ -206,7 +198,9 @@ void TransportCWrapper::setReportID(uint8_t reportID) const
 uint8_t TransportCWrapper::reportID() const
 {
 	if (!_handle) return 0x00;
-	return transport_reportID(_handle);
+	uint8_t report_id = 0x00;
+	transport_reportID(_handle, &report_id);
+	return report_id;
 }
 
 void TransportCWrapper::setReportSize(uint16_t input_report_size, uint16_t output_report_size, uint16_t feature_report_size)
@@ -226,5 +220,35 @@ void TransportCWrapper::rawHidLastError(wchar_t* errMsg, size_t* length) const
 
 void TransportCWrapper::disableOutput(bool isDisable)
 {
-	transport_disable_output(static_cast<int8_t>(isDisable));;
+	transport_disable_output(static_cast<int8_t>(isDisable));
+}
+
+void TransportCWrapper::setKeyboardBacklightBrightness(uint8_t brightness) const
+{
+	if (!_handle) return;
+	transport_set_keyboard_backlight_brightness(_handle, brightness);
+}
+
+void TransportCWrapper::setKeyboardLightingEffects(uint8_t effect) const
+{
+	if (!_handle) return;
+	transport_set_keyboard_lighting_effects(_handle, effect);
+}
+
+void TransportCWrapper::setKeyboardLightingSpeed(uint8_t speed) const
+{
+	if (!_handle) return;
+	transport_set_keyboard_lighting_speed(_handle, speed);
+}
+
+void TransportCWrapper::setKeyboardRgbBacklight(uint8_t red, uint8_t green, uint8_t blue) const
+{
+	if (!_handle) return;
+	transport_set_keyboard_rgb_backlight(_handle, red, green, blue);
+}
+
+void TransportCWrapper::keyboardOsModeSwitch(uint8_t os_mode) const
+{
+	if (!_handle) return;
+	transport_keyboard_os_mode_switch(_handle, os_mode);
 }

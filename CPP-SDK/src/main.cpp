@@ -2,7 +2,8 @@
 #include <DeviceManager/devicemanager.h>
 #include "test.h"
 
-void doSomething(std::shared_ptr<StreamDock> device) {
+void doSomething(std::shared_ptr<StreamDock> device)
+{
 	TEST_293V2::test(device);
 	TEST_293V3::test(device);
 	TEST_293sV2::test(device);
@@ -16,23 +17,28 @@ void doSomething(std::shared_ptr<StreamDock> device) {
 	TEST_XL::test(device);
 	TEST_M3::test(device);
 	TEST_M18V3::test(device);
+	TEST_K1Pro::test(device);
 }
 
 int main()
 {
-	ToolKit::disable_output = false;
-	StreamDock::disableOutput(false);
 	DeviceManager::instance().enumerator();
-	DeviceManager::instance().listen([](std::shared_ptr<StreamDock> device) {
-		doSomething(device);
-		});
-	auto& streamdocks = DeviceManager::instance().getStreamDocks();
-	for (const auto& device : streamdocks) {
-		try {
+	DeviceManager::instance().listen([](std::shared_ptr<StreamDock> device)
+									 { doSomething(device); });
+	auto &streamdocks = DeviceManager::instance().getStreamDocks();
+	for (const auto &device : streamdocks)
+	{
+		try
+		{
 			doSomething(device.second);
 		}
-		catch (...) {
-			std::cerr << "something error" << std::endl;
+		catch (const std::exception &e)
+		{
+			std::cerr << "Exception: " << e.what() << std::endl;
+		}
+		catch (...)
+		{
+			std::cerr << "Unknown exception occurred" << std::endl;
 		}
 	}
 
