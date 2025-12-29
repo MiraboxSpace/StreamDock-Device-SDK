@@ -251,6 +251,7 @@ class StreamDock(ABC):
         @deprecated 建议使用内置的异步回调机制，而不是直接调用此方法
         """
         from ..InputTypes import EventType
+
         while 1:
             try:
                 data = self.read()
@@ -259,14 +260,22 @@ class StreamDock(ABC):
                         event = self.decode_input_event(data[9], data[10])
                         if event.event_type == EventType.BUTTON:
                             action = "按下" if event.state == 1 else "抬起"
-                            print(f"按键{event.key.value if event.key else '?'}被{action}")
+                            print(
+                                f"按键{event.key.value if event.key else '?'}被{action}"
+                            )
                         elif event.event_type == EventType.KNOB_ROTATE:
-                            print(f"旋钮{event.knob_id.value if event.knob_id else '?'}向{event.direction.value if event.direction else '?'}旋转")
+                            print(
+                                f"旋钮{event.knob_id.value if event.knob_id else '?'}向{event.direction.value if event.direction else '?'}旋转"
+                            )
                         elif event.event_type == EventType.KNOB_PRESS:
                             action = "按下" if event.state == 1 else "抬起"
-                            print(f"旋钮{event.knob_id.value if event.knob_id else '?'}被{action}")
+                            print(
+                                f"旋钮{event.knob_id.value if event.knob_id else '?'}被{action}"
+                            )
                         elif event.event_type == EventType.SWIPE:
-                            print(f"滑动手势: {event.direction.value if event.direction else '?'}")
+                            print(
+                                f"滑动手势: {event.direction.value if event.direction else '?'}"
+                            )
                     except Exception:
                         pass
                 # self.transport.deleteRead()
@@ -300,8 +309,9 @@ class StreamDock(ABC):
         """Return the device serial number."""
         return self.serial_number
 
+
     @abstractmethod
-    def set_key_image(self, key, image):
+    def set_key_image(self, key, path) -> int | None:
         pass
 
     # @abstractmethod
@@ -313,7 +323,7 @@ class StreamDock(ABC):
         pass
 
     @abstractmethod
-    def set_touchscreen_image(self, path):
+    def set_touchscreen_image(self, path) -> int | None:
         pass
 
     @abstractmethod
@@ -365,7 +375,7 @@ class StreamDock(ABC):
                         else:
                             try:
                                 # 使用设备类的事件解码器
-                                if self.feature_option.deviceType!=device_type.k1pro:
+                                if self.feature_option.deviceType != device_type.k1pro:
                                     event = self.decode_input_event(arr[9], arr[10])
                                 else:
                                     event = self.decode_input_event(arr[10], arr[11])
@@ -385,9 +395,7 @@ class StreamDock(ABC):
                                         )
                                         traceback.print_exc()
                             except Exception as decode_error:
-                                print(
-                                    f"事件解码错误: {decode_error}", flush=True
-                                )
+                                print(f"事件解码错误: {decode_error}", flush=True)
                                 traceback.print_exc()
                     # else:
                     #     print("read control", arr)

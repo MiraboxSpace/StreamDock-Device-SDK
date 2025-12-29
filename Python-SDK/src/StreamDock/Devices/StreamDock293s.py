@@ -133,7 +133,7 @@ class StreamDock293s(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    def get_serial_number(self, lenth):
+    def get_serial_number(self):
         return self.serial_number
 
     def key_image_format(self):

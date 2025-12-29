@@ -9,142 +9,160 @@ import time
 
 def key_callback(device, event):
     """
-    新的按键回调函数
+    New key callback function
 
     Args:
-        device: StreamDock 设备实例
-        event: InputEvent 事件对象，包含事件类型和详细信息
+        device: StreamDock device instance
+        event: InputEvent object containing event type and detailed information
     """
     try:
         if event.event_type == EventType.BUTTON:
-            action = "按下" if event.state == 1 else "释放"
-            print(f"按键 {event.key.value} 被{action}", flush=True)
+            action = "pressed" if event.state == 1 else "released"
+            print(f"Key {event.key.value} {action}", flush=True)
         elif event.event_type == EventType.KNOB_ROTATE:
-            print(f"旋钮 {event.knob_id.value} 向 {event.direction.value} 旋转", flush=True)
+            print(
+                f"Knob {event.knob_id.value} rotated {event.direction.value}",
+                flush=True,
+            )
         elif event.event_type == EventType.KNOB_PRESS:
-            action = "按下" if event.state == 1 else "释放"
-            print(f"旋钮 {event.knob_id.value} 被{action}", flush=True)
+            action = "pressed" if event.state == 1 else "released"
+            print(f"Knob {event.knob_id.value} {action}", flush=True)
         elif event.event_type == EventType.SWIPE:
-            print(f"滑动手势: {event.direction.value}", flush=True)
+            print(f"Swipe gesture: {event.direction.value}", flush=True)
         # elif event.event_type == EventType.UNKNOWN:
-        #     print(f"未知事件{event}", flush=True)
+        #     print(f"Unknown event: {event}", flush=True)
     except Exception as e:
-        print(f"按键回调错误: {e}", flush=True)
+        print(f"Key callback error: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
 
 
 def main():
-    # 等待一下，确保之前的实例释放了资源
+    # Wait a moment to ensure previous instances have released resources
     time.sleep(0.5)
 
     manner = DeviceManager()
     streamdocks = manner.enumerate()
 
     if not streamdocks:
-        print("未找到 Stream Dock 设备")
+        print("No Stream Dock device found")
         return
 
-    # 监听设备插拔 
+    # Listen for device plug/unplug events
     listen_thread = threading.Thread(target=manner.listen)
     listen_thread.daemon = True
     listen_thread.start()
 
     print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
     for device in streamdocks:
-        # 激活类型检查和补全
+        # Activate type checking and completion
         if not isinstance(device, StreamDock):
             continue
         try:
             device.open()
             device.init()
         except Exception as e:
-            print(f"打开设备失败: {e}")
+            print(f"Failed to open device: {e}")
             import traceback
+
             traceback.print_exc()
             raise
-        print(f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}")
+        print(
+            f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}"
+        )
 
-        # 设置背景图片
-        # res = device.set_touchscreen_image("img/backgroud_test.png")
-        device.refresh()
-        time.sleep(2)
-
-        # 设置按键图片
-        for i in range(1, 7):
-            device.set_key_image(i, "img/button_test.jpg")
-            device.refresh()
-
-        # 设置按键事件回调
+        # Set key event callback
         device.set_key_callback(key_callback)
 
-        # # 清空某个按键的图标
+        # # Clear icon for a specific key
         # device.clearIcon(3)
         # device.refresh()
         # time.sleep(1)
-        # # 清空所有按键的图标
+        # # Clear all key icons
         # device.clearAllIcon()
         # device.refresh()
         # time.sleep(0)
-
-        # N4Pro 设置 LED
-        if isinstance(device, StreamDockN4Pro):
+        # 293sV3
+        if isinstance(device, StreamDock):
+            # Set background image
+            res = device.set_touchscreen_image("img/backgroud_test.png")
+            device.refresh()
+            time.sleep(2)
+            for i in range(1, 16):
+                device.set_key_image(i, "img/button_test.jpg")
+                device.refresh()
+            for i in range(16, 19):
+                device.set_key_image(i, "img/button_test.jpg")
+                device.refresh()
+        # N4Pro LED settings
+        elif isinstance(device, StreamDockN4Pro):
             device.set_led_brightness(100)
             device.set_led_color(0, 0, 255)
-        #  K1Pro 设置
-        if isinstance(device, K1Pro):
+        #  K1Pro settings
+        elif isinstance(device, K1Pro):
             device.set_keyboard_backlight_brightness(6)
             device.set_keyboard_lighting_speed(3)
             device.set_keyboard_lighting_effects(0)  # static
             device.set_keyboard_rgb_backlight(255, 0, 0)
             device.keyboard_os_mode_switch(0)  # windows mode
+            for i in range(1, 7):
+                device.set_key_image(i, "img/button_test.jpg")
+                device.refresh()
+        else:
+            for i in range(1, 7):
+                device.set_key_image(i, "img/button_test.jpg")
+                device.refresh()
         # # N1 switch mode
         # if isinstance(device, StreamDockN1):
         #     device.switch_mode(0)
 
-        # 关闭设备
+        # Close device
         # device.close()
-
-    print("程序正在运行,按 Ctrl+C 退出...")
+    print("Program is running, press Ctrl+C to exit...")
     try:
         while True:
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\n正在关闭设备...")
+        print("\nShutting down devices...")
     except Exception as e:
-        print(f"\n主循环异常: {e}")
+        print(f"\nMain loop error: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
-        # CRITICAL: 确保所有设备都被正确关闭，防止 Segmentation fault
-        # 按照逆序关闭设备，确保最后打开的设备最先关闭
+        # CRITICAL: Ensure all devices are properly closed to prevent Segmentation fault
+        # Close devices in reverse order, ensuring the last opened device is closed first
         for device in reversed(streamdocks):
             try:
-                # 先清除回调，避免在关闭过程中触发回调
+                # Clear callback first to avoid triggering callbacks during shutdown
                 device.set_key_callback(None)
-                # 给一点时间让读取线程退出循环
+                # Give some time for the read thread to exit the loop
                 time.sleep(0.1)
-                # 关闭设备
+                # Close device
                 device.close()
-                print(f"设备 {device.path} 已关闭")
+                print(f"Device {device.path} closed")
             except Exception as e:
-                print(f"关闭设备时出错: {e}")
+                print(f"Error closing device: {e}")
                 import traceback
+
                 traceback.print_exc()
 
-        # 最后的清理，确保所有 C 资源都已释放
+        # Final cleanup, ensure all C resources are released
         time.sleep(0.2)
-        print("程序已退出")
+        print("Program exited")
 
 
 if __name__ == "__main__":
     try:
         main()
     except SystemExit as e:
-        print(f"\n程序被SystemExit终止: {e}")
+        print(f"\nProgram terminated by SystemExit: {e}")
         import traceback
+
         traceback.print_exc()
     except Exception as e:
-        print(f"\n未捕获的异常: {e}")
+        print(f"\nUncaught exception: {e}")
         import traceback
+
         traceback.print_exc()
