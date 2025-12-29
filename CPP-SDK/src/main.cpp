@@ -41,6 +41,10 @@ int main()
 			std::cerr << "Unknown exception occurred" << std::endl;
 		}
 	}
+	if(streamdocks.empty())
+	{
+		std::cout << "No StreamDock devices found. Connect a device to run tests and check your PID && VID." << std::endl;
+	}
 
 	std::cerr << "Press enter to exit..." << std::endl;
 	std::cin.get();

@@ -169,6 +169,6 @@ class StreamDockM3(StreamDock):
 
     # 设置设备参数
     def set_device(self):
-        self.transport.set_report_size(513, 513, 0)
+        self.transport.set_report_size(513, 1025, 0)
         self.feature_option.deviceType = device_type.dock_m3
         pass
