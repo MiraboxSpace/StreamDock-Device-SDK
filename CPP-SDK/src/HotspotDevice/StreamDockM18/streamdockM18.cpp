@@ -98,7 +98,7 @@ void StreamDockM18::changeFirmwareVersionMode()
 	{
 		_feature->isDualDevice = true;
 		_feature->supportBackGroundGif = false;
-		_feature->hasRGBLed = false;
+		_feature->hasRGBLed = true;
 	};
 
 	auto changeV3Mode = [this, changeV25Mode]

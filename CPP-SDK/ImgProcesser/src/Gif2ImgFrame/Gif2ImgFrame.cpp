@@ -241,3 +241,110 @@ std::vector<std::vector<uint8_t>> Gif2ImgFrame::encodeFramesToMemory(int quality
 #endif
 	return result;
 }
+
+std::vector<GifFrameData> Gif2ImgFrame::encodeFramesWithDelay(int quality, const ImgHelper &imgHelper)
+{
+	std::vector<GifFrameData> result(impl_->gif->ImageCount);
+	if (!isValid())
+		return result;
+
+	bool alpha = IImageEncoder::supportsAlpha(imgHelper._imgType);
+	int width = impl_->width;
+	int height = impl_->height;
+
+	RawCanvas canvas(width, height, alpha);
+
+#ifdef DEBUG_TIME
+	using namespace std::chrono;
+	auto t_start = high_resolution_clock::now();
+#endif
+
+#ifdef USE_THREADPOOL
+	ThreadPool pool;
+	std::vector<std::future<void>> futures;
+	for (int i = 0; i < impl_->gif->ImageCount; ++i)
+	{
+		if (!_encoder)
+			return result;
+
+		// 获取当前帧的延迟时间
+		GraphicsControlBlock gcb{};
+		DGifSavedExtensionToGCB(impl_->gif, i, &gcb);
+
+		// GIF 延迟单位是 10ms，需要转换为毫秒
+		uint16_t delayMs = gcb.DelayTime * 10;
+		if (delayMs == 0) delayMs = 100; // 默认 100ms（如果 GIF 未指定）
+
+		result[i].delayMs = delayMs;
+
+		// 获取帧的 disposal mode
+		int frameDisposalMode = DEFAULT_DISPOSAL_MODE;
+		if (0 != i)
+		{
+			GraphicsControlBlock gcbPrev{};
+			DGifSavedExtensionToGCB(impl_->gif, i - 1, &gcbPrev);
+			frameDisposalMode = gcbPrev.DisposalMode;
+		}
+		else
+		{
+			frameDisposalMode = FIRST_FRAME_DISPOSAL_MODE;
+		}
+
+		impl_->renderFrameRaw(i, canvas, frameDisposalMode);
+		auto frameCopy = std::make_shared<RawCanvas>(canvas);
+
+		futures.emplace_back(pool.enqueue([&, i, frameCopy]()
+										  {
+											  _encoder->encodeToMemory(result[i].encodedData, *frameCopy, quality, imgHelper);
+										  }));
+	}
+	for (auto &f : futures)
+		f.get();
+#ifdef DEBUG_TIME
+	auto t_end = high_resolution_clock::now();
+	auto duration = duration_cast<milliseconds>(t_end - t_start).count();
+	std::cerr << "[并行] 编码总耗时（含延迟）: " << duration << " ms" << std::endl;
+#endif
+
+#else
+	for (int i = 0; i < impl_->gif->ImageCount; ++i)
+	{
+		if (!_encoder)
+			return result;
+
+		// 获取当前帧的延迟时间
+		GraphicsControlBlock gcb{};
+		DGifSavedExtensionToGCB(impl_->gif, i, &gcb);
+
+		// GIF 延迟单位是 10ms，需要转换为毫秒
+		uint16_t delayMs = gcb.DelayTime * 10;
+		if (delayMs == 0) delayMs = 100; // 默认 100ms（如果 GIF 未指定）
+
+		result[i].delayMs = delayMs;
+
+		// 获取帧的 disposal mode
+		int frameDisposalMode = DEFAULT_DISPOSAL_MODE;
+		if (0 != i)
+		{
+			GraphicsControlBlock gcbPrev{};
+			DGifSavedExtensionToGCB(impl_->gif, i - 1, &gcbPrev);
+			frameDisposalMode = gcbPrev.DisposalMode;
+		}
+		else
+		{
+			frameDisposalMode = FIRST_FRAME_DISPOSAL_MODE;
+		}
+
+		impl_->renderFrameRaw(i, canvas, frameDisposalMode);
+		_encoder->encodeToMemory(result[i].encodedData, canvas, quality, imgHelper);
+	}
+#ifdef DEBUG_TIME
+	auto t_end = high_resolution_clock::now();
+	auto duration = duration_cast<milliseconds>(t_end - t_start).count();
+	std::cerr << "[串行] 编码总耗时（含延迟）: " << duration << " ms" << std::endl;
+#endif
+
+#endif
+
+	return result;
+}
