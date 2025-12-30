@@ -173,9 +173,6 @@ class K1Pro(StreamDock):
     def set_device(self):
         self.transport.set_report_size(513, 1025, 0)
         self.transport.set_report_id(0x04)
-        self.feature_option.hasRGBLed = True
-        self.feature_option.ledCounts = 4
-        self.feature_option.supportBackgroundImage = True
         self.feature_option.deviceType = device_type.k1pro
         pass
 
