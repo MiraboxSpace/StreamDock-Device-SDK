@@ -9,6 +9,12 @@
 #define USE_THREADPOOL
 #define DEBUG_TIME
 
+// GIF 帧数据结构（包含编码后的数据和延迟时间）
+struct GifFrameData {
+    std::vector<uint8_t> encodedData;  // 编码后的帧数据
+    uint16_t delayMs;                   // 帧延迟（毫秒）
+};
+
 class Gif2ImgFrame {
 public:
 	explicit Gif2ImgFrame(const std::string& gifPath, std::shared_ptr<IImageEncoder> encoder);
@@ -21,6 +27,9 @@ public:
 
 	// 将每帧编码为内存图像数据
 	std::vector<std::vector<uint8_t>> encodeFramesToMemory(int quality = 95, const ImgHelper& imgHelper = ImgHelper());
+
+	// 将每帧编码为内存图像数据，并包含每帧的延迟时间
+	std::vector<GifFrameData> encodeFramesWithDelay(int quality = 95, const ImgHelper& imgHelper = ImgHelper());
 
 private:
 	struct Impl;

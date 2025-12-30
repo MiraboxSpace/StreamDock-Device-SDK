@@ -74,7 +74,7 @@ namespace TEST_293V3
 		device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
+		device->gifer()->setKeyGifFile("../../img/7.gif", 13);
 		device->setKeyImgFile("../../img/YiFei.jpg", 9);
 		device->rgber()->setLedBrightness(13);
 		device->gifer()->startGifLoop();
@@ -151,7 +151,7 @@ namespace TEST_293sV3
 		device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
+		device->gifer()->setKeyGifFile("../../img/7.gif", 13);
 		device->setKeyImgFile("../../img/YiFei.jpg", 13);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 17);
 		device->rgber()->setLedBrightness(13);
@@ -195,7 +195,7 @@ namespace TEST_M18
 		device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
+		device->gifer()->setKeyGifFile("../../img/7.gif", 13);
 		device->setKeyImgFile("../../img/YiFei.jpg", 9);
 		device->rgber()->setLedColor(255, 0, 0);
 		device->rgber()->setLedBrightness(13);
@@ -280,7 +280,7 @@ namespace TEST_N3V25
 		device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
+		device->gifer()->setKeyGifFile("../../img/7.gif", 13);
 		device->setKeyImgFile("../../img/YiFei.jpg", 9);
 		device->rgber()->setLedBrightness(13);
 		device->gifer()->startGifLoop();
@@ -327,8 +327,8 @@ namespace TEST_N1
 		N1device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		N1device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		N1device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		N1device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
-		N1device->gifer()->setKeyGifFile("../../img/7.gif", 18, 30);
+		N1device->gifer()->setKeyGifFile("../../img/7.gif", 13);
+		N1device->gifer()->setKeyGifFile("../../img/7.gif", 18);
 		N1device->setKeyImgFile("../../img/YiFei.jpg", 9);
 		N1device->rgber()->setLedBrightness(13);
 		N1device->gifer()->startGifLoop();
@@ -373,7 +373,7 @@ namespace TEST_N4
 		device->gifer()->setKeyGifFile("../../img/4.gif", 15);
 		device->gifer()->setKeyGifFile("../../img/5.gif", 7);
 		device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/7.gif", 13, 30);
+		device->gifer()->setKeyGifFile("../../img/7.gif", 13);
 		device->setKeyImgFile("../../img/YiFei.jpg", 9);
 		device->rgber()->setLedBrightness(13);
 		device->gifer()->startGifLoop();
@@ -611,10 +611,13 @@ namespace TEST_M18V3
 		device->reader()->startReadLoop();
 		device->wakeupScreen();
 		device->clearAllKeys();
+
+
 		device->setEncoder(std::make_shared<OpenCVImageEncoder>());
-		device->setBackgroundImgFile("../../img/button_test.jpg");
+		// device->setBackgroundImgFile("../../img/backgroud_test.png");
 		device->refresh();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		device->rgber()->setLedColor(0, 255, 0);
 		device->clearAllKeys();
 		for (int i = 1; i <= 18; i++)
 			device->gifer()->setKeyGifFile("../../img/test.gif", i);

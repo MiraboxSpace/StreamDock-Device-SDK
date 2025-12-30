@@ -26,6 +26,7 @@
 #include <ImgHelper.h>
 #include <unordered_map>
 #include <IImageEncoder.h>
+#include "Gif2ImgFrame.h"
 
 static constexpr auto HOTSPOT_STRING = L"HOTSPOT";
 static constexpr auto HOTSPOT_HID_STRING = L"HID";
@@ -235,6 +236,15 @@ public:
 	 * @return Vector of image frame byte arrays.
 	 */
 	static std::vector<std::vector<uint8_t>> readGifToStream(const std::string& filePath, std::shared_ptr<IImageEncoder> encoder, const ImgHelper& helper);
+
+	/**
+	 * @brief Read a GIF file and split it into encoded image frames with delay times.
+	 * @param filePath Path to the GIF file.
+	 * @param encoder Image encoder.
+	 * @param helper Image helper for formatting.
+	 * @return Vector of GifFrameData containing encoded frames and delay times.
+	 */
+	static std::vector<GifFrameData> readGifWithDelays(const std::string& filePath, std::shared_ptr<IImageEncoder> encoder, const ImgHelper& helper);
 
 public:
 	/**

@@ -369,11 +369,35 @@ std::vector<std::vector<uint8_t>> StreamDock::readGifToStream(const std::string&
 		ToolKit::print("[ERROR] failed to load gif");
 		return {};
 	}
-	int quality = 90;
+	// 优化：降低JPEG质量以减少USB传输时间，提升流畅度
+	// 质量70在画质和传输速度之间取得良好平衡
+	int quality = 70;
 #if __linux__
-	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device 
+	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device
 #endif
 	return gif.encodeFramesToMemory(quality, helper);
+}
+
+std::vector<GifFrameData> StreamDock::readGifWithDelays(const std::string& filePath, std::shared_ptr<IImageEncoder> encoder, const ImgHelper& helper)
+{
+	if (!encoder || helper == ImgHelper())
+	{
+		ToolKit::print("[ERROR] This Encoder or ImgHelper is not set, cannot encode GIF.");
+		return {};
+	}
+	Gif2ImgFrame gif(filePath, encoder);
+	if (!gif.isValid())
+	{
+		ToolKit::print("[ERROR] failed to load gif");
+		return {};
+	}
+	// 优化：降低JPEG质量以减少USB传输时间，提升流畅度
+	// 质量70在画质和传输速度之间取得良好平衡
+	int quality = 70;
+#if __linux__
+	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device
+#endif
+	return gif.encodeFramesWithDelay(quality, helper);
 }
 
 void StreamDock::setEncoder(std::shared_ptr<IImageEncoder> encoder)
