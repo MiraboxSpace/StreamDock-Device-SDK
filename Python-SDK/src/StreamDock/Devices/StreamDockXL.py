@@ -86,10 +86,6 @@ class StreamDockXL(StreamDock):
             0x21: (KnobId.KNOB_1, Direction.RIGHT),
             0x24: (KnobId.KNOB_2, Direction.LEFT),
             0x26: (KnobId.KNOB_2, Direction.RIGHT),
-            0x90: (KnobId.KNOB_3, Direction.LEFT),
-            0x91: (KnobId.KNOB_3, Direction.RIGHT),
-            0x70: (KnobId.KNOB_4, Direction.LEFT),
-            0x71: (KnobId.KNOB_4, Direction.RIGHT),
         }
 
         # 旋钮旋转事件
