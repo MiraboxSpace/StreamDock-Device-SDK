@@ -15,8 +15,8 @@ dependencies = [
     "pillow",
     "pyudev",
 ]
+requires-python = ">=3.10.0"
 
 [project.optional-dependencies]
 linux = ["pyudev"]
 windows = ["wmi", "pywin32"]
-requires-python = ">=3.10.0"
