@@ -1,6 +1,6 @@
 message(STATUS "BUILD TRANSPORT LIBRARY WITH LIBRARY FILE")
 
-# 根据平台和架构设置库名称后缀
+# Set the library name suffix by platform and architecture
 if(WIN32)
     set(TRANSPORT_ARCH_SUFFIX "")
 elseif(APPLE)
@@ -35,8 +35,8 @@ if(WIN32)
         IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/transport${TRANSPORT_ARCH_SUFFIX}.dll"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}"
     )
-    # 拷贝已编译的 transport 动态库到运行目录（支持分离的 Debug/Release 目录）
-    # Debug 配置 - 使用 release 版本的库
+    # Copy the built transport shared library to the runtime directory (supports separate Debug/Release dirs)
+    # Debug config - use the release library
     add_custom_target(copy_transport_dll_debug
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Debug"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -44,7 +44,7 @@ if(WIN32)
         "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Debug/transport${TRANSPORT_ARCH_SUFFIX}.dll"
         COMMENT "📦 Copying prebuilt transport${TRANSPORT_ARCH_SUFFIX}.dll to bin/Debug"
     )
-    # Release 配置
+    # Release config
     add_custom_target(copy_transport_dll_release
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../../bin/Release"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -57,11 +57,11 @@ else()
         IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/${TRANSPORT_LIB_FILENAME}"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}"
     )
-    # 拷贝已编译的 transport 动态库到运行目录
-    # 设置目标路径
+    # Copy the built transport shared library to the runtime directory
+    # Set the target path
     set(TRANSPORT_LIB_PATH "${CMAKE_CURRENT_LIST_DIR}/${TRANSPORT_LIB_FILENAME}")
     set(TRANSPORT_LIB_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TRANSPORT_LIB_FILENAME}")
-    # 只有当目标文件不存在时，才添加 copy 任务
+    # Only add the copy task when the target file does not exist
     if(NOT EXISTS "${TRANSPORT_LIB_DEST}")
         add_custom_target(copy_transport_dll ALL
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

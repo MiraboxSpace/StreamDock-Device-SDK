@@ -34,8 +34,8 @@ struct StreamDockInfo
 	DeviceOriginType originType = DeviceOriginType::Unknown;
 	uint16_t vendor_id = 0x00;
 	uint16_t product_id = 0x00;
-	std::wstring serialNumber{};   ///< 设备序列号
-	std::string firmwareVersion{}; ///< 固件号
+	std::wstring serialNumber{};   ///< Device serial number
+	std::string firmwareVersion{}; ///< Firmware version
 	uint16_t width = 0;
 	uint16_t height = 0;
 	uint16_t keyWidth = 0;

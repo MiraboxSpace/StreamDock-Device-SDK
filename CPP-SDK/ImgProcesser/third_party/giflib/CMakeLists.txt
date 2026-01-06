@@ -2,16 +2,16 @@ cmake_minimum_required(VERSION 3.12)
 
 project(giflib LANGUAGES C)
 
-# 选项：是否构建工具（可选）
+# Option: build tools (optional)
 option(GIFLIB_BUILD_TOOLS "Build giflib CLI tools (gif2rgb, etc.)" OFF)
 
-# 设置库版本
+# Set library version
 set(GIFLIB_VERSION_MAJOR 7)
 set(GIFLIB_VERSION_MINOR 2)
 set(GIFLIB_VERSION_PATCH 0)
 set(GIFLIB_VERSION "${GIFLIB_VERSION_MAJOR}.${GIFLIB_VERSION_MINOR}.${GIFLIB_VERSION_PATCH}")
 
-# 源文件
+# Source files
 set(GIFLIB_SRCS
     dgif_lib.c
     egif_lib.c
@@ -22,12 +22,12 @@ set(GIFLIB_SRCS
     openbsd-reallocarray.c
 )
 
-# 头文件
+# Header files
 set(GIFLIB_PUBLIC_HEADERS
     gif_lib.h
 )
 
-# giflib 静态库
+# giflib static library
 add_library(gif_lib STATIC ${GIFLIB_SRCS})
 add_library(giflib::gif ALIAS gif_lib)
 
@@ -43,7 +43,7 @@ set_target_properties(gif_lib PROPERTIES
     PUBLIC_HEADER "${GIFLIB_PUBLIC_HEADERS}"
 )
 
-# 工具（可选）
+# Tools (optional)
 if(GIFLIB_BUILD_TOOLS)
     set(UTIL_SRCS
         qprintf.c quantize.c getarg.c

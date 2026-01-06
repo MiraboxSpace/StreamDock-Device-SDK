@@ -57,15 +57,15 @@ private:
 	struct GifStreamStatus
 	{
 		GifStreamType gifFrames;
-		std::vector<uint16_t> frameDelays;  // 每帧的延迟（毫秒）
+		std::vector<uint16_t> frameDelays;  // Delay per frame (ms)
 		size_t currentFrame = 0;
-		uint64_t accumulatedTime = 0;       // 累积时间（微秒）
+		uint64_t accumulatedTime = 0;       // Accumulated time (microseconds)
 	};
 	std::unordered_map<uint8_t, GifStreamStatus> _gifMap; ///< Key GIF frame buffers.
 	uint16_t _background_place_x = 0; ///< X-position for background GIF.
 	uint16_t _background_place_y = 0; ///< Y-position for background GIF.
 
-	// 自适应时序控制（用于优化GIF播放流畅度）
-	bool _enableAdaptiveTiming = true;  ///< 是否启用自适应延迟补偿
-	bool _enablePerformanceLogging = false;  ///< 是否启用性能日志（调试用）
+	// Adaptive timing control (to improve GIF playback smoothness)
+	bool _enableAdaptiveTiming = true;  ///< Enable adaptive delay compensation
+	bool _enablePerformanceLogging = false;  ///< Enable performance logging (debug)
 };

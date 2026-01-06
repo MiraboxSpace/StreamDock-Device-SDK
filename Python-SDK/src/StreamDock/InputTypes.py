@@ -1,7 +1,7 @@
 """
-StreamDock 输入事件类型系统
+StreamDock input event type system
 
-提供统一的输入事件定义，包括按键、旋钮、滑动手势等。
+Provides unified input event definitions, including buttons, knobs, and swipe gestures.
 """
 
 from enum import Enum, IntEnum
@@ -10,21 +10,21 @@ from typing import Optional
 
 
 class EventType(Enum):
-    """事件类型枚举"""
-    BUTTON = "button"           # 普通按键按下/抬起
-    KNOB_ROTATE = "knob_rotate" # 旋钮旋转
-    KNOB_PRESS = "knob_press"   # 旋钮按下
-    SWIPE = "swipe"             # 滑动手势
+    """Event type enum"""
+    BUTTON = "button"           # Button press/release
+    KNOB_ROTATE = "knob_rotate" # Knob rotation
+    KNOB_PRESS = "knob_press"   # Knob press
+    SWIPE = "swipe"             # Swipe gesture
     UNKNOWN = "unknown"
 
 
 class ButtonKey(IntEnum):
     """
-    普通按键的逻辑键值（用于设置图片）
+    Logical key values for regular buttons (used for setting images)
 
-    设备可以定义自己的按键范围，例如：
-    - 简单设备: KEY_1 ~ KEY_15
-    - XL 设备: KEY_1 ~ KEY_32
+    Devices can define their own key ranges, for example:
+    - Simple devices: KEY_1 ~ KEY_15
+    - XL devices: KEY_1 ~ KEY_32
     """
     KEY_1 = 1
     KEY_2 = 2
@@ -61,7 +61,7 @@ class ButtonKey(IntEnum):
 
 
 class KnobId(Enum):
-    """旋钮ID枚举"""
+    """Knob ID enum"""
     KNOB_1 = "knob_1"
     KNOB_2 = "knob_2"
     KNOB_3 = "knob_3"
@@ -69,7 +69,7 @@ class KnobId(Enum):
 
 
 class Direction(Enum):
-    """方向枚举（用于旋钮旋转和滑动手势）"""
+    """Direction enum (for knob rotation and swipe gestures)"""
     LEFT = "left"
     RIGHT = "right"
 
@@ -77,25 +77,25 @@ class Direction(Enum):
 @dataclass
 class InputEvent:
     """
-    统一输入事件类
+    Unified input event class
 
-    所有输入事件（按键、旋钮、滑动）都通过此类传递给回调函数。
+    All input events (buttons, knobs, swipes) are passed to callbacks through this class.
 
     Attributes:
-        event_type: 事件类型
-        key: 按键事件：哪个按键
-        knob_id: 旋钮事件：哪个旋钮
-        direction: 方向：旋钮旋转方向或滑动方向
-        state: 状态：0=抬起/释放, 1=按下
+        event_type: Event type
+        key: Button event: which key
+        knob_id: Knob event: which knob
+        direction: Direction: knob rotation direction or swipe direction
+        state: State: 0=release, 1=press
     """
     event_type: EventType
-    key: Optional[ButtonKey] = None      # 按键事件：哪个按键
-    knob_id: Optional[KnobId] = None     # 旋钮事件：哪个旋钮
-    direction: Optional[Direction] = None # 方向：旋钮旋转方向或滑动方向
-    state: int = 0                       # 状态：0=抬起/释放, 1=按下
+    key: Optional[ButtonKey] = None      # Button event: which key
+    knob_id: Optional[KnobId] = None     # Knob event: which knob
+    direction: Optional[Direction] = None # Direction: knob rotation direction or swipe direction
+    state: int = 0                       # State: 0=release, 1=press
 
     def __post_init__(self):
-        """数据校验"""
+        """Data validation"""
         if self.event_type == EventType.BUTTON:
             if self.key is None:
                 raise ValueError("BUTTON event requires key")

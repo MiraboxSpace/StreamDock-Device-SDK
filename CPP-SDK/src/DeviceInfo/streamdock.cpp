@@ -18,7 +18,7 @@ StreamDock::~StreamDock()
 	_gifController.reset();
 	_rgbController.reset();
 	_heartBeater.reset();
-	_transport.reset(); /// 这玩意需要放最后面, 先析构可能会导致前面的访问空指针
+	_transport.reset(); /// This must be last; destroying it earlier may cause null pointer access above
 }
 
 void StreamDock::init()
@@ -369,8 +369,8 @@ std::vector<std::vector<uint8_t>> StreamDock::readGifToStream(const std::string&
 		ToolKit::print("[ERROR] failed to load gif");
 		return {};
 	}
-	// 优化：降低JPEG质量以减少USB传输时间，提升流畅度
-	// 质量70在画质和传输速度之间取得良好平衡
+	// Optimization: lower JPEG quality to reduce USB transfer time and improve smoothness
+	// Quality 70 balances image quality and transfer speed
 	int quality = 70;
 #if __linux__
 	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device
@@ -391,8 +391,8 @@ std::vector<GifFrameData> StreamDock::readGifWithDelays(const std::string& fileP
 		ToolKit::print("[ERROR] failed to load gif");
 		return {};
 	}
-	// 优化：降低JPEG质量以减少USB传输时间，提升流畅度
-	// 质量70在画质和传输速度之间取得良好平衡
+	// Optimization: lower JPEG quality to reduce USB transfer time and improve smoothness
+	// Quality 70 balances image quality and transfer speed
 	int quality = 70;
 #if __linux__
 	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device

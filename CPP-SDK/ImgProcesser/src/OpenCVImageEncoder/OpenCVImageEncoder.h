@@ -33,8 +33,8 @@ public:
 	static std::vector<int> imgEncodeParams(ImgType type, int quality);
 
 	enum class FlipMode {
-		Horizontal,  // 左右翻转
-		Vertical     // 上下翻转
+		Horizontal,  // Flip horizontally
+		Vertical     // Flip vertically
 	};
 	void rotate(cv::Mat& mat, double angle) const;
 	void flip(cv::Mat& mat, bool hflip, bool vflip) const;

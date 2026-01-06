@@ -65,13 +65,13 @@ public:
 		std::ofstream file(filename, std::ios::binary);
 		if (!file)
 		{
-			std::cerr << "无法打开文件 " << filename << " 进行写入。" << std::endl;
+			std::cerr << "Unable to open file " << filename << " for writing." << std::endl;
 			return false;
 		}
 		file.write(reinterpret_cast<const char*>(imageData.data()), imageData.size());
 		if (!file)
 		{
-			std::cerr << "写入文件 " << filename << " 时发生错误。" << std::endl;
+			std::cerr << "Error writing file " << filename << "." << std::endl;
 			return false;
 		}
 		return true;

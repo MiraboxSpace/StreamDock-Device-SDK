@@ -10,14 +10,14 @@ import random
 
 
 class StreamDockN4Pro(StreamDock):
-    """StreamDockN4Pro 设备类 - 支持15个按键、4个旋钮和滑动手势"""
+    """StreamDockN4Pro device class - supports 15 keys, 4 knobs, and swipe gestures"""
 
     KEY_COUNT = 15
     KEY_MAP = False
 
-    # 图片键映射：逻辑键 -> 硬件键（用于设置图片）
+    # Image key mapping: logical key -> hardware key (for setting images)
     _IMAGE_KEY_MAP = {
-        # 主按键 1-10
+        # Main keys 1-10
         ButtonKey.KEY_1: 11,
         ButtonKey.KEY_2: 12,
         ButtonKey.KEY_3: 13,
@@ -28,7 +28,7 @@ class StreamDockN4Pro(StreamDock):
         ButtonKey.KEY_8: 8,
         ButtonKey.KEY_9: 9,
         ButtonKey.KEY_10: 10,
-        # 副屏按键 11-14 (176x112)
+        # Secondary screen keys 11-14 (176x112)
         ButtonKey.KEY_11: 1,
         ButtonKey.KEY_12: 2,
         ButtonKey.KEY_13: 3,
@@ -36,7 +36,7 @@ class StreamDockN4Pro(StreamDock):
         ButtonKey.KEY_15: 5,
     }
 
-    # 反向映射：硬件键 -> 逻辑键（用于事件解码）
+    # Reverse mapping: hardware key -> logical key (for event decoding)
     _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
 
     def __init__(self, transport1, devInfo):
@@ -44,33 +44,33 @@ class StreamDockN4Pro(StreamDock):
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
-        将逻辑键值转换为硬件键值（用于设置图片）
+        Convert logical key value to hardware key value (for setting images)
 
         Args:
-            logical_key: 逻辑键值枚举
+            logical_key: Logical key enum
 
         Returns:
-            int: 硬件键值
+            int: Hardware key value
         """
         if logical_key in self._IMAGE_KEY_MAP:
             return self._IMAGE_KEY_MAP[logical_key]
-        raise ValueError(f"StreamDockN4Pro: 不支持的按键 {logical_key}")
+        raise ValueError(f"StreamDockN4Pro: Unsupported key {logical_key}")
 
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
         """
-        将硬件事件码解码为统一的 InputEvent
+        Decode hardware event codes into a unified InputEvent
 
-        硬件码映射：
-        - 按键: 1-15
-        - 副屏按键: 0x40-0x43
-        - 旋钮旋转: 0xA0, 0xA1(Knob1), 0x50, 0x51(Knob2), 0x90, 0x91(Knob3), 0x70, 0x71(Knob4)
-        - 旋钮按下: 0x37(Knob1), 0x35(Knob2), 0x33(Knob3), 0x36(Knob4)
-        - 滑动: 0x38(left), 0x39(right)
+        Hardware code mapping:
+        - Keys: 1-15
+        - Secondary screen keys: 0x40-0x43
+        - Knob rotation: 0xA0, 0xA1(Knob1), 0x50, 0x51(Knob2), 0x90, 0x91(Knob3), 0x70, 0x71(Knob4)
+        - Knob press: 0x37(Knob1), 0x35(Knob2), 0x33(Knob3), 0x36(Knob4)
+        - Swipe: 0x38 (left), 0x39 (right)
         """
-        # 处理状态值：0x02=释放, 0x01=按下
+        # Handle state value: 0x02=release, 0x01=press
         normalized_state = 1 if state == 0x01 else 0
 
-        # 普通按键事件 (1-15)
+        # Regular button events (1-15)
         if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -78,7 +78,7 @@ class StreamDockN4Pro(StreamDock):
                 state=normalized_state
             )
 
-        # 副屏按键事件
+        # Secondary screen key events
         secondary_key_map = {
             0x40: ButtonKey.KEY_11,
             0x41: ButtonKey.KEY_12,
@@ -92,7 +92,7 @@ class StreamDockN4Pro(StreamDock):
                 state=normalized_state
             )
 
-        # 旋钮旋转事件
+        # Knob rotation event
         knob_rotate_map = {
             0xA0: (KnobId.KNOB_1, Direction.LEFT),
             0xA1: (KnobId.KNOB_1, Direction.RIGHT),
@@ -111,7 +111,7 @@ class StreamDockN4Pro(StreamDock):
                 direction=direction
             )
 
-        # 旋钮按下事件
+        # Knob press event
         knob_press_map = {
             0x37: KnobId.KNOB_1,
             0x35: KnobId.KNOB_2,
@@ -125,20 +125,20 @@ class StreamDockN4Pro(StreamDock):
                 state=normalized_state
             )
 
-        # 滑动手势
+        # Swipe gesture
         if hardware_code == 0x38:
             return InputEvent(event_type=EventType.SWIPE, direction=Direction.LEFT)
         if hardware_code == 0x39:
             return InputEvent(event_type=EventType.SWIPE, direction=Direction.RIGHT)
 
-        # 未知事件
+        # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
 
-    # 设置设备的屏幕亮度
+    # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # 设置设备的背景图片 800 * 480
+    # Set device background image 800 * 480
     def set_touchscreen_image(self, path):
         try:
             if not os.path.exists(path):
@@ -165,7 +165,7 @@ class StreamDockN4Pro(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 设置设备的按键图标 112 * 112
+    # Set device key icon image 112 * 112
     def set_key_image(self, key, path):
         try:
             if isinstance(key, int):
@@ -180,11 +180,11 @@ class StreamDockN4Pro(StreamDock):
                 print(f"Error: The image file '{path}' does not exist.")
                 return -1
 
-            # 副屏按键使用不同的图片格式
+            # Secondary screen keys use a different image format
             if logical_key.value in range(11, 15):
                 return self.set_seondscreen_image(logical_key.value, path)
 
-            # 获取硬件键值
+            # Get hardware key value
             hardware_key = self.get_image_key(logical_key)
 
             # open formatter
@@ -206,7 +206,7 @@ class StreamDockN4Pro(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 设置设备的副屏按键图标 176 * 112
+    # Set device secondary screen key icon image 176 * 112
     def set_seondscreen_image(self, key, path):
         try:
             if key not in range(11, 15):
@@ -239,11 +239,11 @@ class StreamDockN4Pro(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 待补充
+    # TODO
     def set_key_imageData(self, key, path):
         pass
 
-    # 获取设备的序列号
+    # Get device serial number
     def get_serial_number(self):
         return self.serial_number
 
@@ -271,7 +271,7 @@ class StreamDockN4Pro(StreamDock):
             "flip": (False, False),
         }
 
-    # 设置设备参数
+    # Set device parameters
     def set_device(self):
         self.transport.set_report_size(513, 1025, 0)
         self.feature_option.hasRGBLed = True

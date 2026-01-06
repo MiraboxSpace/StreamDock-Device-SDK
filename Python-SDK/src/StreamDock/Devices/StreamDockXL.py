@@ -10,12 +10,12 @@ import random
 
 
 class StreamDockXL(StreamDock):
-    """StreamDockXL 设备类 - 支持36个输入（32按键+2旋钮）"""
+    """StreamDockXL device class - supports 36 inputs (32 keys + 2 knobs)"""
 
     KEY_COUNT = 36
     KEY_MAP = False
 
-    # 图片键映射：逻辑键 -> 硬件键（用于设置图片）
+    # Image key mapping: logical key -> hardware key (for setting images)
     _IMAGE_KEY_MAP = {
         ButtonKey.KEY_1: 25,
         ButtonKey.KEY_2: 26,
@@ -51,7 +51,7 @@ class StreamDockXL(StreamDock):
         ButtonKey.KEY_32: 8,
     }
 
-    # 反向映射：硬件键 -> 逻辑键（用于事件解码）
+    # Reverse mapping: hardware key -> logical key (for event decoding)
     _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
 
     def __init__(self, transport1, devInfo):
@@ -59,26 +59,26 @@ class StreamDockXL(StreamDock):
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
-        将逻辑键值转换为硬件键值（用于设置图片）
+        Convert logical key value to hardware key value (for setting images)
 
         Args:
-            logical_key: 逻辑键值枚举
+            logical_key: Logical key enum
 
         Returns:
-            int: 硬件键值
+            int: Hardware key value
         """
         if logical_key in self._IMAGE_KEY_MAP:
             return self._IMAGE_KEY_MAP[logical_key]
-        raise ValueError(f"StreamDockXL: 不支持的按键 {logical_key}")
+        raise ValueError(f"StreamDockXL: Unsupported key {logical_key}")
 
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
         """
-        将硬件事件码解码为统一的 InputEvent
+        Decode hardware event codes into a unified InputEvent
 
-        XL 设备支持普通按键和旋钮事件：
-        - 普通按键 1-32: 硬件码 0x19-0x08
-        - 左旋钮上下 33-34: 硬件码 0x21 (上), 0x23 (下)
-        - 右旋钮上下 35-36: 硬件码 0x24 (上), 0x26 (下)
+        XL supports regular button and knob events:
+        - Regular buttons 1-32: hardware codes 0x19-0x08
+        - Left knob up/down 33-34: hardware codes 0x21 (up), 0x23 (down)
+        - Right knob up/down 35-36: hardware codes 0x24 (up), 0x26 (down)
         """
 
         knob_rotate_map = {
@@ -88,16 +88,16 @@ class StreamDockXL(StreamDock):
             0x26: (KnobId.KNOB_2, Direction.RIGHT),
         }
 
-        # 旋钮旋转事件
+        # Knob rotation event
         if hardware_code in knob_rotate_map:
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
                 event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
             )
-        # 处理状态值：0x02=释放, 0x01=按下
+        # Handle state value: 0x02=release, 0x01=press
         normalized_state = 1 if state == 0x01 else 0
 
-        # 普通按键事件 (1-32)
+        # Regular button events (1-32)
         if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -105,14 +105,14 @@ class StreamDockXL(StreamDock):
                 state=normalized_state,
             )
 
-        # 未知事件
+        # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
 
-    # 设置设备的屏幕亮度
+    # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # 设置设备的背景图片 1024 * 600
+    # Set device background image 1024 * 600
     def set_touchscreen_image(self, path):
         try:
             if not os.path.exists(path):
@@ -140,7 +140,7 @@ class StreamDockXL(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 设置设备的按键图标 80 * 80
+    # Set device key icon image 80 * 80
     def set_key_image(self, key, path):
         try:
             if isinstance(key, int):
@@ -155,10 +155,10 @@ class StreamDockXL(StreamDock):
                 print(f"Error: The image file '{path}' does not exist.")
                 return -1
 
-            # 获取硬件键值
+            # Get hardware key value
             hardware_key = self.get_image_key(logical_key)
 
-            # XL 设备仅支持按键 1-32 设置图标（旋钮事件无需设置图标）
+            # XL supports setting icons only for keys 1-32 (knob events do not require icons)
             if hardware_key not in range(1, 33):
                 return -1
 
@@ -181,11 +181,11 @@ class StreamDockXL(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 待补充
+    # TODO
     def set_key_imageData(self, key, path):
         pass
 
-    # 获取设备的固件版本号
+    # Get device firmware version
     def get_serial_number(self):
         return self.serial_number
 
@@ -205,7 +205,7 @@ class StreamDockXL(StreamDock):
             "flip": (False, False),
         }
 
-    # 设置设备参数
+    # Set device parameters
     def set_device(self):
         self.transport.set_report_size(513, 1025, 0)
         self.feature_option.hasRGBLed = True

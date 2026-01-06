@@ -29,16 +29,16 @@ public:
 					tasks.pop();
 				}
 
-				task(); // 执行任务
+				task(); // Execute task
 			}
 				});
 	}
 
-	// 禁止复制
+	// Disable copying
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool& operator=(const ThreadPool&) = delete;
 
-	// 提交任务
+	// Submit task
 	template<class F, class... Args>
 	auto enqueue(F&& f, Args&&... args)
 		-> std::future<typename std::invoke_result_t<F, Args...>>
@@ -51,7 +51,7 @@ public:
 
 		std::future<return_type> res = task->get_future();
 
-		{   // 线程安全地加入任务队列
+		{   // Thread-safely add to the task queue
 			std::unique_lock<std::mutex> lock(queueMutex);
 			if (stop)
 				throw std::runtime_error("enqueue on stopped ThreadPool");
@@ -64,7 +64,7 @@ public:
 
 	~ThreadPool()
 	{
-		{   // 通知所有线程退出
+		{   // Notify all threads to exit
 			std::unique_lock<std::mutex> lock(queueMutex);
 			stop = true;
 		}

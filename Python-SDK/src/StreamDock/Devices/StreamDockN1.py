@@ -12,29 +12,29 @@ import random
 
 def extract_last_number(code):
     """
-    从字符串中提取最后一个点后面的连续数字并转为整数
+    Extract consecutive digits after the last dot in a string and convert to int
 
     Args:
-        code: 格式如 "N3.02.013" 或 "N3.02.013V2" 的字符串
+        code: String like "N3.02.013" or "N3.02.013V2"
 
     Returns:
-        int: 提取的数字，如果找不到则返回 None
+        int: Extracted number, or None if not found
     """
-    # 找到最后一个点的位置
+    # Find the position of the last dot
     last_dot = code.rfind('.')
     if last_dot == -1:
         return None
 
-    # 从最后一个点后面开始提取连续数字
+    # Extract consecutive digits after the last dot
     num_str = ''
     for char in code[last_dot + 1:]:
         if char.isdigit():
             num_str += char
         else:
-            # 遇到第一个非数字字符就停止
+            # Stop at the first non-digit character
             break
 
-    # 如果提取到了数字，转为整数
+    # If digits were found, convert to int
     if num_str:
         return int(num_str)
     else:
@@ -42,12 +42,12 @@ def extract_last_number(code):
 
 
 class StreamDockN1(StreamDock):
-    """StreamDockN1 设备类 - 支持20个输入（15主屏+3副屏+旋钮）"""
+    """StreamDockN1 device class - supports 20 inputs (15 main screen + 3 secondary screen + knob)"""
 
     KEY_COUNT = 20
     KEY_MAP = False
 
-    # N1 设备按键直接对应，无需映射
+    # N1 device keys map directly; no mapping needed
     _IMAGE_KEY_MAP = {
         ButtonKey.KEY_1: 1,
         ButtonKey.KEY_2: 2,
@@ -69,7 +69,7 @@ class StreamDockN1(StreamDock):
         ButtonKey.KEY_18: 18,
     }
 
-    # 反向映射：硬件键 -> 逻辑键（用于事件解码）
+    # Reverse mapping: hardware key -> logical key (for event decoding)
     _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
 
     def __init__(self, transport1, devInfo):
@@ -82,31 +82,31 @@ class StreamDockN1(StreamDock):
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
-        将逻辑键值转换为硬件键值（用于设置图片）
+        Convert logical key value to hardware key value (for setting images)
 
-        N1 设备按键直接对应
+        N1 device keys map directly
 
         Args:
-            logical_key: 逻辑键值枚举
+            logical_key: Logical key enum
 
         Returns:
-            int: 硬件键值
+            int: Hardware key value
         """
         if logical_key in self._IMAGE_KEY_MAP:
             return self._IMAGE_KEY_MAP[logical_key]
-        raise ValueError(f"StreamDockN1: 不支持的按键 {logical_key}")
+        raise ValueError(f"StreamDockN1: Unsupported key {logical_key}")
 
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
         """
-        将硬件事件码解码为统一的 InputEvent
+        Decode hardware event codes into a unified InputEvent
 
-        N1 设备支持普通按键和旋钮事件：
-        - 普通按键 1-17: 硬件码 0x01-0x0F, 0x1E-0x1F
-        - 旋钮按下 18: 硬件码 0x23
-        - 旋钮旋转 19-20: 硬件码 0x32 (左), 0x33 (右)
+        The N1 device supports regular button and knob events:
+        - Regular buttons 1-17: hardware codes 0x01-0x0F, 0x1E-0x1F
+        - Knob press 18: hardware code 0x23
+        - Knob rotation 19-20: hardware codes 0x32 (left), 0x33 (right)
         """
 
-        # 旋钮旋转事件
+        # Knob rotation event
         knob_rotate_map = {
             0x32: (KnobId.KNOB_1, Direction.LEFT),
             0x33: (KnobId.KNOB_1, Direction.RIGHT),
@@ -119,9 +119,9 @@ class StreamDockN1(StreamDock):
                 direction=direction
             )
             
-        # 处理状态值：0x02=释放, 0x01=按下
+        # Handle state value: 0x02=release, 0x01=press
         normalized_state = 1 if state == 0x01 else 0
-        # 旋钮按下事件
+        # Knob press event
         knob_press_map = {
             0x23: KnobId.KNOB_1,
         }
@@ -132,7 +132,7 @@ class StreamDockN1(StreamDock):
                 state=normalized_state
             )
 
-        # 普通按键事件 (1-17)
+        # Regular button events (1-17)
         if logical_key in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -140,14 +140,14 @@ class StreamDockN1(StreamDock):
                 state=normalized_state
             )
 
-        # 未知事件
+        # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
 
-    # 设置设备的屏幕亮度
+    # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # 设置设备的背景图片 480 * 854
+    # Set device background image 480 * 854
     def set_touchscreen_image(self, path):
         version_str = self.get_serial_number()
         version_num = extract_last_number(version_str)
@@ -175,7 +175,7 @@ class StreamDockN1(StreamDock):
                 print(f"Error: {e}")
                 return -1
 
-    # 设置设备的按键图标 96 * 96
+    # Set device key icon image 96 * 96
     def set_key_image(self, key, path):
         try:
             if isinstance(key, int):
@@ -190,7 +190,7 @@ class StreamDockN1(StreamDock):
                 print(f"Error: The image file '{path}' does not exist.")
                 return -1
 
-            # N1 设备按键直接对应
+            # N1 device keys map directly
             hardware_key = logical_key.value
 
             image = Image.open(path)
@@ -198,7 +198,7 @@ class StreamDockN1(StreamDock):
                 # icon
                 rotated_image = to_native_key_format(self, image)
             else:
-                return  -1  # N1 设备仅支持按键1-15设置图标
+                return  -1  # N1 supports setting icons for keys 1-15 only
             rotated_image.save("Temporary.jpg", "JPEG", subsampling=0, quality=90)
             returnvalue = self.transport.setKeyImgDualDevice(bytes("Temporary.jpg",'utf-8'), hardware_key)
             os.remove("Temporary.jpg")
@@ -231,7 +231,7 @@ class StreamDockN1(StreamDock):
             'flip': (False, False)
         }
 
-    # 设置设备参数
+    # Set device parameters
     def set_device(self):
         self.transport.set_report_size(513, 1025, 0)
         self.feature_option.deviceType = device_type.dock_n1

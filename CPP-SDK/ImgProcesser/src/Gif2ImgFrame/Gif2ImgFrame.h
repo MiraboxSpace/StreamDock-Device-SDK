@@ -9,10 +9,10 @@
 #define USE_THREADPOOL
 #define DEBUG_TIME
 
-// GIF 帧数据结构（包含编码后的数据和延迟时间）
+// GIF frame data structure (includes encoded data and delay time)
 struct GifFrameData {
-    std::vector<uint8_t> encodedData;  // 编码后的帧数据
-    uint16_t delayMs;                   // 帧延迟（毫秒）
+    std::vector<uint8_t> encodedData;  // Encoded frame data
+    uint16_t delayMs;                   // Frame delay (ms)
 };
 
 class Gif2ImgFrame {
@@ -22,13 +22,13 @@ public:
 
 	bool isValid() const;
 
-	// 保存每帧为图像文件，按类型输出
+	// Save each frame as an image file, output by type
 	bool saveFramesToFiles(const std::string& outputDir, int quality = 95, const ImgHelper& imgHelper = ImgHelper());
 
-	// 将每帧编码为内存图像数据
+	// Encode each frame as in-memory image data
 	std::vector<std::vector<uint8_t>> encodeFramesToMemory(int quality = 95, const ImgHelper& imgHelper = ImgHelper());
 
-	// 将每帧编码为内存图像数据，并包含每帧的延迟时间
+	// Encode each frame as in-memory image data and include per-frame delay
 	std::vector<GifFrameData> encodeFramesWithDelay(int quality = 95, const ImgHelper& imgHelper = ImgHelper());
 
 private:

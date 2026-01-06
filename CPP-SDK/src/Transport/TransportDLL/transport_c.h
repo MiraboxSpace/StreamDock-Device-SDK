@@ -22,10 +22,10 @@ extern "C"
 
 	typedef void* TransportHandle;
 
-	// 错误编码系统
+	// Error code system
 	typedef uint32_t TransportResult;
 
-	// 错误类别（位31-24）
+	// Error category (bits 31-24)
 	#define TRANSPORT_SUCCESS                    0x00000000U
 	#define TRANSPORT_ERROR_PARAM                0x01000000U
 	#define TRANSPORT_ERROR_DEVICE               0x02000000U
@@ -37,47 +37,47 @@ extern "C"
 	#define TRANSPORT_ERROR_PROTOCOL             0x08000000U
 	#define TRANSPORT_ERROR_UNKNOWN              0xFF000000U
 
-	// 模块标识（位15-8）
+	// Module identifier (bits 15-8)
 	#define TRANSPORT_MODULE_CORE                0x00000100U
 	#define TRANSPORT_MODULE_DEVICE              0x00000200U
 	#define TRANSPORT_MODULE_SESSION             0x00000300U
 	#define TRANSPORT_MODULE_BUFFER              0x00000400U
 
-	// 参数错误（0x01xxxxxx）
+	// Parameter error (0x01xxxxxx)
 	#define TRANSPORT_ERROR_PARAM_NULL           (TRANSPORT_ERROR_PARAM | TRANSPORT_MODULE_CORE | 0x01U)
 	#define TRANSPORT_ERROR_PARAM_INVALID        (TRANSPORT_ERROR_PARAM | TRANSPORT_MODULE_CORE | 0x02U)
 	#define TRANSPORT_ERROR_PARAM_LENGTH         (TRANSPORT_ERROR_PARAM | TRANSPORT_MODULE_CORE | 0x03U)
 	#define TRANSPORT_ERROR_PARAM_TYPE           (TRANSPORT_ERROR_PARAM | TRANSPORT_MODULE_CORE | 0x04U)
 
-	// 设备错误（0x02xxxxxx）
+	// Device error (0x02xxxxxx)
 	#define TRANSPORT_ERROR_DEVICE_NOT_CONNECTED (TRANSPORT_ERROR_DEVICE | TRANSPORT_MODULE_DEVICE | 0x01U)
 	#define TRANSPORT_ERROR_DEVICE_ACCESS_DENIED (TRANSPORT_ERROR_DEVICE | TRANSPORT_MODULE_DEVICE | 0x02U)
 	#define TRANSPORT_ERROR_DEVICE_INVALID_HANDLE (TRANSPORT_ERROR_DEVICE | TRANSPORT_MODULE_DEVICE | 0x03U)
 	#define TRANSPORT_ERROR_DEVICE_LOST          (TRANSPORT_ERROR_DEVICE | TRANSPORT_MODULE_DEVICE | 0x04U)
 	#define TRANSPORT_ERROR_DEVICE_FAILURE       (TRANSPORT_ERROR_DEVICE | TRANSPORT_MODULE_DEVICE | 0x05U)
 
-	// 内存错误（0x03xxxxxx）
+	// Memory error (0x03xxxxxx)
 	#define TRANSPORT_ERROR_MEMORY_INSUFFICIENT  (TRANSPORT_ERROR_MEMORY | TRANSPORT_MODULE_CORE | 0x01U)
 	#define TRANSPORT_ERROR_MEMORY_ALLOC_FAILED  (TRANSPORT_ERROR_MEMORY | TRANSPORT_MODULE_CORE | 0x02U)
 	#define TRANSPORT_ERROR_MEMORY_OVERFLOW      (TRANSPORT_ERROR_MEMORY | TRANSPORT_MODULE_CORE | 0x03U)
 
-	// 通信错误（0x04xxxxxx）
+	// Communication error (0x04xxxxxx)
 	#define TRANSPORT_ERROR_COMMUNICATION_WRITE_FAILED (TRANSPORT_ERROR_COMMUNICATION | TRANSPORT_MODULE_DEVICE | 0x01U)
 	#define TRANSPORT_ERROR_COMMUNICATION_READ_FAILED  (TRANSPORT_ERROR_COMMUNICATION | TRANSPORT_MODULE_DEVICE | 0x02U)
 	#define TRANSPORT_ERROR_COMMUNICATION_CHECKSUM     (TRANSPORT_ERROR_COMMUNICATION | TRANSPORT_MODULE_DEVICE | 0x03U)
 	#define TRANSPORT_ERROR_COMMUNICATION_TRUNCATED    (TRANSPORT_ERROR_COMMUNICATION | TRANSPORT_MODULE_DEVICE | 0x04U)
 
-	// 超时错误（0x05xxxxxx）
+	// Timeout error (0x05xxxxxx)
 	#define TRANSPORT_ERROR_TIMEOUT_OPERATION    (TRANSPORT_ERROR_TIMEOUT | TRANSPORT_MODULE_SESSION | 0x01U)
 	#define TRANSPORT_ERROR_TIMEOUT_READ        (TRANSPORT_ERROR_TIMEOUT | TRANSPORT_MODULE_SESSION | 0x02U)
 	#define TRANSPORT_ERROR_TIMEOUT_WRITE       (TRANSPORT_ERROR_TIMEOUT | TRANSPORT_MODULE_SESSION | 0x03U)
 
-	// 状态错误（0x06xxxxxx）
+	// State error (0x06xxxxxx)
 	#define TRANSPORT_ERROR_STATE_INVALID       (TRANSPORT_ERROR_STATE | TRANSPORT_MODULE_CORE | 0x01U)
 	#define TRANSPORT_ERROR_STATE_CONFLICT      (TRANSPORT_ERROR_STATE | TRANSPORT_MODULE_CORE | 0x02U)
 	#define TRANSPORT_ERROR_STATE_UNINITIALIZED (TRANSPORT_ERROR_STATE | TRANSPORT_MODULE_CORE | 0x03U)
 
-	// 错误信息结构
+	// Error info structure
 	typedef struct {
 		TransportResult error_code;
 		char error_message[256];
@@ -86,18 +86,18 @@ extern "C"
 		uint32_t line_number;
 	} TransportErrorInfo;
 
-	/// 创建 Transport 对象
+	/// Create a Transport object
 	TRANSPORT_API TransportResult transport_create(const struct hid_device_info* device_info, TransportHandle* out_handle);
-	/// 销毁 Transport 对象
+	/// Destroy Transport object
 	TRANSPORT_API TransportResult transport_destroy(TransportHandle handle);
 
-	/// 固件号
+	/// Firmware version
 	TRANSPORT_API TransportResult transport_get_firmware_version(TransportHandle handle, char* firmware_version_string, size_t length);
 
-	/// 清空任务队列
+	/// Clear task queue
 	TRANSPORT_API TransportResult transport_clear_task_queue(TransportHandle handle);
 
-	/// 控制函数
+	/// Control functions
 	TRANSPORT_API TransportResult transport_wakeup_screen(TransportHandle handle);
 	TRANSPORT_API TransportResult transport_set_keyboard_backlight_brightness(TransportHandle handle, uint8_t brightness);
 	TRANSPORT_API TransportResult transport_set_keyboard_lighting_effects(TransportHandle handle, uint8_t effect);
@@ -124,18 +124,18 @@ extern "C"
 	TRANSPORT_API TransportResult transport_set_background_frame_stream(TransportHandle handle, const char* jpeg, size_t length, uint16_t width, uint16_t height, uint16_t x, uint16_t y, uint8_t FBlayer);
 	TRANSPORT_API TransportResult transport_clear_background_frame_stream(TransportHandle handle, uint8_t postion);
 
-	/// LED 控制
+	/// LED control
 	TRANSPORT_API TransportResult transport_set_led_brightness(TransportHandle handle, uint8_t brightness);
 	TRANSPORT_API TransportResult transport_set_led_color(TransportHandle handle, uint16_t count, uint8_t r, uint8_t g, uint8_t b);
 	TRANSPORT_API TransportResult transport_reset_led_color(TransportHandle handle);
 
-	/// 设备配置
+	/// Device configuration
 	TRANSPORT_API TransportResult transport_set_device_config(TransportHandle handle, uint8_t* configs, size_t configs_length);
 
-	/// N1 模式转化
+	/// N1 mode switch
 	TRANSPORT_API TransportResult transport_change_mode(TransportHandle handle, uint8_t mode);
 
-	/// 状态
+	/// Status
 	TRANSPORT_API TransportResult transport_can_write(TransportHandle handle, int* can_write);
 	TRANSPORT_API TransportResult transport_read(TransportHandle handle, uint8_t* response, size_t* length, int32_t timeoutMs);
 	TRANSPORT_API TransportResult transport_set_reportID(TransportHandle handle, uint8_t reportID);
@@ -144,9 +144,9 @@ extern "C"
 	TRANSPORT_API TransportResult transport_raw_hid_last_error(TransportHandle handle, wchar_t* errMsg, size_t* length);
 	TRANSPORT_API TransportResult transport_disable_output(int8_t disable_output);
 
-	/// 获取最后一次错误信息
+	/// Get the last error info
 	TRANSPORT_API TransportResult transport_get_last_error_info(TransportHandle handle, TransportErrorInfo* error_info);
-	/// 导出 hidapi 函数以避免其他程序包冲突，如 Python 的 hidapi 包
+	/// Export hidapi functions to avoid conflicts with other packages, such as Python's hidapi package
 	TRANSPORT_API struct hid_device_info* transport_hid_enumerate(unsigned short vendor_id, unsigned short product_id);
 	TRANSPORT_API void transport_hid_free_enumeration(struct hid_device_info* devs);
 

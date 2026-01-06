@@ -1,9 +1,9 @@
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# 为 MSVC 设置运行时库 - 确保与主项目一致
+# Set the MSVC runtime library - keep consistent with the main project
 if(MSVC)
-    # 强制使用动态运行时库
+    # Force the dynamic runtime library
     foreach(flag_var
         CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
         CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
@@ -19,13 +19,13 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MD")
 endif()
 
-# 添加 TransportDLL 子模块（保持源码结构）
+# Add the TransportDLL submodule (keep source layout)
 add_subdirectory(TransportDLL)
 
-# TransportCWrapper 使用 TransportDLL 提供的 API
+# TransportCWrapper uses the API provided by TransportDLL
 add_library(TransportCWrapper STATIC TransportCWrapper.cpp)
 
-# 链接 C wrapper 动态库 和 hidapi 库
+# Link the C wrapper shared library and hidapi library
 target_link_libraries(TransportCWrapper
     PUBLIC hidapi::hidapi
     PRIVATE TransportDLL

@@ -10,13 +10,13 @@ import random
 
 
 class StreamDock293(StreamDock):
-    """StreamDock293 设备类 - 支持15个按键"""
+    """StreamDock293 device class - supports 15 keys"""
 
     KEY_COUNT = 15
     KEY_MAP = False
 
-    # 图片键映射：逻辑键 -> 硬件键（用于设置图片）
-    # 293 设备使用基类的 KEY_MAPPING 映射
+    # Image key mapping: logical key -> hardware key (for setting images)
+    # The 293 device uses the base class KEY_MAPPING mapping
     _IMAGE_KEY_MAP = {
         ButtonKey.KEY_1: 11,
         ButtonKey.KEY_2: 12,
@@ -35,7 +35,7 @@ class StreamDock293(StreamDock):
         ButtonKey.KEY_15: 5,
     }
 
-    # 反向映射：硬件键 -> 逻辑键（用于事件解码）
+    # Reverse mapping: hardware key -> logical key (for event decoding)
     _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
 
     def __init__(self, transport1, devInfo):
@@ -43,28 +43,28 @@ class StreamDock293(StreamDock):
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
-        将逻辑键值转换为硬件键值（用于设置图片）
+        Convert logical key value to hardware key value (for setting images)
 
         Args:
-            logical_key: 逻辑键值枚举
+            logical_key: Logical key enum
 
         Returns:
-            int: 硬件键值
+            int: Hardware key value
         """
         if logical_key in self._IMAGE_KEY_MAP:
             return self._IMAGE_KEY_MAP[logical_key]
-        raise ValueError(f"StreamDock293: 不支持的按键 {logical_key}")
+        raise ValueError(f"StreamDock293: Unsupported key {logical_key}")
 
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
         """
-        将硬件事件码解码为统一的 InputEvent
+        Decode hardware event codes into a unified InputEvent
 
-        293 设备只支持普通按键，硬件码范围 1-15
+        The 293 device supports only regular buttons; hardware code range 1-15
         """
-        # 处理状态值：0x02=释放, 0x01=按下
+        # Handle state value: 0x02=release, 0x01=press
         normalized_state = 1 if state == 0x01 else 0
 
-        # 普通按键事件 (1-15)
+        # Regular button events (1-15)
         if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -72,14 +72,14 @@ class StreamDock293(StreamDock):
                 state=normalized_state
             )
 
-        # 未知事件
+        # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
 
-    # 设置设备的屏幕亮度
+    # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # 设置设备的背景图片 800 * 480
+    # Set device background image 800 * 480
     def set_touchscreen_image(self, path):
         try:
             if not os.path.exists(path):
@@ -101,7 +101,7 @@ class StreamDock293(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 设置设备的按键图标 100 * 100
+    # Set device key icon image 100 * 100
     def set_key_image(self, key, path):
         try:
             if isinstance(key, int):
@@ -116,7 +116,7 @@ class StreamDock293(StreamDock):
                 print(f"Error: The image file '{path}' does not exist.")
                 return -1
 
-            # 获取硬件键值
+            # Get hardware key value
             hardware_key = self.get_image_key(logical_key)
 
             image = Image.open(path)
@@ -130,7 +130,7 @@ class StreamDock293(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # 获取设备的固件版本号
+    # Get device firmware version
     def get_serial_number(self):
         return self.serial_number
 
@@ -150,7 +150,7 @@ class StreamDock293(StreamDock):
             'flip': (False, False)
         }
 
-    # 设置设备参数
+    # Set device parameters
     def set_device(self):
         self.transport.set_report_size(513, 513, 0)
         self.feature_option.deviceType = device_type.dock_293

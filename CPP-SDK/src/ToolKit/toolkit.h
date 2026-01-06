@@ -38,7 +38,7 @@ public:
 
 public:
 #if __cplusplus >= 201703L
-	// C++17: 使用参数包展开 (fold expression)
+	// C++17: use parameter pack expansion (fold expression)
 	template <typename... Args>
 	static void print(Args &&...args)
 	{
@@ -54,7 +54,7 @@ public:
 		((std::wcerr << std::forward<Args>(args) << L" "), ...) << std::endl;
 	}
 #else
-	// C++11: 使用递归模板打印
+	// C++11: use recursive templates to print
 	static void print()
 	{
 		if (disable_output)
@@ -102,6 +102,6 @@ public:
 		{
 			os << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(byte) << " ";
 		}
-		os << std::dec << std::endl; // 恢复 decimal 模式
+		os << std::dec << std::endl; // Restore decimal mode
 	}
 };

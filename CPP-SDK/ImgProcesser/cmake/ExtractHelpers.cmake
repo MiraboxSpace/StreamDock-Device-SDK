@@ -1,33 +1,33 @@
-#    用法示例
-#    # 解压 giflib
+#    Usage example
+#    # Extract giflib
 #    extract_archive_flat(
 #        INPUT "${CMAKE_SOURCE_DIR}/third_party/giflib-5.2.2.tar.gz"
 #        DESTINATION "${CMAKE_SOURCE_DIR}/third_party/giflib"
 #    )
 #    
-#    # 解压 opencv
+#    # Extract opencv
 #    extract_archive_flat(
 #        INPUT "${CMAKE_SOURCE_DIR}/third_party/opencv-4.9.0.zip"
 #        DESTINATION "${CMAKE_SOURCE_DIR}/third_party/opencv"
 #    )
 function(extract_archive_flat archive_path dest_dir)
-    # 生成唯一的临时路径（基于传入参数的 hash）
+    # Generate a unique temp path (based on the input parameter hash)
     string(MD5 archive_hash "${archive_path}-${dest_dir}")
     set(extract_temp "${CMAKE_CURRENT_BINARY_DIR}/_extract_temp_${archive_hash}")
 
-    # 解压到临时目录
+    # Extract to the temp directory
     file(ARCHIVE_EXTRACT
         INPUT "${archive_path}"
         DESTINATION "${extract_temp}"
     )
 
-    # 判断是否只有一个子目录
+    # Check if there is only one subdirectory
     file(GLOB top_entries RELATIVE "${extract_temp}" "${extract_temp}/*")
     list(LENGTH top_entries entry_count)
     list(GET top_entries 0 maybe_top_dir)
 
     if(entry_count EQUAL 1 AND IS_DIRECTORY "${extract_temp}/${maybe_top_dir}")
-        # 解包内容在一个顶层目录内，扁平化拷贝它的内容
+        # If the unpacked content is in a top-level directory, flatten-copy its contents
         file(GLOB_RECURSE files "${extract_temp}/${maybe_top_dir}/*")
         foreach(file IN LISTS files)
             file(RELATIVE_PATH rel "${extract_temp}/${maybe_top_dir}" "${file}")
@@ -36,7 +36,7 @@ function(extract_archive_flat archive_path dest_dir)
             file(COPY "${file}" DESTINATION "${out_dir}")
         endforeach()
     else()
-        #define 否则直接复制所有内容
+        # Otherwise copy all contents directly
         file(GLOB_RECURSE files "${extract_temp}/*")
         foreach(file IN LISTS files)
             file(RELATIVE_PATH rel "${extract_temp}" "${file}")

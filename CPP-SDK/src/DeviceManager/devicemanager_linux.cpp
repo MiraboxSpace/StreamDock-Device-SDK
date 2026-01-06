@@ -55,7 +55,7 @@ void DeviceManager::listen(std::function<void(std::shared_ptr<StreamDock>)> conn
 								}
 								hid_free_enumeration(devs);
 								/// if the device support end
-								enumerator();  // 重新枚举设备
+								enumerator();  // Re-enumerate devices
 								std::lock_guard<std::mutex> lock(streamdocksMutex_);
 								auto it = getStreamDocks().find(devNode);
 								if (it != getStreamDocks().end() && connect_and_run) {

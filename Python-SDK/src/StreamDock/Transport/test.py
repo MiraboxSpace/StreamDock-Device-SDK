@@ -7,10 +7,10 @@ usb_hid = LibUSBHIDAPI()
 
 vendor_id = 0x6603
 product_id = 0x1009
-# 获取设备列表
+# Get device list
 device_list = usb_hid.enumerate_devices(vendor_id, product_id)
 print(f"Found {len(device_list)} device(s).")
-# # 打印设备信息
+# # Print device info
 # for device in device_list:
 #     print(f"Device Path: {device['path']}")
 #     print(f"Vendor ID: {device['vendor_id']}")  

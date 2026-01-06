@@ -15,11 +15,11 @@ from ..InputTypes import InputEvent, ButtonKey
 
 
 class TransportError(Exception):
-    """自定义异常类型，用于传输错误"""
+    """Custom exception type for transport errors"""
 
     def __init__(self, message, code=None):
         super().__init__(message)
-        self.code = code  # 可选的错误代码
+        self.code = code  # Optional error code
 
     def __str__(self):
         if self.code:
@@ -127,7 +127,7 @@ class StreamDock(ABC):
         """
         # self.update_lock.release()
 
-    # 打开设备
+    # Open device
     def open(self):
         res1 = self.transport.open(bytes(self.path, "utf-8"))
         self._setup_reader(self._read)
@@ -136,7 +136,7 @@ class StreamDock(ABC):
             self.firmware_version = self.transport.get_firmware_version()
         return res1
 
-    # 初始化
+    # Initialize
     def init(self):
         self.set_device()
         self.wakeScreen()
@@ -146,35 +146,35 @@ class StreamDock(ABC):
             self.firmware_version = self.transport.get_firmware_version()
         self.refresh()
 
-    # 设置设备参数
+    # Set device parameters
     @abstractmethod
     def set_device(self):
         pass
 
-    # 设置设备的LED亮度
+    # Set device LED brightness
     def set_led_brightness(self, percent):
         if self.feature_option.hasRGBLed:
             return self.transport.set_led_brightness(percent)
 
-    # 设置设备的LED颜色
+    # Set device LED color
     def set_led_color(self, r, g, b):
         if self.feature_option.hasRGBLed:
             return self.transport.set_led_color(self.feature_option.ledCounts, r, g, b)
 
-    # 重置设备的LED效果
+    # Reset device LED effects
     def reset_led_effect(self):
         if self.feature_option.hasRGBLed:
             return self.transport.reset_led_color()
 
-    # 关闭设备
+    # Close device
     def close(self):
         """
-        关闭设备并释放所有资源。
+        Close the device and release all resources.
 
         CRITICAL: This method must be called before the object is destroyed to ensure
         clean shutdown of the C library and prevent segmentation faults.
         """
-        # print(f"[DEBUG] 关闭设备: {self.path}")
+        # print(f"[DEBUG] Closing device: {self.path}")
 
         # CRITICAL: Stop reader thread first and wait for it to finish
         self.run_read_thread = False
@@ -182,35 +182,35 @@ class StreamDock(ABC):
         if self.read_thread and self.read_thread.is_alive():
             try:
                 # Give thread time to exit naturally
-                self.read_thread.join(timeout=2.0)  # 等待最多2秒
+                self.read_thread.join(timeout=2.0)  # Wait up to 2 seconds
                 if self.read_thread.is_alive():
-                    print(f"[WARNING] 读取线程未能及时退出", flush=True)
+                    print("[WARNING] Read thread did not exit in time", flush=True)
             except Exception as e:
-                print(f"[WARNING] 等待读取线程退出时出错: {e}", flush=True)
+                print(f"[WARNING] Error while waiting for read thread to exit: {e}", flush=True)
 
-        # 发送断开连接命令 (may fail if device already disconnected)
+        # Send disconnect command (may fail if device already disconnected)
         try:
             self.disconnected()
         except Exception as e:
-            print(f"[WARNING] 发送断开命令时出错: {e}", flush=True)
+            print(f"[WARNING] Error sending disconnect command: {e}", flush=True)
 
         # CRITICAL: Close transport properly to release HID device
         try:
             self.transport.close()
         except Exception as e:
-            print(f"[WARNING] 关闭transport时出错: {e}", flush=True)
+            print(f"[WARNING] Error closing transport: {e}", flush=True)
 
         # Clear callback to break any circular references
         with self._callback_lock:
             self.key_callback = None
 
-        # print(f"[DEBUG] 设备已关闭")
+        # print("[DEBUG] Device closed")
 
-    # 断开连接清楚所有显示
+    # Disconnect and clear all displays
     def disconnected(self):
         self.transport.disconnected()
 
-    # 清除某个按键的图标
+    # Clear a specific key icon
     def clearIcon(self, index):
         origin = index
         if origin not in range(1, self.KEY_COUNT + 1):
@@ -220,35 +220,35 @@ class StreamDock(ABC):
         hardware_key = self.get_image_key(logical_key)
         self.transport.keyClear(hardware_key)
 
-    # 清除所有按键的图标
+    # Clear all key icons
     def clearAllIcon(self):
         self.transport.keyAllClear()
 
-    # 唤醒屏幕
+    # Wake the screen
     def wakeScreen(self):
         self.transport.wakeScreen()
 
-    # 刷新设备显示
+    # Refresh the device display
     def refresh(self):
         self.transport.refresh()
 
-    # 获取设备路径
+    # Get device path
     def getPath(self):
         return self.path
 
-    # 获取设备反馈的信息
+    # Get device feedback data
     def read(self):
         """
-        :argtypes:存放信息的字节数组, 字节数组的长度建议1024
+        :argtypes: byte array to store info; recommended length 1024
 
         """
         data = self.transport.read_(1024)
         return data
 
-    # 一直检测设备有无信息反馈，建议开线程使用
+    # Continuously check for device feedback; recommended to run in a thread
     def whileread(self):
         """
-        @deprecated 建议使用内置的异步回调机制，而不是直接调用此方法
+        @deprecated Use the built-in async callback mechanism instead of calling this directly
         """
         from ..InputTypes import EventType
 
@@ -259,45 +259,45 @@ class StreamDock(ABC):
                     try:
                         event = self.decode_input_event(data[9], data[10])
                         if event.event_type == EventType.BUTTON:
-                            action = "按下" if event.state == 1 else "抬起"
+                            action = "pressed" if event.state == 1 else "released"
                             print(
-                                f"按键{event.key.value if event.key else '?'}被{action}"
+                                f"Key {event.key.value if event.key else '?'} was {action}"
                             )
                         elif event.event_type == EventType.KNOB_ROTATE:
                             print(
-                                f"旋钮{event.knob_id.value if event.knob_id else '?'}向{event.direction.value if event.direction else '?'}旋转"
+                                f"Knob {event.knob_id.value if event.knob_id else '?'} rotated {event.direction.value if event.direction else '?'}"
                             )
                         elif event.event_type == EventType.KNOB_PRESS:
-                            action = "按下" if event.state == 1 else "抬起"
+                            action = "pressed" if event.state == 1 else "released"
                             print(
-                                f"旋钮{event.knob_id.value if event.knob_id else '?'}被{action}"
+                                f"Knob {event.knob_id.value if event.knob_id else '?'} was {action}"
                             )
                         elif event.event_type == EventType.SWIPE:
                             print(
-                                f"滑动手势: {event.direction.value if event.direction else '?'}"
+                                f"Swipe gesture: {event.direction.value if event.direction else '?'}"
                             )
                     except Exception:
                         pass
                 # self.transport.deleteRead()
             except Exception as e:
-                print("发生错误：")
-                traceback.print_exc()  # 打印详细的异常信息
+                print("Error occurred:")
+                traceback.print_exc()  # Print detailed exception info
                 break
 
-    # #息屏
+    # # Screen off
     # def screen_Off(self):
     #     res=self.transport.screen_Off()
     #     self.reset_Countdown(self.__seconds)
     #     return res
-    # #唤醒屏幕
+    # # Wake screen
     # def screen_On(self):
     #     return self.transport.screen_On()
-    # # 设置定时器时间
+    # # Set timer interval
     # def set_seconds(self, data):
     #     self.__seconds = data
     #     self.reset_Countdown(self.__seconds)
 
-    # # 重启定时器
+    # # Restart timer
     # def reset_Countdown(self, data):
     #     if self.screenlicent is not None:
     #         self.screenlicent.cancel()
@@ -329,27 +329,27 @@ class StreamDock(ABC):
     @abstractmethod
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
-        将逻辑键值转换为硬件键值（用于设置图片）
+        Convert logical key value to hardware key value (for setting images)
 
         Args:
-            logical_key: 逻辑键值枚举
+            logical_key: Logical key enum
 
         Returns:
-            int: 硬件键值
+            int: Hardware key value
         """
         pass
 
     @abstractmethod
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
         """
-        将硬件事件码解码为统一的 InputEvent
+        Decode hardware event codes into a unified InputEvent
 
         Args:
-            hardware_code: 硬件事件码
-            state: 状态 (0=释放, 1=按下)
+            hardware_code: Hardware event code
+            state: State (0=release, 1=press)
 
         Returns:
-            InputEvent: 解码后的事件对象
+            InputEvent: Decoded event object
         """
         pass
 
@@ -370,11 +370,11 @@ class StreamDock(ABC):
                     arr = self.read()
                     if arr is not None and len(arr) >= 10:
                         if arr[9] == 0xFF:
-                            # 写入成功确认
+                            # Confirm write success
                             pass
                         else:
                             try:
-                                # 使用设备类的事件解码器
+                                # Use the device class event decoder
                                 if self.feature_option.deviceType != device_type.k1pro:
                                     event = self.decode_input_event(arr[9], arr[10])
                                 else:
@@ -386,16 +386,16 @@ class StreamDock(ABC):
                                 # Call callback OUTSIDE of lock to avoid deadlocks
                                 if callback is not None:
                                     try:
-                                        # 回调签名: callback(device, event)
+                                        # Callback signature: callback(device, event)
                                         callback(self, event)
                                     except Exception as callback_error:
                                         print(
-                                            f"按键回调函数发生错误: {callback_error}",
+                                            f"Key callback error: {callback_error}",
                                             flush=True,
                                         )
                                         traceback.print_exc()
                             except Exception as decode_error:
-                                print(f"事件解码错误: {decode_error}", flush=True)
+                                print(f"Event decode error: {decode_error}", flush=True)
                                 traceback.print_exc()
                     # else:
                     #     print("read control", arr)
@@ -403,11 +403,11 @@ class StreamDock(ABC):
                     # del arr causes issues with ctypes buffers on Linux
 
                 except Exception as e:
-                    print(f"读取数据时发生错误: {e}", flush=True)
+                    print(f"Error reading data: {e}", flush=True)
                     traceback.print_exc()
                     continue
         except Exception as outer_error:
-            print(f"[FATAL] 读取线程外层异常: {outer_error}", flush=True)
+            print(f"[FATAL] Read thread outer exception: {outer_error}", flush=True)
             traceback.print_exc()
         finally:
             pass
@@ -457,9 +457,9 @@ class StreamDock(ABC):
             def on_input(device, event):
                 from StreamDock.InputTypes import EventType
                 if event.event_type == EventType.BUTTON:
-                    print(f"按键 {event.key.value} 被按下")
+                    print(f"Key {event.key.value} pressed")
                 elif event.event_type == EventType.KNOB_ROTATE:
-                    print(f"旋钮旋转")
+                    print("Knob rotated")
         """
         with self._callback_lock:
             self.key_callback = callback
