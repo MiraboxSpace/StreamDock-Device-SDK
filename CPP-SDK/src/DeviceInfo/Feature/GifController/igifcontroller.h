@@ -84,5 +84,5 @@ public:
 	virtual bool gifWorkLoopStatus() = 0;
 
 protected:
-	const uint16_t _baseGifDelayMs = 100;  ///< Default delay between GIF frames (10fps，更稳定).
+	const uint16_t _baseGifDelayMs = 100;  ///< Default delay between GIF frames (10fps, more stable).
 };

@@ -3,13 +3,13 @@
 #include <ImgType.h>
 
 enum class ImgProcess : uint8_t {
-	Resize,// 重置大小到目标
-	Crop,// 裁剪大小
+	Resize,// Resize to target size
+	Crop,// Crop size
 };
 
 enum class ResizeOption : uint8_t {
-	Scale,// 缩放
-	Pad,// 填充
+	Scale,// Scale
+	Pad,// Pad
 };
 
 class ImgHelper

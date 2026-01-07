@@ -1,9 +1,9 @@
 include(FetchContent)
 
-# 设置 hidapi 编译为动态库
+# Build hidapi as a shared library
 set(BUILD_SHARED_LIBS ${USE_SHARED_HIDAPI})
 
-# 设置 hidapi 输出目录
+# Set hidapi output directory
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")

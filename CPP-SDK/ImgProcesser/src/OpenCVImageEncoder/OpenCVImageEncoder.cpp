@@ -8,11 +8,11 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	cv::Mat input = canvas.as<cv::Mat>();
 	if (input.empty()) return false;
 
-	// 默认参数：直接写入
+	// Default parameters: write directly
 	if (imgHelper == ImgHelper())
 		return cv::imwrite(filename, input, imgEncodeParams(ImgType::JPG, quality));
 
-	// 参数提取
+	// Extract parameters
 	int32_t crop_offset_x = static_cast<int32_t>(imgHelper._crop_offset_x);
 	int32_t crop_offset_y = static_cast<int32_t>(imgHelper._crop_offset_y);
 	uint32_t targetWidth = imgHelper._width;
@@ -24,14 +24,14 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 
 	cv::Mat processed;
 
-	// 判断裁剪或缩放
+	// Determine crop or scale
 	if (imgHelper._processer == ImgProcess::Crop && (crop_offset_x >= 0 && crop_offset_y >= 0 && targetWidth > 0 && targetHeight > 0)) {
-		// 有裁剪参数，优先裁剪
+		// Crop first if crop parameters exist
 		crop(input, crop_offset_x, crop_offset_y, targetWidth, targetHeight);
 		processed = input;
 	}
 	else if (imgHelper._processer == ImgProcess::Resize && (targetWidth > 0 && targetHeight > 0)) {
-		// 否则按缩放或填充
+		// Otherwise scale or pad
 		if (resizeOpt == ResizeOption::Scale) {
 			cv::resize(input, processed, cv::Size(targetWidth, targetHeight), 0, 0, cv::INTER_AREA);
 		}
@@ -55,15 +55,15 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 		}
 	}
 	else {
-		// fallback 到原图
+		// Fallback to original image
 		processed = input.clone();
 	}
 
-	// 旋转 & 翻转
+	// Rotate & flip
 	rotate(processed, angle);
 	flip(processed, flipH, flipV);
 
-	// 写入文件
+	// Write file
 	return cv::imwrite(filename, processed, imgEncodeParams(imgHelper._imgType, quality));
 }
 
@@ -79,7 +79,7 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	if (imgHelper == ImgHelper())
 		return cv::imencode(imgTypeToExt(ImgType::JPG), input, out, imgEncodeParams(ImgType::JPG, quality));
 
-	// 获取参数
+	// Get parameters
 	int32_t crop_offset_x = static_cast<int32_t>(imgHelper._crop_offset_x);
 	int32_t crop_offset_y = static_cast<int32_t>(imgHelper._crop_offset_y);
 	uint32_t targetWidth = imgHelper._width;
@@ -91,14 +91,14 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 
 	cv::Mat processed;
 
-	// 判断是否进行裁剪或缩放填充
+	// Determine whether to crop or scale/pad
 	if (imgHelper._processer == ImgProcess::Crop && (crop_offset_x >= 0 && crop_offset_y >= 0 && targetWidth > 0 && targetHeight > 0)) {
-		// 裁剪区域不为空 -> crop
+		// Crop area not empty -> crop
 		crop(input, crop_offset_x, crop_offset_y, targetWidth, targetHeight);
 		processed = input;
 	}
 	else if (imgHelper._processer == ImgProcess::Resize && (targetWidth > 0 && targetHeight > 0)) {
-		// 无裁剪偏移 -> Resize
+		// No crop offset -> resize
 		if (resizeOpt == ResizeOption::Scale) {
 			cv::resize(input, processed, cv::Size(targetWidth, targetHeight), 0, 0, cv::INTER_AREA);
 		}
@@ -126,11 +126,11 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 		processed = input.clone();
 	}
 
-	// 应用旋转 & 翻转
+	// Apply rotation & flip
 	rotate(processed, angle);
 	flip(processed, flipH, flipV);
 
-	// 编码为图像字节流
+	// Encode to image byte stream
 	return cv::imencode(imgTypeToExt(imgHelper._imgType), processed, out, imgEncodeParams(imgHelper._imgType, quality));
 }
 
@@ -143,11 +143,11 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	cv::Mat input = cv::imdecode(in, cv::IMREAD_COLOR);
 	if (input.empty()) return false;
 
-	// 重用已有流程
+	// Reuse existing flow
 	if (imgHelper == ImgHelper())
 		return cv::imwrite(filename, input, imgEncodeParams(ImgType::JPG, quality));
 
-	// 获取参数
+	// Get parameters
 	uint32_t targetWidth = imgHelper._width;
 	uint32_t targetHeight = imgHelper._height;
 	double angle = imgHelper._rotateAngle;
@@ -193,10 +193,10 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	if (imgHelper == ImgHelper())
 		return cv::imencode(imgTypeToExt(ImgType::JPG), input, out, imgEncodeParams(ImgType::JPG, quality));
 
-	if (imgHelper._imgType == ImgType::RAW)   /// 如果需要原始数据, 直接 encodeToBitmap
+	if (imgHelper._imgType == ImgType::RAW)   /// If raw data is needed, encodeToBitmap directly
 		return encodeToBitmap(out, in, imgHelper);
 
-	// 获取参数
+	// Get parameters
 	uint32_t targetWidth = imgHelper._width;
 	uint32_t targetHeight = imgHelper._height;
 	double angle = imgHelper._rotateAngle;
@@ -292,7 +292,7 @@ bool OpenCVImageEncoder::encodeToBitmap(std::vector<uint8_t>& out,
 	}
 
 	if (!processed.isContinuous()) {
-		processed = processed.clone(); // 确保内存连续
+		processed = processed.clone(); // Ensure contiguous memory
 	}
 
 	convertMatToRawBytes(processed, out, imgHelper._imgFormat);
@@ -319,11 +319,11 @@ void OpenCVImageEncoder::rotate(cv::Mat& mat, double angle) const
 {
 	if (mat.empty()) return;
 
-	// 归一化角度到 [0, 360)
+	// Normalize angle to [0, 360)
 	int normalizedAngle = static_cast<int>(angle) % 360;
 	if (normalizedAngle < 0) normalizedAngle += 360;
 
-	// 特殊处理 90° 倍数
+	// Special-case multiples of 90°
 	if (normalizedAngle == 90) {
 		cv::rotate(mat, mat, cv::ROTATE_90_CLOCKWISE);
 		return;
@@ -337,7 +337,7 @@ void OpenCVImageEncoder::rotate(cv::Mat& mat, double angle) const
 		return;
 	}
 
-	// 一般角度使用 warpAffine，保持尺寸不变
+	// For general angles, use warpAffine and keep size unchanged
 	cv::Point2f center(mat.cols / 2.0f, mat.rows / 2.0f);
 	cv::Mat rotationMat = cv::getRotationMatrix2D(center, angle, 1.0);
 	cv::Mat rotated;
@@ -349,18 +349,18 @@ void OpenCVImageEncoder::flip(cv::Mat& mat, bool hflip, bool vflip) const
 {
 	if (mat.empty()) return;
 
-	// 不翻转，直接返回
+	// No flip, return directly
 	if (!hflip && !vflip) return;
 
 	int flipCode = 0;
 	if (hflip && vflip) {
-		flipCode = -1;  // 水平 + 垂直（等价于旋转180° + 镜像）
+		flipCode = -1;  // Horizontal + vertical (equivalent to 180° rotation + mirror)
 	}
 	else if (hflip) {
-		flipCode = 1;   // 仅水平
+		flipCode = 1;   // Horizontal only
 	}
 	else if (vflip) {
-		flipCode = 0;   // 仅垂直
+		flipCode = 0;   // Vertical only
 	}
 
 	cv::Mat flipped;
@@ -387,7 +387,7 @@ void OpenCVImageEncoder::crop(cv::Mat& mat, uint32_t x, uint32_t y, uint32_t wid
 
 	if (w <= 0 || h <= 0) return;
 
-	// 裁剪
+	// Crop
 	cv::Rect roi(x1, y1, w, h);
 	mat = mat(roi).clone();
 }

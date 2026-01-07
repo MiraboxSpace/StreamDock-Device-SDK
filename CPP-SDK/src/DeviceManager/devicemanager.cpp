@@ -16,7 +16,7 @@ void DeviceManager::enumerator()
 	DeviceEnumerator::instance().enumerate();
 	const auto &allDevices = DeviceEnumerator::instance().currDevices();
 
-	// 收集当前所有有效设备的 path
+	// Collect paths for all current valid devices
 	std::unordered_set<std::string> validPaths;
 	for (const auto &device : allDevices)
 	{
@@ -27,7 +27,7 @@ void DeviceManager::enumerator()
 		}
 	}
 
-	// 删除已断开的设备
+	// Remove disconnected devices
 	{
 		std::lock_guard lock(streamdocksMutex_);
 		auto it = streamdocks_.begin();
@@ -45,7 +45,7 @@ void DeviceManager::enumerator()
 		}
 	}
 
-	// 3. 添加新设备
+	// 3. Add new devices
 	for (const auto &device : allDevices)
 	{
 		if (StreamDockFactory::instance().exist(device->_vendor_id, device->_product_id) && StreamDock::isStreamDockHidDeviceUsage(device->toPureHidDeviceInfo()) /* &&

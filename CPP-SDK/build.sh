@@ -1,17 +1,17 @@
 #!/bin/bash
-# 删除旧的可执行文件（如果存在）
+# Remove the old executable (if it exists)
 if [ -f ./bin/main ]; then
     echo "Removing existing ./bin/main..."
     rm ./bin/main
 fi
-# Step 1: 创建 build 文件夹
+# Step 1: Create the build directory
 mkdir -p build
-# Step 2: 执行 make clean（如果已有构建文件）
+# Step 2: Run make clean (if build files exist)
 if [ -f build/Makefile ]; then
     echo "Cleaning previous build..."
     make -C build clean
 fi
-# Step 3: 运行 cmake，生成构建文件到 build/
+# Step 3: Run cmake to generate build files in build/
 cmake -B build
-# Step 4: 编译项目
+# Step 4: Build the project
 cmake --build build

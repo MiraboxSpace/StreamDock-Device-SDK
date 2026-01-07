@@ -28,7 +28,7 @@ enum class N4ProConfigEnumerate : uint8_t {
 	EnableVibration,		///< enable global vibration
 	ResetUsbReport,			///< Reset USB reporting
 	EnableBootVideo,		///< Enable boot video
-	ConfigCount				// 用于数组大小
+	ConfigCount				// Used for array size
 };
 
 template <>

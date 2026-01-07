@@ -937,7 +937,7 @@ class LibUSBHIDAPI:
         """
         Enumerate HID devices matching the given vendor and product IDs.
 
-        使用C库内置的hidapi进行枚举，避免与Python的hidapi包冲突。
+        Use the C library's built-in hidapi for enumeration to avoid conflicts with Python's hidapi package.
 
         Args:
             vendor_id: USB vendor ID
@@ -1125,13 +1125,13 @@ class LibUSBHIDAPI:
                     handle,
                     buffer,
                     ctypes.byref(length),
-                    100,  # 使用 100ms 超时用于轮询，避免长时间阻塞
+                    100,  # Use a 100ms timeout for polling to avoid long blocking
                 )
             finally:
                 # GIL is automatically reacquired by ctypes
                 pass
 
-            # 检查结果，0表示成功，非0表示错误
+            # Check result: 0 means success, non-zero means error
             if result == 0 and length.value > 0:
                 # CRITICAL: Use simple bytes() constructor for safer conversion
                 # ctypes.string_at can cause issues in multi-threaded environments on Linux
@@ -1140,10 +1140,10 @@ class LibUSBHIDAPI:
                 data_bytes = bytes(buffer[:data_length])
                 return data_bytes
             else:
-                # 超时或无数据是正常的（设备没有事件时），返回None
+                # Timeout or no data is normal (when the device has no events); return None
                 return None
         except Exception as e:
-            # 捕获所有可能的异常，避免线程崩溃
+            # Catch all possible exceptions to avoid thread crashes
             import traceback
 
             print(f"read_ exception: {e}", flush=True)

@@ -48,7 +48,7 @@ void HeartBeat::heartBeatLoop()
 		}
 
 		if (!_HeartBeatLoopEnabled) continue;
-		/// 发送心跳包
+		/// Send heartbeat packet
 		_instance->heartbeat();
 	}
 	ToolKit::print("[INFO] exit heart beat worker loop");

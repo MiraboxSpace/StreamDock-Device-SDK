@@ -24,7 +24,7 @@ std::vector<uint8_t> ReadController::read(int32_t timeoutMs)
 		return {};
 	}
 	int64_t length = -1;
-	std::vector<uint8_t> response(2048); // 最大响应长度为 2048 字节
+	std::vector<uint8_t> response(2048); // Max response length is 2048 bytes
 	_instance->_transport->read(response.data(), reinterpret_cast<size_t *>(&length), timeoutMs);
 	if (length > 0)
 	{
@@ -110,7 +110,7 @@ void ReadController::readLoop()
 			ToolKit::print("[ERROR] Received response is too short.");
 			continue;
 		}
-		/// 原始数据回调处理
+		/// Raw data callback handling
 		if (_rawReadCallback.callback)
 		{
 			RawReadCallback callback = _rawReadCallback.callback;
@@ -122,17 +122,17 @@ void ReadController::readLoop()
 				callback(response);
 		}
 		bool isK1Pro = (_instance->_info->originType == DeviceOriginType::K1Pro);
-		/// 注册事件回调处理
-		bool flag = isK1Pro ? response[0] == 0x04 &&response[1] == 0x41 && response[2] == 0x43 && response[3] == 0x4B && response[6] == 0x4F && response[7] == 0x4B : response[0] == 0x41 && response[1] == 0x43 && response[2] == 0x4B && response[5] == 0x4F && response[6] == 0x4B; // 检查响应头
+		/// Registered event callback handling
+		bool flag = isK1Pro ? response[0] == 0x04 &&response[1] == 0x41 && response[2] == 0x43 && response[3] == 0x4B && response[6] == 0x4F && response[7] == 0x4B : response[0] == 0x41 && response[1] == 0x43 && response[2] == 0x4B && response[5] == 0x4F && response[6] == 0x4B; // Check response header
 		if (!flag)
-			continue; // 如果响应头不匹配，跳过处理
+			continue; // If the response header doesn't match, skip processing
 
-		// K1Pro 设备使用 response[10] 和 response[11]，其他设备使用 response[9] 和 response[10]
+		// K1Pro uses response[10] and response[11]; other devices use response[9] and response[10]
 		size_t readValueOffset = isK1Pro ? 10 : 9;
 		size_t eventValueOffset = isK1Pro ? 11 : 10;
 
-		uint8_t readValue = response[readValueOffset]; // 获取按键值
-		uint8_t realValue = 0xFF;					   // 真实设备注册键值
+		uint8_t readValue = response[readValueOffset]; // Get key value
+		uint8_t realValue = 0xFF;					   // Actual registered device key value
 		for (const auto &ite : _instance->_readValueMap)
 		{
 			if (ite.second == readValue)
@@ -142,18 +142,18 @@ void ReadController::readLoop()
 			}
 		}
 		if (realValue == 0xFF)
-			continue;										 // 如果没有找到设备注册的实际按键值，跳过处理
-		uint8_t readEventValue = response[eventValueOffset]; // 获取事件值
+			continue;										 // If no registered device key value is found, skip processing
+		uint8_t readEventValue = response[eventValueOffset]; // Get event value
 		RegisterEvent triggeredEvent = _instance->dispatchEvent(readValue, readEventValue);
 		{
 			std::unique_lock<std::mutex> lock(_readMutex);
 			auto exactIt = _readCallbackMap.find({realValue, triggeredEvent});
 			if (exactIt != _readCallbackMap.end() && exactIt->second.callback)
-			{ // 调用精确匹配事件的回调
+			{ // Call the exact-match event callback
 				if (!(exactIt->second.async_))
 				{
 					exactIt->second.callback();
-					std::cout.flush();  // 立即刷新输出
+					std::cout.flush();  // Flush output immediately
 				}
 				else
 					std::thread([exactIt]

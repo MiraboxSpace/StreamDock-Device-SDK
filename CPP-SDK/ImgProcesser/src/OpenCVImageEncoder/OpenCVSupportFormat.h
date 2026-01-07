@@ -29,7 +29,7 @@ public:
 				if (write_ok) write_supported.push_back(ext);
 			}
 			catch (...) {
-				continue; // 静默跳过
+				continue; // Silently skip
 			}
 
 			try {
@@ -39,7 +39,7 @@ public:
 				}
 			}
 			catch (...) {
-				continue; // 静默跳过
+				continue; // Silently skip
 			}
 		}
 

@@ -3,12 +3,12 @@ project(img_processer)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 为 MSVC 设置运行时库
+# Set the MSVC runtime library
 if(MSVC)
     cmake_policy(SET CMP0091 NEW)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-    # 强制设置运行时库标志
+    # Force the runtime library flags
     foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE)
         string(REPLACE "/MDd" "" ${flag_var} "${${flag_var}}")
         string(REPLACE "/MD" "" ${flag_var} "${${flag_var}}")
@@ -18,9 +18,9 @@ if(MSVC)
 endif()
 
 include(cmake/Fetch_giflib.cmake)
-# 导入 giflib 和 opencv
+# Import giflib and opencv
 if(WIN32)
-    # windows 时只能直接使用源码编译, 已在 Fetch_giflib.cmake 中解压了
+    # On Windows, build from source only; sources are already extracted in Fetch_giflib.cmake
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/giflib)
 endif()
 include(cmake/Fetch_OpenCV.cmake)
@@ -38,20 +38,20 @@ set(ImgHelper ${SRC_DIR}/ImgHelper)
 #     target_include_directories(test_gif PRIVATE ${Gif2Jpg} ${SRC_DIR}/OpenCVImageEncoder)
 # endif()
 
-# 构建库：ImgProcesser
+# Build library: ImgProcesser
 add_library(ImgProcesser STATIC
     ${Gif2Jpg}/Gif2ImgFrame.cpp
     ${OpenCVEncoder}/OpenCVImageEncoder.cpp
 )
 
-# 头文件路径（对外暴露）
+# Header include paths (public)
 target_include_directories(ImgProcesser PUBLIC
     ${Gif2Jpg}
     ${OpenCVEncoder}
     ${ImgHelper}
 )
 
-# 链接依赖
+# Link dependencies
 if(WIN32)
     target_link_libraries(ImgProcesser PUBLIC gif_lib ${OpenCV_LIBS})
     target_include_directories(ImgProcesser PUBLIC ${OpenCV_INCLUDE_DIRS})
@@ -64,18 +64,18 @@ elseif(UNIX AND NOT APPLE)
     message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
 endif()
 
-# Windows预编译OpenCV库文件拷贝
+# Copy prebuilt OpenCV libraries on Windows
 if(WIN32)
     set(OpenCV_LIB_PATH_PREFIX "${CMAKE_CURRENT_LIST_DIR}/third_party/opencv/windows/x64/vc17/bin")
 
-    # 定义需要复制的 DLL 文件（不带后缀）
+    # Define the DLL files to copy (without suffix)
     set(OpenCV_DLL_NAMES
         "opencv_core4120"
         "opencv_imgcodecs4120"
         "opencv_imgproc4120"
     )
 
-    # 为每个 DLL 创建复制命令
+    # Create a copy command for each DLL
     foreach(dll_name ${OpenCV_DLL_NAMES})
         add_custom_command(TARGET ImgProcesser POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

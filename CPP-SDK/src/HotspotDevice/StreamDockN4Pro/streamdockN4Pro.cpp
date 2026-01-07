@@ -100,7 +100,7 @@ void StreamDockN4Pro::registerTouchBarCallback(std::function<void(const std::vec
 {
 	if (!reader()) return;
 	std::function<void(const std::vector<uint8_t>)> _callback = [](const std::vector<uint8_t> response) {
-		bool flag = response[0] == 0x41 && response[1] == 0x43 && response[2] == 0x4B && response[4] == 0x41 && response[5] == 0x52 && response[6] == 0x58; // 检查响应头 ACK ARX
+		bool flag = response[0] == 0x41 && response[1] == 0x43 && response[2] == 0x4B && response[4] == 0x41 && response[5] == 0x52 && response[6] == 0x58; // Check response header ACK ARX
 		if (!flag)
 			return;					 // if response header is not ACK ARX, pass 
 		uint16_t x_pos = (response[10] << 8) | response[11], y_pos = (response[12] << 8) | response[13];

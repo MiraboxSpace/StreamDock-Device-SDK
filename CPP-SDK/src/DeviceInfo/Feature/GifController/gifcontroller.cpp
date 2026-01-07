@@ -24,7 +24,7 @@ void GifController::setKeyGifFile(const std::string& gifPath, uint8_t keyValue)
 	}
 	if (!_instance->_transport || !_instance->_transport->canWrite() || !_instance->_feature->isDualDevice) return;
 
-	// 使用新方法读取帧和延迟
+	// Use the new method to read frames and delays
 	auto gifDataWithDelays = StreamDock::readGifWithDelays(gifPath, _instance->_encoder, *(_instance->getKyImgHelper(keyValue)));
 
 	std::vector<std::string> gifFrames;
@@ -60,7 +60,7 @@ void GifController::setKeyGifStream(const std::vector<std::vector<uint8_t>>& gif
 	if (_instance->_transport && _instance->_transport->canWrite() && _instance->_feature->isDualDevice)
 	{
 		std::vector<std::string> _gifStream;
-		_gifStream.reserve(gifStream.size());  // 预分配内存，减少重新分配
+		_gifStream.reserve(gifStream.size());  // Pre-allocate memory to reduce reallocations
 		for (auto&& frame : gifStream)
 		{
 			_gifStream.push_back(std::string(frame.begin(), frame.end()));
@@ -75,7 +75,7 @@ void GifController::setBackgroundGifFile(const std::string& gifPath, int16_t bac
 		return;
 	if (!_instance->_transport || !_instance->_transport->canWrite() || !_instance->_feature->isDualDevice || !_instance->_feature->supportBackGroundGif) return;
 
-	// 使用新方法读取帧和延迟
+	// Use the new method to read frames and delays
 	auto gifDataWithDelays = StreamDock::readGifWithDelays(gifPath, _instance->_encoder, *(_instance->getBackgroundGifHelper()));
 
 	std::vector<std::string> gifFrames;
@@ -92,7 +92,7 @@ void GifController::setBackgroundGifFile(const std::string& gifPath, int16_t bac
 	_background_place_x = background_place_x;
 	_background_place_y = background_place_y;
 	std::lock_guard<std::mutex> lock(_gifMutex);
-	_gifMap.insert_or_assign(0, GifStreamStatus{ gifFrames, frameDelays, 0, 0 });   /// 0 号位置给背景 gif
+	_gifMap.insert_or_assign(0, GifStreamStatus{ gifFrames, frameDelays, 0, 0 });   /// Index 0 reserved for background GIF
 }
 
 void GifController::setBackgroundGifStream(const std::vector<std::string>& gifStream, const std::vector<uint16_t>& frameDelays, int16_t background_place_x, uint16_t background_place_y, uint8_t FBlayer)
@@ -115,7 +115,7 @@ void GifController::setBackgroundGifStream(const std::vector<std::vector<uint8_t
 	if (_instance->_transport && _instance->_transport->canWrite() && _instance->_feature->isDualDevice && _instance->_feature->supportBackGroundGif)
 	{
 		std::vector<std::string> _gifStream;
-		_gifStream.reserve(gifStream.size());  // 预分配内存，减少重新分配
+		_gifStream.reserve(gifStream.size());  // Pre-allocate memory to reduce reallocations
 		for (auto&& frame : gifStream)
 		{
 			_gifStream.push_back(std::string(frame.begin(), frame.end()));
@@ -175,7 +175,7 @@ void GifController::gifWorkLoop()
 {
 	if (!_instance || !_instance->canTransportWrite() || !_instance->_feature->isDualDevice) return;
 
-	// 获取起始时间点
+	// Get start time
 	auto lastTime = std::chrono::steady_clock::now();
 
 	while (_running)
@@ -198,12 +198,12 @@ void GifController::gifWorkLoop()
 			}
 		}
 
-		// 计算本帧的耗时（微秒）
+		// Compute elapsed time for this frame (microseconds)
 		auto currentTime = std::chrono::steady_clock::now();
 		auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastTime).count();
 		lastTime = currentTime;
 
-		// 收集需要更新的GIF帧
+		// Collect GIF frames that need updates
 		std::vector<std::pair<uint8_t, size_t>> framesToUpdate;
 		{
 			std::lock_guard<std::mutex> lock(_gifMutex);
@@ -212,25 +212,25 @@ void GifController::gifWorkLoop()
 				if (_gif.gifFrames.empty() || _gif.frameDelays.empty())
 					continue;
 
-				// 累积时间
+				// Accumulate time
 				_gif.accumulatedTime += elapsedUs;
 
-				// 使用当前帧的延迟时间
+				// Use the current frame delay
 				uint64_t currentFrameDelay = static_cast<uint64_t>(_gif.frameDelays[_gif.currentFrame]) * 1000;
 
-				// 检查是否超过当前帧的延迟时间
+				// Check if the current frame delay has been exceeded
 				if (_gif.accumulatedTime >= currentFrameDelay)
 				{
-					// 更新帧索引
+					// Update frame index
 					_gif.currentFrame = (_gif.currentFrame + 1) % _gif.gifFrames.size();
-					// 减去当前帧的延迟时间（保留余数以保持精确计时）
+					// Subtract the current frame delay (keep the remainder for precise timing)
 					_gif.accumulatedTime -= currentFrameDelay;
 					framesToUpdate.push_back({index, _gif.currentFrame});
 				}
 			}
 		}
 
-		// 如果有需要更新的帧，执行USB传输
+		// If there are frames to update, perform USB transfer
 		if (!framesToUpdate.empty())
 		{
 			std::lock_guard<std::mutex> lock(_gifMutex);
@@ -254,11 +254,11 @@ void GifController::gifWorkLoop()
 				}
 			}
 
-			// 批量刷新 - 每批次只刷新一次
+			// Batch refresh - refresh once per batch
 			_instance->refresh();
 		}
 
-		// 短暂sleep，减少CPU占用（约3ms）
+		// Brief sleep to reduce CPU usage (~3 ms)
 		std::this_thread::sleep_for(std::chrono::milliseconds(3));
 	}
 	ToolKit::print("[INFO] exit gif worker loop");

@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(HIDProject)
 
-# 为 MSVC 设置运行时库 - 必须在 project() 之后立即设置
+# Set the MSVC runtime library - must be set immediately after project()
 if(MSVC)
-    # 启用新的 MSVC 运行时库策略
+    # Enable the new MSVC runtime library policy
     cmake_policy(SET CMP0091 NEW)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-    # 强制移除默认的 /MDd 和 /MTd 标志，确保使用正确的运行时库
+    # Force-remove the default /MDd and /MTd flags to ensure the correct runtime library is used
     foreach(flag_var
         CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
         CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
@@ -17,7 +17,7 @@ if(MSVC)
         string(REPLACE "/MT" "" ${flag_var} "${${flag_var}}")
     endforeach()
 
-    # 为不同配置显式设置运行时库
+    # Explicitly set the runtime library for each configuration
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MD")
@@ -26,23 +26,23 @@ endif()
 
 set(TARGETNAME "main")
 
-# 添加构建选项
+# Add build options
 option(BUILD_LIBHIDCPP_SHARED "Build shared libhidcpp libraries" ON)
 option(USE_SHARED_HIDAPI "Link with shared hidapi" ON)
 
-# 检查是否存在源代码文件，如果不存在则使用预编译库
+# Check for source files; use prebuilt libraries if missing
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_c.cpp")
     set(TRANSPORTDLL_USE_IMPORTED ON CACHE BOOL "Use prebuilt transport library instead of building from source" FORCE)
     message(STATUS "Source files not found, using prebuilt transport library")
     
-    # 检查预编译库是否存在
+    # Check whether the prebuilt library exists
     if(WIN32)
         if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport.dll" AND
            NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transportd.dll")
             message(FATAL_ERROR "Prebuilt transport DLL not found in ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/")
         endif()
     elseif(APPLE)
-        # 检查 macOS 架构
+        # Check macOS architecture
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
             # ARM macOS
             if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.dylib")
@@ -55,7 +55,7 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_
             endif()
         endif()
     elseif(UNIX AND NOT APPLE)
-        # 检查 Linux 架构
+        # Check Linux architecture
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
             # ARM Linux
             if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
@@ -70,30 +70,30 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_
     endif()
 endif()
 
-# 可执行程序生成路径 - 分离 Debug 和 Release
+# Executable output paths - separate Debug and Release
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/bin/Release)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_SOURCE_DIR}/bin/RelWithDebInfo)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_CURRENT_SOURCE_DIR}/bin/MinSizeRel)
 
-# 库文件输出路径 - 分离 Debug 和 Release
+# Library output paths - separate Debug and Release
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/lib/Release)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/lib/Release)
 
-# 引入 hidapi
+# Include hidapi
 include(cmake/FetchHid.cmake)
 add_subdirectory(ImgProcesser)
 add_subdirectory(src/Transport)
 
-# 收集 Hotspot 设备信息
+# Collect Hotspot device sources
 file(GLOB_RECURSE HOTSPOTDEVICE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/HotspotDevice/**/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/HotspotDevice/**/*.h"
 )
 
-# 可执行程序
+# Executable
 add_executable(${TARGETNAME}
     src/main.cpp
     ${HOTSPOTDEVICE}
@@ -116,9 +116,9 @@ add_executable(${TARGETNAME}
     "src/ToolKit/toolkit.h"
 )
 
-# 链接
-target_link_libraries(${TARGETNAME} PRIVATE TransportCWrapper ImgProcesser TransportDLL) # 依赖库
-target_include_directories(${TARGETNAME} # 依赖头文件
+# Link
+target_link_libraries(${TARGETNAME} PRIVATE TransportCWrapper ImgProcesser TransportDLL) # Dependencies
+target_include_directories(${TARGETNAME} # Dependency headers
     PRIVATE
     "src"
     "src/DeviceEnumerator"
@@ -128,9 +128,9 @@ target_include_directories(${TARGETNAME} # 依赖头文件
 )
 target_compile_features(${TARGETNAME} PRIVATE cxx_std_17)
 
-# # Windows 下确保 Transport DLL 被复制
+# # Ensure the Transport DLL is copied on Windows
 # if(WIN32)
-#     # 添加对 Transport DLL 复制目标的依赖
+#     # Add dependencies on the Transport DLL copy targets
 #     if(TARGET copy_transport_dll_debug)
 #         add_dependencies(${TARGETNAME} copy_transport_dll_debug)
 #     endif()
@@ -139,9 +139,9 @@ target_compile_features(${TARGETNAME} PRIVATE cxx_std_17)
 #     endif()
 # endif()
 
-# 额外链接
+# Additional links
 if(WIN32)
-    target_link_libraries(${TARGETNAME} PRIVATE setupapi) # windows 额外需要使用setupapi
+    target_link_libraries(${TARGETNAME} PRIVATE setupapi) # Windows additionally requires setupapi
 elseif(APPLE)
     find_library(COREFOUNDATION_FRAMEWORK CoreFoundation)
     find_library(IOKIT_FRAMEWORK IOKit)
@@ -161,18 +161,18 @@ elseif(UNIX AND NOT APPLE)
     )
 endif()
 
-# # Windows下复制需要的DLL到可执行文件目录
+# # Copy required DLLs to the executable directory on Windows
 # if(WIN32)
 #     set(OpenCV_BIN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/ImgProcesser/third_party/opencv/windows/x64/vc17/bin")
 
-#     # 定义需要复制的 OpenCV DLL 文件（不带后缀）
+#     # Define the OpenCV DLL files to copy (without suffix)
 #     set(OpenCV_DLL_NAMES
 #         "opencv_core4120"
 #         "opencv_imgcodecs4120"
 #         "opencv_imgproc4120"
 #     )
 
-#     # 为每个 OpenCV DLL 创建复制命令
+#     # Create a copy command for each OpenCV DLL
 #     foreach(dll_name ${OpenCV_DLL_NAMES})
 #         add_custom_command(TARGET ${TARGETNAME} POST_BUILD
 #             COMMAND ${CMAKE_COMMAND} -E copy_if_different

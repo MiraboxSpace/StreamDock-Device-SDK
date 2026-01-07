@@ -16,7 +16,7 @@ private:
 enum class XLConfigEnumerate : uint8_t
 {
     LedFollowKeyLight, ///< LED follows key light
-    ConfigCount        // 用于数组大小
+    ConfigCount        // Used for array size
 };
 
 template <>
