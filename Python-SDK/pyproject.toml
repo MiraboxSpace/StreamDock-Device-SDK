@@ -6,15 +6,13 @@ name = "streamdock"
 version = "0.1.1"
 description = "A Python package to control streamdock device: https://bbs.key123.vip"
 authors = [
-    {name = "Hugo Zhu", email = "hugozhu@gmail.com"},
-    {name = "icloudwar", email = "jkwtcn@icloud.com"}
+    { name = "MiraBox", email = "service@key123.vip" },
+    { name = "Hugo Zhu", email = "hugozhu@gmail.com" },
+    { name = "icloudwar", email = "jkwtcn@icloud.com" },
 ]
 readme = "README.md"
-license = {text = "MIT"}
-dependencies = [
-    "pillow",
-    "pyudev",
-]
+license = { text = "MIT" }
+dependencies = ["pillow", "pyudev"]
 requires-python = ">=3.10.0"
 
 [project.optional-dependencies]
