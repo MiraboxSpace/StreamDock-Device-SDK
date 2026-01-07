@@ -102,7 +102,7 @@ namespace xiaochufuji {
 			log_file_ = std::ofstream(logFilePath, std::ios::out | std::ios::app);
 			if (!log_file_.is_open())
 			{
-				throw std::runtime_error("Faile to open log file");
+				throw std::runtime_error("Failed to open log file");
 			}
 
 			worker_thread_ = std::thread([this]()
