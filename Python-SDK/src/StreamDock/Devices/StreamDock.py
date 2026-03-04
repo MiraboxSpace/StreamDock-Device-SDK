@@ -1,5 +1,6 @@
 import platform
 import threading
+import time
 from abc import ABC, ABCMeta, abstractmethod
 import threading
 from abc import ABC, ABCMeta, abstractmethod
@@ -75,6 +76,9 @@ class StreamDock(ABC):
         self.key_callback = None
         # CRITICAL: Add lock to protect callback access in multi-threaded environment
         self._callback_lock = threading.Lock()
+        # Heartbeat thread for keeping device alive
+        self.heartbeat_thread = None
+        self.run_heartbeat_thread = False
 
         # self.update_lock = threading.RLock()
         # self.screenlicent=threading.Timer(self.__seconds,self.screen_Off)
@@ -106,6 +110,14 @@ class StreamDock(ABC):
             pass
 
         try:
+            # Stop the heartbeat thread (safe operation)
+            self.run_heartbeat_thread = False
+            if self.heartbeat_thread and self.heartbeat_thread.is_alive():
+                self.heartbeat_thread.join(timeout=0.5)  # Short timeout during __del__
+        except (TransportError, ValueError, RuntimeError):
+            pass
+
+        try:
             # Close transport - this may call C code but we checked is_finalizing above
             self.close()
         except TransportError:
@@ -131,6 +143,10 @@ class StreamDock(ABC):
     def open(self):
         res1 = self.transport.open(bytes(self.path, "utf-8"))
         self._setup_reader(self._read)
+        # Start heartbeat with delay to avoid Linux libusb deadlock
+        # The read thread needs time to initialize before heartbeat starts
+        time.sleep(0.1)
+        self._start_heartbeat()
         # macOS need to get firmware version after opening device
         if platform.system() == "Darwin":
             self.firmware_version = self.transport.get_firmware_version()
@@ -175,6 +191,14 @@ class StreamDock(ABC):
         clean shutdown of the C library and prevent segmentation faults.
         """
         # print(f"[DEBUG] Closing device: {self.path}")
+
+        # CRITICAL: Stop heartbeat thread first
+        self.run_heartbeat_thread = False
+        if self.heartbeat_thread and self.heartbeat_thread.is_alive():
+            try:
+                self.heartbeat_thread.join(timeout=2.0)
+            except Exception as e:
+                print(f"[WARNING] Error while waiting for heartbeat thread to exit: {e}", flush=True)
 
         # CRITICAL: Stop reader thread first and wait for it to finish
         self.run_read_thread = False
@@ -412,6 +436,27 @@ class StreamDock(ABC):
         finally:
             pass
 
+    def _heartbeat_worker(self):
+        """
+        Worker method that sends heartbeat packets to the device every 10 seconds.
+        This keeps the device connection alive and prevents timeout.
+        """
+        # Initial delay to allow device and read thread to stabilize
+        time.sleep(1.0)
+        try:
+            while self.run_heartbeat_thread:
+                try:
+                    self.transport.heartbeat()
+                except Exception as e:
+                    # Log but don't crash the thread on heartbeat errors
+                    print(f"Heartbeat error: {e}", flush=True)
+                # Wait 10 seconds before next heartbeat
+                time.sleep(10)
+        except Exception as outer_error:
+            print(f"[FATAL] Heartbeat thread outer exception: {outer_error}", flush=True)
+        finally:
+            pass
+
     def _setup_reader(self, callback):
         """
         Sets up the internal transport reader thread with the given callback,
@@ -434,6 +479,22 @@ class StreamDock(ABC):
             self.read_thread = threading.Thread(target=callback)
             self.read_thread.daemon = True
             self.read_thread.start()
+
+    def _start_heartbeat(self):
+        """
+        Starts the heartbeat thread that sends periodic heartbeat packets to the device.
+        """
+        if self.heartbeat_thread is not None:
+            self.run_heartbeat_thread = False
+            try:
+                self.heartbeat_thread.join()
+            except RuntimeError:
+                pass
+
+        self.run_heartbeat_thread = True
+        self.heartbeat_thread = threading.Thread(target=self._heartbeat_worker)
+        self.heartbeat_thread.daemon = True
+        self.heartbeat_thread.start()
 
     def set_key_callback(self, callback):
         """
