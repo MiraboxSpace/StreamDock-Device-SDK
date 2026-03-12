@@ -82,6 +82,15 @@ sudo ./main
 
 If you don't want to use sudo, you need to add your device to your user's device permission list. Of course, you can modify the cmake executable file output path, but at this time you need to pay attention to the relative paths of image files modified in the code.
 
+**How to add device permissions:**
+
+Copy `99-streamdock.rules` to `/etc/udev/rules.d/` directory, then execute:
+
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
 ---
 
 ## 3. 🪟 Windows Build
