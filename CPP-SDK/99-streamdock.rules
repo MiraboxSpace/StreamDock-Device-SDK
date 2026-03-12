@@ -1,0 +1,53 @@
+# StreamDock USB device permission configuration
+# This file sets appropriate USB permissions for StreamDock devices, allowing ordinary users to access
+
+# StreamDock 293 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="5500", ATTR{idProduct}=="1001", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="6670", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1005", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1006", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1010", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1014", MODE="0666", GROUP="plugdev"
+
+# StreamDock N3 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1002", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1003", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6602", ATTR{idProduct}=="1000", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6602", ATTR{idProduct}=="1002", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6602", ATTR{idProduct}=="1003", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6602", ATTR{idProduct}=="2929", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1500", ATTR{idProduct}=="3001", MODE="0666", GROUP="plugdev"
+
+# StreamDock N4 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="6602", ATTR{idProduct}=="1001", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1007", MODE="0666", GROUP="plugdev"
+
+# StreamDock N1 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1011", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1000", MODE="0666", GROUP="plugdev"
+
+# StreamDock N4Pro series
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="1008", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="1021", MODE="0666", GROUP="plugdev"
+
+# StreamDock XL series
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="1028", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="1031", MODE="0666", GROUP="plugdev"
+
+# StreamDock M18 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1009", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1012", MODE="0666", GROUP="plugdev"
+
+# StreamDock M3 series
+SUBSYSTEM=="usb", ATTR{idVendor}=="5548", ATTR{idProduct}=="1020", MODE="0666", GROUP="plugdev"
+
+# StreamDock K1Pro series
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1015", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1019", MODE="0666", GROUP="plugdev"
+
+# HID device permission configuration (for HID interface access)
+KERNEL=="hidraw*", ATTRS{idVendor}=="5500", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="5548", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="6603", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="6602", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="1500", MODE="0666", GROUP="plugdev"

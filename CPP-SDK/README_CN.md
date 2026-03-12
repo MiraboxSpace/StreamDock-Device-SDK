@@ -79,6 +79,15 @@ chmod +x build.sh
 sudo ./main
 ```
 
+**添加设备权限列表方法:**
+
+把 99-streamdock.rules 复制到  /etc/udev/rules.d/ 目录.后执行:
+
+```
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
 ---
 
 ## 3. 🪟 Windows 构建
