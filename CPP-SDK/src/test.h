@@ -448,6 +448,7 @@ namespace TEST_N4Pro
 		}
 
 		device->setKeyImgFile("../../img/button_test.jpg", 9);
+		device->refresh();
 		device->reader()->registerReadCallback(1, []()
 											   { debugPrint("secondary screen 1 release"); }, RegisterEvent::EveryThing);
 		device->reader()->registerReadCallback(11, []()
@@ -462,6 +463,8 @@ namespace TEST_N4Pro
 											   { debugPrint("knob 1 left"); }, RegisterEvent::KnobLeft, true);
 		device->reader()->registerReadCallback(17, []()
 											   { debugPrint("knob 1 right"); }, RegisterEvent::KnobRight, true);
+		device->reader()->registerReadCallback(24, []()
+											   { debugPrint("knob 1 Press"); }, RegisterEvent::KnobPress, true);
 		auto N4pro = std::dynamic_pointer_cast<StreamDockN4Pro>(device);
 		N4pro->registerTouchBarCallback(nullptr, true);
 	}
@@ -611,7 +614,6 @@ namespace TEST_M18V3
 		device->reader()->startReadLoop();
 		device->wakeupScreen();
 		device->clearAllKeys();
-
 
 		device->setEncoder(std::make_shared<OpenCVImageEncoder>());
 		// device->setBackgroundImgFile("../../img/backgroud_test.png");
