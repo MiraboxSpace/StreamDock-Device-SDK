@@ -1,6 +1,5 @@
-```markdown
 <p align="center">  
-  <img src="_Images/logo.png" height="128">  
+  <img src="../_Images/logo.png" height="128">  
   <h1 align="center">StreamDock 设备 SDK</h1>  
 </p>  
   
