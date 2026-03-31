@@ -89,7 +89,9 @@ def _get_dll_name() -> str:
             return search_library_names["Darwin"]["arm64"]
     elif platform_name == "Linux":
         # For Linux, search for glibc-versioned libraries
-        dll_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "TransportDLL")
+        dll_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "TransportDLL"
+        )
 
         # Determine architecture prefix
         if "aarch64" in machine_type or "arm64" in machine_type:
@@ -99,15 +101,11 @@ def _get_dll_name() -> str:
             arch_prefix = ""
             fallback_name = "libtransport.so"
         else:
-            raise RuntimeError(
-                f"Unsupported architecture on Linux: {machine_type}"
-            )
+            raise RuntimeError(f"Unsupported architecture on Linux: {machine_type}")
 
         # Pattern for glibc-versioned libraries:
         # libtransport[_arm64]_glibcX.XX.so or libtransport_glibcX.XX.so
-        pattern = re.compile(
-            rf"^libtransport(_{arch_prefix})?_glibc(\d+)\.(\d+)\.so$"
-        )
+        pattern = re.compile(rf"^libtransport(_{arch_prefix})?_glibc(\d+)\.(\d+)\.so$")
 
         # Search for matching libraries
         candidates = []
@@ -125,8 +123,12 @@ def _get_dll_name() -> str:
 
             # Find the best match: highest version that doesn't exceed system version
             best_match = None
-            for major, minor, filename in sorted(candidates, key=lambda x: (x[0], x[1])):
-                if major < sys_glibc[0] or (major == sys_glibc[0] and minor <= sys_glibc[1]):
+            for major, minor, filename in sorted(
+                candidates, key=lambda x: (x[0], x[1])
+            ):
+                if major < sys_glibc[0] or (
+                    major == sys_glibc[0] and minor <= sys_glibc[1]
+                ):
                     best_match = filename
                 elif best_match is None:
                     # If no compatible version found, use the lowest version as fallback
@@ -202,6 +204,9 @@ _transport_lib.transport_read.argtypes = [
 
 _transport_lib.transport_wakeup_screen.restype = c_uint32
 _transport_lib.transport_wakeup_screen.argtypes = [c_void_p]
+
+_transport_lib.transport_magnetic_calibration.restype = c_uint32
+_transport_lib.transport_magnetic_calibration.argtypes = [c_void_p]
 
 _transport_lib.transport_set_key_brightness.restype = c_uint32
 _transport_lib.transport_set_key_brightness.argtypes = [c_void_p, c_uint8]
@@ -412,6 +417,7 @@ class LibUSBHIDAPI:
             try:
                 # Check if Python interpreter is shutting down
                 import sys
+
                 if sys.is_finalizing():
                     # During interpreter shutdown, skip C calls to avoid segfault
                     # The OS will clean up resources when process exits
@@ -522,6 +528,12 @@ class LibUSBHIDAPI:
         if not self._handle:
             return
         _transport_lib.transport_wakeup_screen(self._handle)
+        
+    def magnetic_calibration(self) -> None:
+        """Perform magnetic calibration."""
+        if not self._handle:
+            return
+        _transport_lib.transport_magnetic_calibration(self._handle)
 
     def refresh_screen(self) -> None:
         """Refresh the screen display."""
@@ -1186,6 +1198,33 @@ class LibUSBHIDAPI:
             with open(path, "rb") as f:
                 jpeg_data = f.read()
             self.set_background_image_stream(jpeg_data)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load image from {path}: {e}")
+
+    def setBackgroundImgFrame(self, path, img_width, img_height) -> None:
+        """
+        Legacy method: Set Temporary background image from file path (for dual device).
+
+        Args:
+            path: Path to the image file (can be str, bytes, c_char_p, or os.PathLike)
+        """
+        try:
+            # Convert c_char_p to string if needed
+            if isinstance(path, c_char_p):
+                path = (
+                    path.value.decode("utf-8")
+                    if isinstance(path.value, bytes)
+                    else path.value
+                )
+            elif isinstance(path, bytes):
+                path = path.decode("utf-8")
+
+            if path is None:
+                raise ValueError("Path cannot be None")
+
+            with open(path, "rb") as f:
+                jpeg_data = f.read()
+            self.set_background_frame_stream(jpeg_data, img_width, img_height)
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")
 

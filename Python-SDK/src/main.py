@@ -1,8 +1,11 @@
 from StreamDock.DeviceManager import DeviceManager
 from StreamDock.Devices.StreamDock import StreamDock
 from StreamDock.Devices.K1Pro import K1Pro
+from StreamDock.Devices.StreamDockM3 import StreamDockM3
+from StreamDock.Devices.StreamDockN1 import StreamDockN1
 from StreamDock.Devices.StreamDockN4Pro import StreamDockN4Pro
 from StreamDock.InputTypes import EventType
+from StreamDock.Devices.StreamDockXL import StreamDockXL
 import threading
 import time
 
@@ -72,50 +75,51 @@ def main():
             f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}"
         )
 
-        # Set key event callback
-        device.set_key_callback(key_callback)
-
-        # # Clear icon for a specific key
-        # device.clearIcon(3)
-        # device.refresh()
-        # time.sleep(1)
-        # # Clear all key icons
-        # device.clearAllIcon()
-        # device.refresh()
-        # time.sleep(0)
-        # 293sV3
-        if isinstance(device, StreamDock):
-            # Set background image
-            res = device.set_touchscreen_image("img/backgroud_test.png")
-            device.refresh()
-            time.sleep(2)
-            for i in range(1, 16):
-                device.set_key_image(i, "img/button_test.jpg")
-                device.refresh()
-            for i in range(16, 19):
-                device.set_key_image(i, "img/button_test.jpg")
-                device.refresh()
-        # N4Pro LED settings
-        elif isinstance(device, StreamDockN4Pro):
+        # Set background image
+        res = device.set_background_image("img/backgroud_test.png")
+        device.refresh()
+        time.sleep(2)
+        # N4Pro special function
+        if isinstance(device, StreamDockN4Pro):
             device.set_led_brightness(100)
             device.set_led_color(0, 0, 255)
-        #  K1Pro settings
+            device.set_frame_background("img/backgroud_test2.png")
+            time.sleep(2)
+        # XL special function
+        elif isinstance(device, StreamDockXL):
+            device.set_frame_background("img/backgroud_test2.png")
+            time.sleep(2)
+        #  K1Pro special function
         elif isinstance(device, K1Pro):
             device.set_keyboard_backlight_brightness(6)
             device.set_keyboard_lighting_speed(3)
             device.set_keyboard_lighting_effects(0)  # static
             device.set_keyboard_rgb_backlight(255, 0, 0)
             device.keyboard_os_mode_switch(0)  # windows mode
-            for i in range(1, 7):
-                device.set_key_image(i, "img/button_test.jpg")
-                device.refresh()
-        else:
-            for i in range(1, 7):
-                device.set_key_image(i, "img/button_test.jpg")
-                device.refresh()
-        # # N1 switch mode
-        # if isinstance(device, StreamDockN1):
-        #     device.switch_mode(0)
+        # N1 special function
+        elif isinstance(device, StreamDockN1):
+            device.switch_mode(0)
+        # M3 special function
+        if isinstance(device, StreamDockM3):
+            device.set_frame_background("img/backgroud_test2.png")
+            time.sleep(2)
+            # device.magnetic_calibration()
+
+        for i in range(1, 19):
+            device.set_key_image(i, "img/button_test.jpg")
+            device.refresh()
+
+        # Set key event callback
+        device.set_key_callback(key_callback)
+
+        # Clear icon for a specific key
+        # device.clearIcon(3)
+        # device.refresh()
+        # time.sleep(1)
+
+        # # Clear all key icons
+        # device.clearAllIcon()
+        # device.refresh()
 
         # Close device
         # device.close()

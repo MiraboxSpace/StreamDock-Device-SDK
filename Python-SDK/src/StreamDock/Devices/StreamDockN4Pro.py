@@ -75,7 +75,7 @@ class StreamDockN4Pro(StreamDock):
             return InputEvent(
                 event_type=EventType.BUTTON,
                 key=self._HW_TO_LOGICAL_KEY[hardware_code],
-                state=normalized_state
+                state=normalized_state,
             )
 
         # Secondary screen key events
@@ -89,7 +89,7 @@ class StreamDockN4Pro(StreamDock):
             return InputEvent(
                 event_type=EventType.BUTTON,
                 key=secondary_key_map[hardware_code],
-                state=normalized_state
+                state=normalized_state,
             )
 
         # Knob rotation event
@@ -106,9 +106,7 @@ class StreamDockN4Pro(StreamDock):
         if hardware_code in knob_rotate_map:
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
-                event_type=EventType.KNOB_ROTATE,
-                knob_id=knob_id,
-                direction=direction
+                event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
             )
 
         # Knob press event
@@ -122,7 +120,7 @@ class StreamDockN4Pro(StreamDock):
             return InputEvent(
                 event_type=EventType.KNOB_PRESS,
                 knob_id=knob_press_map[hardware_code],
-                state=normalized_state
+                state=normalized_state,
             )
 
         # Swipe gesture
@@ -161,6 +159,34 @@ class StreamDockN4Pro(StreamDock):
             os.remove(temp_image_path)
             return res
 
+        except Exception as e:
+            print(f"Error: {e}")
+            return -1
+    def set_frame_background(self, path):
+        try:
+            if not os.path.exists(path):
+                print(f"Error: The image file '{path}' does not exist.")
+                return -1
+
+            image = Image.open(path)
+            image = to_native_touchscreen_format(self, image)
+            temp_image_path = (
+                "rotated_touchscreen_image_"
+                + str(random.randint(9999, 999999))
+                + ".jpg"
+            )
+            image.save(temp_image_path, quality=80)
+
+            # encode send
+            path_bytes = temp_image_path.encode("utf-8")
+            c_path = ctypes.c_char_p(path_bytes)
+            res = self.transport.setBackgroundImgFrame(
+                c_path,
+                800,
+                480,
+            )
+            os.remove(temp_image_path)
+            return res
         except Exception as e:
             print(f"Error: {e}")
             return -1

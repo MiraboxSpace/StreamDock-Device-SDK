@@ -349,7 +349,11 @@ class StreamDock(ABC):
     @abstractmethod
     def set_touchscreen_image(self, path) -> int | None:
         pass
-
+    
+    def set_background_image(self, path) -> int | None:
+        self.set_touchscreen_image(path)
+        
+    
     @abstractmethod
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
