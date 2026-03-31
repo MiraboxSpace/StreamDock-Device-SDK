@@ -107,7 +107,35 @@ class StreamDockXL(StreamDock):
 
         # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
+    
+    def set_frame_background(self, path):
+        try:
+            if not os.path.exists(path):
+                print(f"Error: The image file '{path}' does not exist.")
+                return -1
 
+            image = Image.open(path)
+            image = to_native_touchscreen_format(self, image)
+            temp_image_path = (
+                "rotated_touchscreen_image_"
+                + str(random.randint(9999, 999999))
+                + ".jpg"
+            )
+            image.save(temp_image_path, quality=80)
+
+            # encode send
+            path_bytes = temp_image_path.encode("utf-8")
+            c_path = ctypes.c_char_p(path_bytes)
+            res = self.transport.setBackgroundImgFrame(
+                c_path,
+                1024,
+                600,
+            )
+            os.remove(temp_image_path)
+            return res
+        except Exception as e:
+            print(f"Error: {e}")
+            return -1
     # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)

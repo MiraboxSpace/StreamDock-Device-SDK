@@ -1,6 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
-from ..InputTypes import InputEvent, ButtonKey, EventType
+from ..InputTypes import Direction, InputEvent, ButtonKey, EventType, KnobId
 from PIL import Image
 import ctypes
 import ctypes.util
@@ -70,7 +70,33 @@ class StreamDockM3(StreamDock):
                 key=self._HW_TO_LOGICAL_KEY[hardware_code],
                 state=normalized_state
             )
+        # Knob rotation event
+        knob_rotate_map = {
+            0x50: (KnobId.KNOB_1, Direction.LEFT),
+            0x51: (KnobId.KNOB_1, Direction.RIGHT),
+            0x90: (KnobId.KNOB_2, Direction.LEFT),
+            0x91: (KnobId.KNOB_2, Direction.RIGHT),
+            0xa0: (KnobId.KNOB_3, Direction.LEFT),
+            0xa1: (KnobId.KNOB_3, Direction.RIGHT),
+        }
+        if hardware_code in knob_rotate_map:
+            knob_id, direction = knob_rotate_map[hardware_code]
+            return InputEvent(
+                event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
+            )
 
+        # Knob press event
+        knob_press_map = {
+            0x35: KnobId.KNOB_1,
+            0x33: KnobId.KNOB_2,
+            0x37: KnobId.KNOB_3,
+        }
+        if hardware_code in knob_press_map:
+            return InputEvent(
+                event_type=EventType.KNOB_PRESS,
+                knob_id=knob_press_map[hardware_code],
+                state=normalized_state,
+            )
         # Unknown event
         return InputEvent(event_type=EventType.UNKNOWN)
 
@@ -142,10 +168,40 @@ class StreamDockM3(StreamDock):
         except Exception as e:
             print(f"Error: {e}")
             return -1
+    def set_frame_background(self, path):
+        try:
+            if not os.path.exists(path):
+                print(f"Error: The image file '{path}' does not exist.")
+                return -1
 
-    # TODO
+            image = Image.open(path)
+            image = to_native_touchscreen_format(self, image)
+            temp_image_path = (
+                "rotated_touchscreen_image_"
+                + str(random.randint(9999, 999999))
+                + ".jpg"
+            )
+            image.save(temp_image_path, quality=80)
+
+            # encode send
+            path_bytes = temp_image_path.encode("utf-8")
+            c_path = ctypes.c_char_p(path_bytes)
+            res = self.transport.setBackgroundImgFrame(
+                c_path,
+                854,
+                480,
+            )
+            os.remove(temp_image_path)
+            return res
+        except Exception as e:
+            print(f"Error: {e}")
+            return -1
     def set_key_imageData(self, key, path):
         pass
+    
+    def magnetic_calibration(self):
+        """Perform magnetic calibration."""
+        self.transport.magnetic_calibration()
 
     # Get device firmware version
     def get_serial_number(self):
@@ -153,17 +209,17 @@ class StreamDockM3(StreamDock):
 
     def key_image_format(self):
         return {
-            "size": (64, 64),
+            "size": (96, 96),
             "format": "JPEG",
-            "rotation": 0,
+            "rotation": 90,
             "flip": (False, False),
         }
 
     def touchscreen_image_format(self):
         return {
-            "size": (480, 272),
+            "size": (854, 480),
             "format": "JPEG",
-            "rotation": 0,
+            "rotation": 90,
             "flip": (False, False),
         }
 
