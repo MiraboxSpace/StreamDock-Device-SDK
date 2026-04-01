@@ -675,6 +675,26 @@ Set the brightness of the keyboard backlight.
 }
 ```
 
+### M3 Device Specific Events
+
+The following events are only applicable to M3 devices:
+
+#### magneticCalibration - Magnetic Calibration
+
+Perform magnetic calibration for the M3 device. This is used to calibrate the device's magnetic sensors.
+
+**Payload Parameters:** None (empty object `{}`)
+
+**Request Example:**
+
+```json
+{
+  "event": "magneticCalibration",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {}
+}
+```
+
 ## Notes
 
 - **Path Separators**: On Windows, use double backslashes `\\` or forward slashes `/`

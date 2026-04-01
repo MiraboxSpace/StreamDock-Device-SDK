@@ -99,6 +99,7 @@ extern "C"
 
 	/// Control functions
 	TRANSPORT_API TransportResult transport_wakeup_screen(TransportHandle handle);
+	TRANSPORT_API TransportResult transport_magnetic_calibration(TransportHandle handle);
 	TRANSPORT_API TransportResult transport_set_keyboard_backlight_brightness(TransportHandle handle, uint8_t brightness);
 	TRANSPORT_API TransportResult transport_set_keyboard_lighting_effects(TransportHandle handle, uint8_t effect);
 	TRANSPORT_API TransportResult transport_set_keyboard_lighting_speed(TransportHandle handle, uint8_t speed);

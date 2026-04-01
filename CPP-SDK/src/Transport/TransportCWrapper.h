@@ -230,6 +230,8 @@ public:
 	/** @brief Switch keyboard OS mode (K1Pro specific). */
 	void keyboardOsModeSwitch(uint8_t os_mode) const;
 
+	/** @brief Perform magnetic calibration (M3 specific). */
+	void magneticCalibration() const;
 public:
 	uint16_t _input_report_size = 0;   ///< Input report size.
 	uint16_t _output_report_size = 0;  ///< Output report size.

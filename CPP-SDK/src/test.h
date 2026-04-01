@@ -555,50 +555,54 @@ namespace TEST_M3
 	{
 		if (device->info()->originType != DeviceOriginType::SDM3 || !device->feature()->supportBackGroundGif)
 			return;
-		device->heartbeater()->startHeartBeatLoop();
-		device->setKeyBrightness(100);
-		device->reader()->startReadLoop();
-		device->wakeupScreen();
-		device->clearAllKeys();
-		device->setEncoder(std::make_shared<OpenCVImageEncoder>());
-		device->setBackgroundImgFile("../../img/button_test.jpg");
-		device->refresh();
+		auto m3Device = std::dynamic_pointer_cast<StreamDockM3>(device);
+		m3Device->heartbeater()->startHeartBeatLoop();
+		m3Device->setKeyBrightness(100);
+		m3Device->reader()->startReadLoop();
+		m3Device->wakeupScreen();
+		m3Device->clearAllKeys();
+		m3Device->setEncoder(std::make_shared<OpenCVImageEncoder>());
+		m3Device->setBackgroundImgFile("../../img/button_test.jpg");
+		m3Device->refresh();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		device->clearAllKeys();
+		m3Device->clearAllKeys();
 		for (int i = 1; i <= 15; i++)
-			device->gifer()->setKeyGifFile("../../img/test.gif", i);
-		device->gifer()->startGifLoop();
+			m3Device->gifer()->setKeyGifFile("../../img/test.gif", i);
+		m3Device->gifer()->startGifLoop();
 		for (int i = 1; i <= 15; i++)
 		{
 			int keyIndex = i;
-			device->reader()->registerReadCallback(keyIndex, [keyIndex]()
+			m3Device->reader()->registerReadCallback(keyIndex, [keyIndex]()
 												   { debugPrint("Key " + std::to_string(keyIndex) + " pressed"); }, RegisterEvent::KeyPress);
-			device->reader()->registerReadCallback(keyIndex, [keyIndex]()
+			m3Device->reader()->registerReadCallback(keyIndex, [keyIndex]()
 												   { debugPrint("Key " + std::to_string(keyIndex) + " release"); }, RegisterEvent::KeyRelease);
 		}
-		device->reader()->registerReadCallback(22, []()
+		// Magnetic Calibration
+		m3Device->magneticCalibration();
+
+		m3Device->reader()->registerReadCallback(22, []()
 											   { debugPrint("Konb1 pressed"); }, RegisterEvent::KnobPress);
-		// device->reader()->registerReadCallback(22, []()
+		// m3Device->reader()->registerReadCallback(22, []()
 		// 									   { debugPrint("Konb1 release"); }, RegisterEvent::KnobRelease);
-		device->reader()->registerReadCallback(23, []()
+		m3Device->reader()->registerReadCallback(23, []()
 											   { debugPrint("Konb2 pressed"); }, RegisterEvent::KnobPress);
-		// device->reader()->registerReadCallback(23, []()
+		// m3Device->reader()->registerReadCallback(23, []()
 		// 									   { debugPrint("Konb2 release"); }, RegisterEvent::KnobRelease);
-		device->reader()->registerReadCallback(24, []()
+		m3Device->reader()->registerReadCallback(24, []()
 											   { debugPrint("Konb3 pressed"); }, RegisterEvent::KnobPress);
-		// device->reader()->registerReadCallback(24, []()
+		// m3Device->reader()->registerReadCallback(24, []()
 		// 									   { debugPrint("Konb3 release"); }, RegisterEvent::KnobRelease);
-		device->reader()->registerReadCallback(16, []()
+		m3Device->reader()->registerReadCallback(16, []()
 											   { debugPrint("Konb1 left rotation"); }, RegisterEvent::KnobLeft);
-		device->reader()->registerReadCallback(17, []()
+		m3Device->reader()->registerReadCallback(17, []()
 											   { debugPrint("Konb1 right rotation"); }, RegisterEvent::KnobRight);
-		device->reader()->registerReadCallback(18, []()
+		m3Device->reader()->registerReadCallback(18, []()
 											   { debugPrint("Konb2 left rotation"); }, RegisterEvent::KnobLeft);
-		device->reader()->registerReadCallback(19, []()
+		m3Device->reader()->registerReadCallback(19, []()
 											   { debugPrint("Konb2 right rotation"); }, RegisterEvent::KnobRight);
-		device->reader()->registerReadCallback(20, []()
+		m3Device->reader()->registerReadCallback(20, []()
 											   { debugPrint("Konb3 left rotation"); }, RegisterEvent::KnobLeft);
-		device->reader()->registerReadCallback(21, []()
+		m3Device->reader()->registerReadCallback(21, []()
 											   { debugPrint("Konb3 right rotation"); }, RegisterEvent::KnobRight);
 	}
 }

@@ -675,6 +675,26 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
+### M3 设备专用事件
+
+以下事件仅适用于 M3 设备：
+
+#### magneticCalibration - 磁力校准
+
+对 M3 设备执行磁力校准。用于校准设备的磁力传感器。
+
+**Payload 参数：** 无（空对象 `{}`）
+
+**请求示例：**
+
+```json
+{
+  "event": "magneticCalibration",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {}
+}
+```
+
 ## 注意事项
 
 - **路径分隔符**：在 Windows 中应使用双反斜杠 `\\` 或正斜杠 `/`
