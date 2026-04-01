@@ -85,7 +85,12 @@ RegisterEvent StreamDockM3::dispatchEvent(uint8_t readValue, uint8_t eventValue)
         return RegisterEvent::KnobRight; /// Knob group rotate right event
     if ((0x37 == readValue || 0x33 == readValue || 0x35 == readValue) && eventValue == 0x01)
         return RegisterEvent::KnobPress; /// Knob group press event
-    // if ((0x37 == readValue || 0x33 == readValue || 0x35 == readValue) && eventValue == 0x00)
-    //     return RegisterEvent::KnobRelease; /// Knob group release event
+    if ((0x37 == readValue || 0x33 == readValue || 0x35 == readValue) && eventValue == 0x00)
+        return RegisterEvent::KnobRelease; /// Knob group release event
     return RegisterEvent::EveryThing;
+}
+
+void StreamDockM3::magneticCalibration()
+{
+	_transport->magneticCalibration();
 }
