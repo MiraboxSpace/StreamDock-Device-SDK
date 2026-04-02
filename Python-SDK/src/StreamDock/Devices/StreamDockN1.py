@@ -133,10 +133,10 @@ class StreamDockN1(StreamDock):
             )
 
         # Regular button events (1-17)
-        if logical_key in self._HW_TO_LOGICAL_KEY:
+        if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
-                key=self._HW_TO_LOGICAL_KEY[logical_key],
+                key=self._HW_TO_LOGICAL_KEY[hardware_code],
                 state=normalized_state
             )
 
