@@ -293,6 +293,21 @@ _transport_lib.transport_set_device_config.argtypes = [
 _transport_lib.transport_change_mode.restype = c_uint32
 _transport_lib.transport_change_mode.argtypes = [c_void_p, c_uint8]
 
+_transport_lib.transport_change_page.restype = c_uint32
+_transport_lib.transport_change_page.argtypes = [c_void_p, c_uint8]
+
+_transport_lib.transport_set_n1_skin_bitmap.restype = c_uint32
+_transport_lib.transport_set_n1_skin_bitmap.argtypes = [
+    c_void_p,
+    c_char_p,
+    c_size_t,
+    c_uint8,
+    c_uint8,
+    c_uint8,
+    c_uint8,
+    c_int32,
+]
+
 _transport_lib.transport_set_reportID.restype = c_uint32
 _transport_lib.transport_set_reportID.argtypes = [c_void_p, c_uint8]
 
@@ -528,7 +543,7 @@ class LibUSBHIDAPI:
         if not self._handle:
             return
         _transport_lib.transport_wakeup_screen(self._handle)
-        
+
     def magnetic_calibration(self) -> None:
         """Perform magnetic calibration."""
         if not self._handle:
@@ -785,6 +800,49 @@ class LibUSBHIDAPI:
             return
         _transport_lib.transport_change_mode(self._handle, mode)
 
+    def change_page(self, page: int) -> None:
+        """
+        Change N1 device calculator mode working page.
+
+        Args:
+            page: Page identifier
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_change_page(self._handle, page)
+
+    def set_n1_skin_bitmap(
+        self,
+        jpeg_data: bytes,
+        skin_mode: int,
+        skin_page: int,
+        skin_status: int,
+        key_index: int,
+        timeout_ms: int = 3000,
+    ) -> None:
+        """
+        Set N1 skin bitmap for a specific mode, page, and key.
+        Args:
+            jpeg_data: JPEG image data for the skin
+            skin_mode: Skin mode identifier, 0 for keyboard, 1 for keyboard lock, 2 for calculator
+            skin_page: Skin page identifier, 1-5
+            skin_status: Skin status identifier, 0 for press, 1 for release
+            key_index: Target key index for the skin, calculator (1-15), keyboard (1-18)
+            timeout_ms: Transmission timeout in milliseconds
+        """
+        if not self._handle:
+            return
+        _transport_lib.transport_set_n1_skin_bitmap(
+            self._handle,
+            jpeg_data,
+            len(jpeg_data),
+            skin_mode,
+            skin_page,
+            skin_status,
+            key_index,
+            timeout_ms,
+        )
+
     def notify_disconnected(self) -> None:
         """Notify the device of disconnection."""
         if not self._handle:
@@ -1038,9 +1096,52 @@ class LibUSBHIDAPI:
         """Legacy alias for clear_all_keys()."""
         self.clear_all_keys()
 
+    def changePage(self, page: int) -> None:
+        """Legacy alias for change_page()."""
+        self.change_page(page)
+
     def switchMode(self, mode: int) -> None:
         """Legacy alias for change_mode()."""
         self.change_mode(mode)
+
+    def setN1SkinBitMap(
+        self,
+        path,
+        skin_mode: int,
+        skin_page: int,
+        skin_status: int,
+        key_index: int,
+    ) -> None:
+        """
+        Legacy method to set N1 skin bitmap from an image file path.
+        Args:
+            path: Path to the image file (can be str, bytes, c_char_p, or os.PathLike)
+            skin_mode: Skin mode identifier, 0 for keyboard, 1 for keyboard lock, 2 for calculator
+            skin_page: Skin page identifier, 1-5
+            skin_status: Skin status identifier, 0 for press, 1 for release
+            key_index: Target key index for the skin, calculator (1-15), keyboard (1-18)
+        """
+        try:
+            # Convert c_char_p to string if needed
+            if isinstance(path, c_char_p):
+                path = (
+                    path.value.decode("utf-8")
+                    if isinstance(path.value, bytes)
+                    else path.value
+                )
+            elif isinstance(path, bytes):
+                path = path.decode("utf-8")
+
+            if path is None:
+                raise ValueError("Path cannot be None")
+
+            with open(path, "rb") as f:
+                jpeg_data = f.read()
+            self.set_n1_skin_bitmap(
+                jpeg_data, skin_mode, skin_page, skin_status, key_index
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to load image from {path}: {e}")
 
     def open(self, device_path: bytes) -> bool:
         """
@@ -1207,6 +1308,8 @@ class LibUSBHIDAPI:
 
         Args:
             path: Path to the image file (can be str, bytes, c_char_p, or os.PathLike)
+            img_width: Width of the image
+            img_height: Height of the image
         """
         try:
             # Convert c_char_p to string if needed

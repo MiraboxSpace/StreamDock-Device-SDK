@@ -8,6 +8,7 @@ import ctypes.util
 import os, io
 from ..ImageHelpers.PILHelper import *
 import random
+from enum import Enum
 
 
 def extract_last_number(code):
@@ -21,13 +22,13 @@ def extract_last_number(code):
         int: Extracted number, or None if not found
     """
     # Find the position of the last dot
-    last_dot = code.rfind('.')
+    last_dot = code.rfind(".")
     if last_dot == -1:
         return None
 
     # Extract consecutive digits after the last dot
-    num_str = ''
-    for char in code[last_dot + 1:]:
+    num_str = ""
+    for char in code[last_dot + 1 :]:
         if char.isdigit():
             num_str += char
         else:
@@ -64,10 +65,23 @@ class StreamDockN1(StreamDock):
         ButtonKey.KEY_13: 13,
         ButtonKey.KEY_14: 14,
         ButtonKey.KEY_15: 15,
-        ButtonKey.KEY_16: 16,
-        ButtonKey.KEY_17: 17,
-        ButtonKey.KEY_18: 18,
+        ButtonKey.KEY_16: 0x1E,
+        ButtonKey.KEY_17: 0x1F,
     }
+
+    class DeviceMode(Enum):
+        KEYBOARD = 0
+        CALCULATOR = 1
+        DOCK = 2
+
+    class SkinMode(Enum):
+        KEYBOARD = 0x11
+        KEYBOARD_LOCK = 0x1F
+        CALCULATOR = 0xFF
+
+    class SkinStatus(Enum):
+        PRESS = 0
+        RELEASE = 1
 
     # Reverse mapping: hardware key -> logical key (for event decoding)
     _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
@@ -114,11 +128,9 @@ class StreamDockN1(StreamDock):
         if hardware_code in knob_rotate_map:
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
-                event_type=EventType.KNOB_ROTATE,
-                knob_id=knob_id,
-                direction=direction
+                event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
             )
-            
+
         # Handle state value: 0x02=release, 0x01=press
         normalized_state = 1 if state == 0x01 else 0
         # Knob press event
@@ -129,7 +141,7 @@ class StreamDockN1(StreamDock):
             return InputEvent(
                 event_type=EventType.KNOB_PRESS,
                 knob_id=knob_press_map[hardware_code],
-                state=normalized_state
+                state=normalized_state,
             )
 
         # Regular button events (1-17)
@@ -137,7 +149,7 @@ class StreamDockN1(StreamDock):
             return InputEvent(
                 event_type=EventType.BUTTON,
                 key=self._HW_TO_LOGICAL_KEY[hardware_code],
-                state=normalized_state
+                state=normalized_state,
             )
 
         # Unknown event
@@ -162,11 +174,15 @@ class StreamDockN1(StreamDock):
                 # open formatter
                 image = Image.open(path)
                 image = to_native_touchscreen_format(self, image)
-                temp_image_path = "rotated_touchscreen_image_" + str(random.randint(9999, 999999)) + ".jpg"
+                temp_image_path = (
+                    "rotated_touchscreen_image_"
+                    + str(random.randint(9999, 999999))
+                    + ".jpg"
+                )
                 image.save(temp_image_path)
 
                 # encode send
-                path_bytes = temp_image_path.encode('utf-8')
+                path_bytes = temp_image_path.encode("utf-8")
                 c_path = ctypes.c_char_p(path_bytes)
                 res = self.transport.setBackgroundImgDualDevice(c_path)
                 os.remove(temp_image_path)
@@ -197,10 +213,16 @@ class StreamDockN1(StreamDock):
             if hardware_key in range(1, 16):
                 # icon
                 rotated_image = to_native_key_format(self, image)
+            elif hardware_key in range(16, 19):
+                # second screen
+                rotated_image = to_native_seondscreen_format(self, image)
             else:
-                return  -1  # N1 supports setting icons for keys 1-15 only
+                print(f"Error: Invalid hardware key '{hardware_key}'.")
+                return -1
             rotated_image.save("Temporary.jpg", "JPEG", subsampling=0, quality=90)
-            returnvalue = self.transport.setKeyImgDualDevice(bytes("Temporary.jpg",'utf-8'), hardware_key)
+            returnvalue = self.transport.setKeyImgDualDevice(
+                bytes("Temporary.jpg", "utf-8"), hardware_key
+            )
             os.remove("Temporary.jpg")
             return returnvalue
 
@@ -211,24 +233,87 @@ class StreamDockN1(StreamDock):
     def get_serial_number(self):
         return self.serial_number
 
-    def switch_mode(self, mode):
-        return self.transport.switchMode(mode)
+    def switch_mode(self, mode: DeviceMode):
+        # 0:calculator, 1:dock
+        return self.transport.switchMode(mode.value)
+
+    def change_page(self, page):
+        return self.transport.changePage(page)
+
+    def set_n1_skin_bitmap(
+        self,
+        path,
+        skin_mode: SkinMode,
+        skin_page: int,
+        skin_status: SkinStatus,
+        key_index: int,
+    ):
+        try:
+            if not os.path.exists(path):
+                print(f"Error: The image file '{path}' does not exist.")
+                return -1
+            if self.SkinMode.CALCULATOR == skin_mode:
+                if key_index < 1 or key_index > 18:
+                    print(
+                        f"Error: For CALCULATOR skin mode, key_index should be in range 1-18."
+                    )
+                    return -1
+            elif (
+                self.SkinMode.KEYBOARD == skin_mode
+                or self.SkinMode.KEYBOARD_LOCK == skin_mode
+            ):
+                if key_index < 1 or key_index > 15:
+                    print(
+                        f"Error: For KEYBOARD skin mode, key_index should be in range 1-15."
+                    )
+                    return -1
+            if skin_page < 1 or skin_page > 5:
+                print(f"Error: skin_page should be in range 1-5.")
+                return -1
+            image = Image.open(path)
+            if self.SkinMode.KEYBOARD == skin_mode and key_index in range(16, 19):
+                image = to_native_seondscreen_format(self, image)
+            else:
+                image = to_native_key_format(self, image)
+            temp_image_path = (
+                "rotated_n1_skin_image_" + str(random.randint(9999, 999999)) + ".png"
+            )
+            image.save(temp_image_path)
+
+            # encode send
+            path_bytes = temp_image_path.encode("utf-8")
+            c_path = ctypes.c_char_p(path_bytes)
+            res = self.transport.setN1SkinBitMap(
+                c_path, skin_mode.value, skin_page, skin_status.value, key_index
+            )
+            os.remove(temp_image_path)
+            return res
+        except Exception as e:
+            print(f"Error: {e}")
+            return -1
 
     def key_image_format(self):
         return {
-            'size': (96, 96),
-            'format': "JPEG",
-            'rotation': 0,
-            'flip': (False, False)
+            "size": (96, 96),
+            "format": "JPEG",
+            "rotation": 0,
+            "flip": (False, False),
         }
 
+    def secondscreen_image_format(self):
+        return {
+            "size": (80, 80),
+            "format": "JPEG",
+            "rotation": 0,
+            "flip": (False, False),
+        }
 
     def touchscreen_image_format(self):
         return {
-            'size': (480, 854),
-            'format': "JPEG",
-            'rotation': 0,
-            'flip': (False, False)
+            "size": (480, 854),
+            "format": "JPEG",
+            "rotation": 0,
+            "flip": (False, False),
         }
 
     # Set device parameters
