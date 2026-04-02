@@ -1,5 +1,6 @@
 #include "streamdockN1.h"
 #include <iostream>
+#include <opencv2/opencv.hpp>
 
 static constexpr auto VID_STREAMDOCK_N1 = 0x6603;
 static constexpr auto PID_STREAMDOCK_N1 = 0x1011;
@@ -98,6 +99,85 @@ void StreamDockN1::changeMode(N1MODE mode)
 	if (!_transport)
 		return;
 	_transport->changeMode(static_cast<uint8_t>(mode));
+}
+
+void StreamDockN1::changePage(uint8_t page)
+{
+	if (!_transport)
+		return;
+	_transport->changePage(page);
+}
+
+void StreamDockN1::setSkinBitmap(const std::string &bitmap_path, SkinMode skin_mode, uint8_t skin_page, SkinStatus skin_status, uint8_t key_index, int32_t timeout_ms)
+{
+	if (!_transport)
+		return;
+	if (SkinMode::CALCULATOR == skin_mode)
+	{
+		if (key_index < 1 || key_index > 18)
+		{
+			std::cerr << "Error: For CALCULATOR skin mode, key_index should be in range 1-18." << std::endl;
+			return;
+		}
+	}
+	else if (SkinMode::KEYBOARD == skin_mode || SkinMode::KEYBOARD_LOCK == skin_mode)
+	{
+		if (key_index < 1 || key_index > 15)
+		{
+			std::cerr << "Error: For KEYBOARD skin mode, key_index should be in range 1-15." << std::endl;
+			return;
+		}
+	}
+	if (skin_page < 1 || skin_page > 5)
+	{
+		std::cerr << "Error: skin_page should be in range 1-5." << std::endl;
+		return;
+	}
+	// if bitmap is not png, Convert file format to png
+	cv::Mat img = cv::imread(bitmap_path, cv::IMREAD_UNCHANGED);
+	if (img.empty())
+	{
+		std::cerr << "Error: Could not load image at " << bitmap_path << std::endl;
+		return;
+	}
+	if (SkinMode::KEYBOARD == skin_mode && key_index >= 16 && key_index <= 18)
+		cv::resize(img, img, cv::Size(64, 64));
+	else
+		cv::resize(img, img, cv::Size(96, 96));
+	std::string final_bitmap_path;
+	if (bitmap_path.substr(bitmap_path.find_last_of(".") + 1) != "png")
+	{
+		std::vector<uchar> buf;
+		cv::imencode(".png", img, buf);
+		final_bitmap_path = "temp_skin.png";
+		cv::imwrite(final_bitmap_path, img);
+	}
+	else
+	{
+		final_bitmap_path = bitmap_path;
+	}
+	// read bitmap file and send to device
+	std::string final_bitmap;
+	{
+		std::ifstream file(final_bitmap_path, std::ios::binary);
+		if (!file)
+		{
+			std::cerr << "Error: Could not open image file " << final_bitmap_path << std::endl;
+			return;
+		}
+		std::ostringstream ss;
+		ss << file.rdbuf();
+		final_bitmap = ss.str();
+	}
+	_transport->setN1SkinBitmap(final_bitmap, static_cast<uint8_t>(skin_mode), skin_page, static_cast<uint8_t>(skin_status), key_index, timeout_ms);
+	// delete the temporary png file if it was created
+	if (final_bitmap_path == "temp_skin.png")
+	{
+		if (std::remove(final_bitmap_path.c_str()) != 0)
+		{
+			std::cerr << "Warning: Could not delete temporary file " << final_bitmap_path << std::endl;
+		}
+	}
 }
 
 int extract_last_number(const std::string &code)

@@ -76,7 +76,7 @@ def main():
         )
 
         # Set background image
-        res = device.set_background_image("img/backgroud_test.png")
+        # res = device.set_background_image("img/backgroud_test.png")
         device.refresh()
         time.sleep(2)
         # N4Pro special function
@@ -98,7 +98,26 @@ def main():
             device.keyboard_os_mode_switch(0)  # windows mode
         # N1 special function
         elif isinstance(device, StreamDockN1):
-            device.switch_mode(0)
+            device.switch_mode(device.DeviceMode.KEYBOARD)
+            for page in range(1, 6):
+                device.change_page(page)
+                time.sleep(1)
+            device.switch_mode(device.DeviceMode.CALCULATOR)
+            for page in range(1, 6):
+                device.change_page(page)
+                time.sleep(1)
+                
+            # ⚠️ The target page cannot be the same as the current page. ⚠️
+            # device.switch_mode(device.DeviceMode.CALCULATOR)
+            # device.change_page(2)
+            # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.PRESS, 1)
+            # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.RELEASE, 1)
+            # device.change_page(1)
+            # time.sleep(10)
+            
+            device.switch_mode(device.DeviceMode.DOCK)
+            device.refresh()
+
         # M3 special function
         if isinstance(device, StreamDockM3):
             device.set_frame_background("img/backgroud_test2.png")

@@ -289,3 +289,16 @@ void TransportCWrapper::magneticCalibration() const
 		return;
 	transport_magnetic_calibration(_handle);
 }
+
+void TransportCWrapper::changePage(uint8_t page) const
+{
+	if (!_handle)
+		return;
+	transport_change_page(_handle, page);
+}
+void TransportCWrapper::setN1SkinBitmap(const std::string &bitmap, uint8_t skin_mode, uint8_t skin_page, uint8_t skin_status, uint8_t key_index, int32_t timeout_ms) const
+{
+	if (!_handle)
+		return;
+	transport_set_n1_skin_bitmap(_handle, bitmap.data(), bitmap.size(), skin_mode, skin_page, skin_status, key_index, timeout_ms);
+}

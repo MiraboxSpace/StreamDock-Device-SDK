@@ -46,19 +46,19 @@ public:
 	 * @brief Initialize connection with a HID device using device info.
 	 * @param device_info Device descriptor from hidapi.
 	 */
-	explicit TransportCWrapper(const hid_device_info& device_info);
+	explicit TransportCWrapper(const hid_device_info &device_info);
 	/**
 	 * @brief Destructor. Automatically releases underlying TransportHandle.
 	 */
 	~TransportCWrapper();
 
-	TransportCWrapper(const TransportCWrapper&) = delete;
-	TransportCWrapper& operator=(const TransportCWrapper&) = delete;
+	TransportCWrapper(const TransportCWrapper &) = delete;
+	TransportCWrapper &operator=(const TransportCWrapper &) = delete;
 	/**
 	 * @brief Move constructor/assignment. Transfers ownership of internal handle.
 	 */
-	TransportCWrapper(TransportCWrapper&& other) noexcept;
-	TransportCWrapper& operator=(TransportCWrapper&& other) noexcept;
+	TransportCWrapper(TransportCWrapper &&other) noexcept;
+	TransportCWrapper &operator=(TransportCWrapper &&other) noexcept;
 
 	/**
 	 * @brief Get firmware version string from the device.
@@ -67,8 +67,8 @@ public:
 	std::string getFirmwareVesion() const;
 
 	/**
-     * @brief Clear All the data will be send to device in transport library.
-     */
+	 * @brief Clear All the data will be send to device in transport library.
+	 */
 	void clearTaskQueue() const;
 
 	/**
@@ -82,8 +82,8 @@ public:
 	 * @param length In: buffer size; Out: actual number of bytes read.
 	 * @param timeoutMs Timeout in milliseconds. -1 means blocking read.
 	 */
-	void read(uint8_t* response, size_t* length, int32_t timeoutMs = -1) const;
-	
+	void read(uint8_t *response, size_t *length, int32_t timeoutMs = -1) const;
+
 	/** @brief Wake up the device screen. */
 	void wakeupScreen() const;
 
@@ -111,31 +111,31 @@ public:
 	/** @brief Send a heartbeat packet to the device. */
 	void heartbeat() const;
 
-	//void setKeyBitmap(const std::string &bitmapStream, uint8_t keyValue) const;
+	// void setKeyBitmap(const std::string &bitmapStream, uint8_t keyValue) const;
 
 	/**
 	 * @brief Set the full-screen background using raw bitmap data.
 	 * @param bitmapStream Raw bitmap bytes.
 	 * @param timeoutMs Transmission timeout (default 3000ms).
 	 */
-	void setBackgroundBitmap(const std::string& bitmapStream, int32_t timeoutMs = 5000) const;
+	void setBackgroundBitmap(const std::string &bitmapStream, int32_t timeoutMs = 5000) const;
 
-	//void setKeyImgFile(const std::string &filePath, uint8_t keyValue) const;
+	// void setKeyImgFile(const std::string &filePath, uint8_t keyValue) const;
 
 	/**
 	 * @brief Set JPEG image to a specific key.
 	 * @param jpegData JPEG image data.
 	 * @param keyValue Target key index.
 	 */
-	void setKeyImgFileStream(const std::string& jpegData, uint8_t keyValue) const;
+	void setKeyImgFileStream(const std::string &jpegData, uint8_t keyValue) const;
 
-	//void setBackgroundImgFile(const std::string &filePath, int32_t timeoutMs = 3000) const;
+	// void setBackgroundImgFile(const std::string &filePath, int32_t timeoutMs = 3000) const;
 	/**
 	 * @brief Set JPEG image as full-screen background.
 	 * @param jpegData JPEG image data.
 	 * @param timeoutMs Transmission timeout.
 	 */
-	void setBackgroundImgStream(const std::string& jpegData, int32_t timeoutMs = 3000) const;
+	void setBackgroundImgStream(const std::string &jpegData, int32_t timeoutMs = 3000) const;
 
 	/**
 	 * @brief Draw a JPEG frame at a specific position (used for animated backgrounds).
@@ -146,8 +146,8 @@ public:
 	 * @param y Y-coordinate.
 	 * @param FBlayer Framebuffer layer index.
 	 */
-	void setBackgroundFrameStream(const std::string& jpegData, uint16_t width, uint16_t height, uint16_t x = 0, uint16_t y = 0, uint8_t FBlayer = 0x00) const;
-	
+	void setBackgroundFrameStream(const std::string &jpegData, uint16_t width, uint16_t height, uint16_t x = 0, uint16_t y = 0, uint8_t FBlayer = 0x00) const;
+
 	/**
 	 * @brief Clear background frame on the specified framebuffer layer.
 	 * @param postion Layer index (default 0x03).
@@ -207,7 +207,7 @@ public:
 	 * @param errMsg Output buffer for the error message.
 	 * @param length In: buffer size; Out: actual string length written.
 	 */
-	void rawHidLastError(wchar_t* errMsg, size_t* length) const;
+	void rawHidLastError(wchar_t *errMsg, size_t *length) const;
 
 	/**
 	 * @brief Globally disable lower-level output (e.g., debug logs).
@@ -232,6 +232,13 @@ public:
 
 	/** @brief Perform magnetic calibration (M3 specific). */
 	void magneticCalibration() const;
+
+	/** @brief Change the current page (N1 specific). */
+	void changePage(uint8_t page) const;
+
+	/** @brief Set N1 skin bitmap. */
+	void setN1SkinBitmap(const std::string &bitmap, uint8_t skin_mode, uint8_t skin_page, uint8_t skin_status, uint8_t key_index, int32_t timeout_ms) const;
+
 public:
 	uint16_t _input_report_size = 0;   ///< Input report size.
 	uint16_t _output_report_size = 0;  ///< Output report size.
