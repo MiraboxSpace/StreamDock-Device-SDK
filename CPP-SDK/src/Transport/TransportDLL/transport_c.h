@@ -135,6 +135,10 @@ extern "C"
 
 	/// N1 mode switch
 	TRANSPORT_API TransportResult transport_change_mode(TransportHandle handle, uint8_t mode);
+	/// N1 page switch
+	TRANSPORT_API TransportResult transport_change_page(TransportHandle handle, uint8_t page);
+	/// N1 skin bitmap setting
+	TRANSPORT_API TransportResult transport_set_n1_skin_bitmap(TransportHandle handle, const char* bitmap, size_t length, uint8_t skin_mode, uint8_t skin_page, uint8_t skin_status, uint8_t key_index, int32_t timeout_ms);
 
 	/// Status
 	TRANSPORT_API TransportResult transport_can_write(TransportHandle handle, int* can_write);

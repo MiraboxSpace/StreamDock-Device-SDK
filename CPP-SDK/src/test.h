@@ -316,20 +316,44 @@ namespace TEST_N1
 		N1device->changeMode(StreamDockN1::N1MODE::SOFTWARE_MODE);
 		N1device->wakeupScreen();
 		N1device->clearAllKeys();
+
+		N1device->changeMode(StreamDockN1::N1MODE::KEYBOARD_MODE);
+		for (int i = 0; i <= 5; i++)
+		{
+			N1device->changePage(i);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		}
+		N1device->changeMode(StreamDockN1::N1MODE::CALCULATOR_MODE);
+		for (int i = 0; i <= 5; i++)
+		{
+			N1device->changePage(i);
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		}
+
+		// ⚠️ The target page cannot be the same as the current page. ⚠️
+		// N1device->changeMode(StreamDockN1::N1MODE::CALCULATOR_MODE);
+		// N1device->changePage(2);
+		// N1device->setSkinBitmap("../../img/button_test.jpg", StreamDockN1::SkinMode::CALCULATOR, 1, StreamDockN1::SkinStatus::PRESS, 1);
+		// N1device->setSkinBitmap("../../img/button_test.jpg", StreamDockN1::SkinMode::CALCULATOR, 1, StreamDockN1::SkinStatus::RELEASE, 1);
+		// N1device->changePage(1);
+		// std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+		N1device->changeMode(StreamDockN1::N1MODE::SOFTWARE_MODE);
+		N1device->refresh();
 		N1device->setEncoder(std::make_shared<OpenCVImageEncoder>());
 		N1device->gifer()->setKeyGifFile("../../img/test.gif", 1);
 		N1device->gifer()->setKeyGifFile("../../img/test.gif", 2);
-		N1device->gifer()->setKeyGifFile("../../img/2.gif", 2);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 2);
 		N1device->gifer()->setKeyGifFile("../../img/test.gif", 3);
 		N1device->gifer()->setKeyGifFile("../../img/test.gif", 4);
-		N1device->gifer()->setKeyGifFile("../../img/2.gif", 10);
-		N1device->gifer()->setKeyGifFile("../../img/3.gif", 11);
-		N1device->gifer()->setKeyGifFile("../../img/4.gif", 15);
-		N1device->gifer()->setKeyGifFile("../../img/5.gif", 7);
-		N1device->gifer()->setKeyGifFile("../../img/6.gif", 3);
-		N1device->gifer()->setKeyGifFile("../../img/7.gif", 13);
-		N1device->gifer()->setKeyGifFile("../../img/7.gif", 18);
-		N1device->setKeyImgFile("../../img/YiFei.jpg", 9);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 10);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 11);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 15);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 7);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 3);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 13);
+		N1device->gifer()->setKeyGifFile("../../img/test.gif", 18);
+		N1device->setKeyImgFile("../../img/button_test.jpg", 9);
 		N1device->rgber()->setLedBrightness(13);
 		N1device->gifer()->startGifLoop();
 		N1device->reader()->startReadLoop();
@@ -573,37 +597,37 @@ namespace TEST_M3
 		{
 			int keyIndex = i;
 			m3Device->reader()->registerReadCallback(keyIndex, [keyIndex]()
-												   { debugPrint("Key " + std::to_string(keyIndex) + " pressed"); }, RegisterEvent::KeyPress);
+													 { debugPrint("Key " + std::to_string(keyIndex) + " pressed"); }, RegisterEvent::KeyPress);
 			m3Device->reader()->registerReadCallback(keyIndex, [keyIndex]()
-												   { debugPrint("Key " + std::to_string(keyIndex) + " release"); }, RegisterEvent::KeyRelease);
+													 { debugPrint("Key " + std::to_string(keyIndex) + " release"); }, RegisterEvent::KeyRelease);
 		}
 		// Magnetic Calibration
 		m3Device->magneticCalibration();
 
 		m3Device->reader()->registerReadCallback(22, []()
-											   { debugPrint("Konb1 pressed"); }, RegisterEvent::KnobPress);
+												 { debugPrint("Konb1 pressed"); }, RegisterEvent::KnobPress);
 		// m3Device->reader()->registerReadCallback(22, []()
 		// 									   { debugPrint("Konb1 release"); }, RegisterEvent::KnobRelease);
 		m3Device->reader()->registerReadCallback(23, []()
-											   { debugPrint("Konb2 pressed"); }, RegisterEvent::KnobPress);
+												 { debugPrint("Konb2 pressed"); }, RegisterEvent::KnobPress);
 		// m3Device->reader()->registerReadCallback(23, []()
 		// 									   { debugPrint("Konb2 release"); }, RegisterEvent::KnobRelease);
 		m3Device->reader()->registerReadCallback(24, []()
-											   { debugPrint("Konb3 pressed"); }, RegisterEvent::KnobPress);
+												 { debugPrint("Konb3 pressed"); }, RegisterEvent::KnobPress);
 		// m3Device->reader()->registerReadCallback(24, []()
 		// 									   { debugPrint("Konb3 release"); }, RegisterEvent::KnobRelease);
 		m3Device->reader()->registerReadCallback(16, []()
-											   { debugPrint("Konb1 left rotation"); }, RegisterEvent::KnobLeft);
+												 { debugPrint("Konb1 left rotation"); }, RegisterEvent::KnobLeft);
 		m3Device->reader()->registerReadCallback(17, []()
-											   { debugPrint("Konb1 right rotation"); }, RegisterEvent::KnobRight);
+												 { debugPrint("Konb1 right rotation"); }, RegisterEvent::KnobRight);
 		m3Device->reader()->registerReadCallback(18, []()
-											   { debugPrint("Konb2 left rotation"); }, RegisterEvent::KnobLeft);
+												 { debugPrint("Konb2 left rotation"); }, RegisterEvent::KnobLeft);
 		m3Device->reader()->registerReadCallback(19, []()
-											   { debugPrint("Konb2 right rotation"); }, RegisterEvent::KnobRight);
+												 { debugPrint("Konb2 right rotation"); }, RegisterEvent::KnobRight);
 		m3Device->reader()->registerReadCallback(20, []()
-											   { debugPrint("Konb3 left rotation"); }, RegisterEvent::KnobLeft);
+												 { debugPrint("Konb3 left rotation"); }, RegisterEvent::KnobLeft);
 		m3Device->reader()->registerReadCallback(21, []()
-											   { debugPrint("Konb3 right rotation"); }, RegisterEvent::KnobRight);
+												 { debugPrint("Konb3 right rotation"); }, RegisterEvent::KnobRight);
 	}
 }
 

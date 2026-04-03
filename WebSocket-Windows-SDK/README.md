@@ -423,6 +423,30 @@ Set the icon for a specific key using Base64-encoded image data.
 }
 ```
 
+#### setKeyImgBulk - Batch Set Key Icons from File
+
+Set icons for multiple keys at once using a single image file. This is more efficient than making multiple individual `setKeyImg` calls.
+
+**Payload Parameters:**
+
+| Parameter  | Type        | Required | Description                                                  |
+| ---------- | ----------- | -------- | ------------------------------------------------------------ |
+| imagePath  | string      | Yes      | Full path to the image file (supports jpg, png)              |
+| keyIndexes | number[]    | Yes      | Array of key indexes to update (starting from 1, varies by device) |
+
+**Request Example:**
+
+```json
+{
+  "event": "setKeyImgBulk",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "imagePath": "E:/icons.png",
+    "keyIndexes": [1, 2, 3, 4]
+  }
+}
+```
+
 #### read - Start Listening for Device Input
 
 Start listening for device key, knob, and other input events.
@@ -557,6 +581,134 @@ Reset the device LED to the default color.
 }
 ```
 
+### N1 Device Specific Events
+
+The following events are only applicable to N1 devices:
+
+#### changeN1Mode - Change N1 Device Mode
+
+Switch the N1 device between different operation modes.
+
+**Payload Parameters:**
+
+| Parameter | Type   | Required | Description                                                      |
+| --------- | ------ | -------- | ---------------------------------------------------------------- |
+| mode      | string | Yes      | Device mode: "keyboard", "calculator", or "dock"                 |
+
+**Request Example:**
+
+```json
+{
+  "event": "changeN1Mode",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "mode": "keyboard"
+  }
+}
+```
+
+#### changeN1Page - Change N1 Device Page
+
+Switch between different pages on the N1 device (pages 1-5).
+
+**Payload Parameters:**
+
+| Parameter | Type   | Required | Description                      |
+| --------- | ------ | -------- | -------------------------------- |
+| page      | number | Yes      | Page number (1-5)                |
+
+**Request Example:**
+
+```json
+{
+  "event": "changeN1Page",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "page": 2
+  }
+}
+```
+
+#### setN1SkinBitmap - Set N1 Skin from Base64
+
+Set the N1 device skin image using Base64-encoded image data.
+
+**Payload Parameters:**
+
+| Parameter  | Type   | Required | Description                                                    |
+| ---------- | ------ | -------- | -------------------------------------------------------------- |
+| skinMode   | string | Yes      | Skin mode: "keyboard", "keyboard_lock", or "calculator"        |
+| skinPage   | number | Yes      | Skin page number                                              |
+| skinStatus | string | Yes      | Skin status: "press" or "release"                              |
+| keyIndex   | number | Yes      | Key index (starting from 1)                                    |
+| imageData  | string | Yes      | Base64-encoded image data                                      |
+
+**Request Example:**
+
+```json
+{
+  "event": "setN1SkinBitmap",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "skinMode": "keyboard",
+    "skinPage": 1,
+    "skinStatus": "press",
+    "keyIndex": 1,
+    "imageData": "data:image/png;base64,iVBORw0KGgo..."
+  }
+}
+```
+
+#### setN1SkinBitmapFromFile - Set N1 Skin from File
+
+Set the N1 device skin image from a local file path.
+
+**Payload Parameters:**
+
+| Parameter  | Type   | Required | Description                                                    |
+| ---------- | ------ | -------- | -------------------------------------------------------------- |
+| skinMode   | string | Yes      | Skin mode: "keyboard", "keyboard_lock", or "calculator"        |
+| skinPage   | number | Yes      | Skin page number                                              |
+| skinStatus | string | Yes      | Skin status: "press" or "release"                              |
+| keyIndex   | number | Yes      | Key index (starting from 1)                                    |
+| imagePath  | string | Yes      | Full path to the image file (supports jpg, png)                |
+
+**Request Example:**
+
+```json
+{
+  "event": "setN1SkinBitmapFromFile",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "skinMode": "keyboard",
+    "skinPage": 1,
+    "skinStatus": "press",
+    "keyIndex": 1,
+    "imagePath": "E:/skins/keyboard_skin.png"
+  }
+}
+```
+
+### M3 Device Specific Events
+
+The following events are only applicable to M3 devices:
+
+#### magneticCalibration - M3 Magnetic Calibration
+
+Calibrate the magnetic sensors on M3 devices.
+
+**Payload Parameters:** None (empty object `{}`)
+
+**Request Example:**
+
+```json
+{
+  "event": "magneticCalibration",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {}
+}
+```
+
 ### Keyboard Device Specific Events
 
 The following events are only applicable to keyboard devices (such as K1Pro):
@@ -672,26 +824,6 @@ Set the brightness of the keyboard backlight.
   "payload": {
     "brightness": 6
   }
-}
-```
-
-### M3 Device Specific Events
-
-The following events are only applicable to M3 devices:
-
-#### magneticCalibration - Magnetic Calibration
-
-Perform magnetic calibration for the M3 device. This is used to calibrate the device's magnetic sensors.
-
-**Payload Parameters:** None (empty object `{}`)
-
-**Request Example:**
-
-```json
-{
-  "event": "magneticCalibration",
-  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
-  "payload": {}
 }
 ```
 
