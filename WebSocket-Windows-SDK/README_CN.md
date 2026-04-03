@@ -423,6 +423,30 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
+#### setKeyImgBulk - 批量设置按键图标
+
+使用单个图像文件批量设置多个按键的图标。这比多次调用 `setKeyImg` 更高效。
+
+**Payload 参数：**
+
+| 参数名     | 类型     | 必填 | 说明                                                  |
+| ---------- | -------- | ---- | ----------------------------------------------------- |
+| imagePath  | string   | 是   | 图像文件的完整路径（支持 jpg、png）                   |
+| keyIndexes | number[] | 是   | 要更新的按键索引数组（从 1 开始，根据设备型号不同） |
+
+**请求示例：**
+
+```json
+{
+  "event": "setKeyImgBulk",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "imagePath": "E:/icons.png",
+    "keyIndexes": [1, 2, 3, 4]
+  }
+}
+```
+
 #### read - 开始监听设备输入
 
 开始监听设备的按键、旋钮等输入事件。
@@ -557,6 +581,134 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
+### N1 设备专用事件
+
+以下事件仅适用于 N1 设备：
+
+#### changeN1Mode - 改变 N1 设备模式
+
+切换 N1 设备的不同操作模式。
+
+**Payload 参数：**
+
+| 参数名 | 类型   | 必填 | 说明                                          |
+| ------ | ------ | ---- | --------------------------------------------- |
+| mode   | string | 是   | 设备模式："keyboard"、"calculator" 或 "dock" |
+
+**请求示例：**
+
+```json
+{
+  "event": "changeN1Mode",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "mode": "keyboard"
+  }
+}
+```
+
+#### changeN1Page - 改变 N1 设备页面
+
+切换 N1 设备的不同页面（1-5 页）。
+
+**Payload 参数：**
+
+| 参数名 | 类型   | 必填 | 说明               |
+| ------ | ------ | ---- | ------------------ |
+| page   | number | 是   | 页码（1-5）        |
+
+**请求示例：**
+
+```json
+{
+  "event": "changeN1Page",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "page": 2
+  }
+}
+```
+
+#### setN1SkinBitmap - 从 Base64 设置 N1 皮肤
+
+使用 Base64 编码的图像数据设置 N1 设备皮肤图像。
+
+**Payload 参数：**
+
+| 参数名     | 类型   | 必填 | 说明                                                    |
+| ---------- | ------ | ---- | ------------------------------------------------------- |
+| skinMode   | string | 是   | 皮肤模式："keyboard"、"keyboard_lock" 或 "calculator"    |
+| skinPage   | number | 是   | 皮肤页码                                                |
+| skinStatus | string | 是   | 皮肤状态："press" 或 "release"                          |
+| keyIndex   | number | 是   | 按键索引（从 1 开始）                                   |
+| imageData  | string | 是   | Base64 编码的图像数据                                   |
+
+**请求示例：**
+
+```json
+{
+  "event": "setN1SkinBitmap",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "skinMode": "keyboard",
+    "skinPage": 1,
+    "skinStatus": "press",
+    "keyIndex": 1,
+    "imageData": "data:image/png;base64,iVBORw0KGgo..."
+  }
+}
+```
+
+#### setN1SkinBitmapFromFile - 从文件设置 N1 皮肤
+
+从本地文件路径设置 N1 设备皮肤图像。
+
+**Payload 参数：**
+
+| 参数名     | 类型   | 必填 | 说明                                                    |
+| ---------- | ------ | ---- | ------------------------------------------------------- |
+| skinMode   | string | 是   | 皮肤模式："keyboard"、"keyboard_lock" 或 "calculator"    |
+| skinPage   | number | 是   | 皮肤页码                                                |
+| skinStatus | string | 是   | 皮肤状态："press" 或 "release"                          |
+| keyIndex   | number | 是   | 按键索引（从 1 开始）                                   |
+| imagePath  | string | 是   | 图像文件的完整路径（支持 jpg、png）                     |
+
+**请求示例：**
+
+```json
+{
+  "event": "setN1SkinBitmapFromFile",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "skinMode": "keyboard",
+    "skinPage": 1,
+    "skinStatus": "press",
+    "keyIndex": 1,
+    "imagePath": "E:/skins/keyboard_skin.png"
+  }
+}
+```
+
+### M3 设备专用事件
+
+以下事件仅适用于 M3 设备：
+
+#### magneticCalibration - M3 磁力校准
+
+校准 M3 设备的磁力传感器。
+
+**Payload 参数：** 无（空对象 `{}`）
+
+**请求示例：**
+
+```json
+{
+  "event": "magneticCalibration",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {}
+}
+```
+
 ### 键盘设备专用事件
 
 以下事件仅适用于键盘设备（如 K1Pro）：
@@ -672,26 +824,6 @@ ws.send(JSON.stringify(refresh));
   "payload": {
     "brightness": 6
   }
-}
-```
-
-### M3 设备专用事件
-
-以下事件仅适用于 M3 设备：
-
-#### magneticCalibration - 磁力校准
-
-对 M3 设备执行磁力校准。用于校准设备的磁力传感器。
-
-**Payload 参数：** 无（空对象 `{}`）
-
-**请求示例：**
-
-```json
-{
-  "event": "magneticCalibration",
-  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
-  "payload": {}
 }
 ```
 
