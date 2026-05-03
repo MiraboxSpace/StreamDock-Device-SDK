@@ -1,5 +1,6 @@
 # Core dependencies
 pillow
+hidapi
 
 # Platform-specific dependencies
 pyudev ; sys_platform == "linux"

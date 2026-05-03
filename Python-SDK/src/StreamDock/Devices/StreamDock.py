@@ -141,7 +141,7 @@ class StreamDock(ABC):
 
     # Open device
     def open(self):
-        res1 = self.transport.open(bytes(self.path, "utf-8"))
+        res1 = self.transport.open(self.path)
         self._setup_reader(self._read)
         # Start heartbeat with delay to avoid Linux libusb deadlock
         # The read thread needs time to initialize before heartbeat starts
