@@ -1,614 +1,254 @@
 """
-LibUSBHIDAPI - Python wrapper for StreamDock Transport C library
+LibUSBHIDAPI - Pure-Python StreamDock Transport implementation
 
-This module provides a Python interface to the StreamDock Transport library,
-encapsulating HID device operations such as:
-- Device initialization and management
-- I/O operations (read/write)
-- Image transfer (key and background images)
-- LED control
-- Device configuration and control
-
-The wrapper follows RAII-style resource management patterns and provides
-a clean, Pythonic interface to the underlying C API.
+Drop-in replacement for the ctypes-based wrapper. Speaks the StreamDock HID
+protocol directly using the ``hid`` package -- no compiled C library needed.
 """
 
-import os
-import ctypes
-import platform
-from ctypes import (
-    POINTER,
-    c_size_t,
-    c_uint8,
-    c_void_p,
-    c_char_p,
-    c_int,
-    c_ulong,
-    c_ubyte,
-    c_uint16,
-    c_uint32,
-    c_int32,
-    c_wchar_p,
-    c_char,
-)
-import re
-from typing import Optional, List, Tuple
-
-
-def _get_glibc_version() -> Tuple[int, int]:
-    """
-    Get the system's glibc version.
-
-    Returns:
-        Tuple[int, int]: (major_version, minor_version)
-    """
-    try:
-        import ctypes.util
-
-        # Try to get glibc version via libc
-        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-        # gnu_get_libc_version() returns a string like "2.39"
-        gnu_get_libc_version = libc.gnu_get_libc_version
-        gnu_get_libc_version.restype = c_char_p
-        version_str = gnu_get_libc_version().decode("utf-8")
-        parts = version_str.split(".")
-        if len(parts) >= 2:
-            return (int(parts[0]), int(parts[1]))
-    except Exception:
-        pass
-    return (2, 0)  # Default to a low version if detection fails
-
-
-def _get_dll_name() -> str:
-    """
-    Determine the appropriate transport library name based on platform and architecture.
-
-    For Linux, searches for libraries with glibc version suffixes (e.g., libtransport_glibc2.39.so)
-    and selects the best match for the system's glibc version.
-
-    Returns:
-        str: The library filename to load
-
-    Raises:
-        RuntimeError: If the platform/architecture combination is not supported
-    """
-    search_library_names = {
-        "Windows": {"x86_64": "transport.dll"},
-        "Darwin": {"x86_64": "libtransport.dylib", "arm64": "libtransport_arm64.dylib"},
-    }
-
-    platform_name = platform.system()
-    machine_type = platform.machine().lower()
-
-    if platform_name == "Windows":
-        return search_library_names["Windows"]["x86_64"]
-    elif platform_name == "Darwin":
-        if "x86_64" in machine_type or "amd64" in machine_type:
-            return search_library_names["Darwin"]["x86_64"]
-        elif "arm64" in machine_type:
-            return search_library_names["Darwin"]["arm64"]
-    elif platform_name == "Linux":
-        # For Linux, search for glibc-versioned libraries
-        dll_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "TransportDLL"
-        )
-
-        # Determine architecture prefix
-        if "aarch64" in machine_type or "arm64" in machine_type:
-            arch_prefix = "arm64"
-            fallback_name = "libtransport_arm64.so"
-        elif "x86_64" in machine_type or "amd64" in machine_type:
-            arch_prefix = ""
-            fallback_name = "libtransport.so"
-        else:
-            raise RuntimeError(f"Unsupported architecture on Linux: {machine_type}")
-
-        # Pattern for glibc-versioned libraries:
-        # libtransport[_arm64]_glibcX.XX.so or libtransport_glibcX.XX.so
-        pattern = re.compile(rf"^libtransport(_{arch_prefix})?_glibc(\d+)\.(\d+)\.so$")
-
-        # Search for matching libraries
-        candidates = []
-        if os.path.exists(dll_dir):
-            for filename in os.listdir(dll_dir):
-                match = pattern.match(filename)
-                if match:
-                    major = int(match.group(2))
-                    minor = int(match.group(3))
-                    candidates.append((major, minor, filename))
-
-        if candidates:
-            # Get system glibc version
-            sys_glibc = _get_glibc_version()
-
-            # Find the best match: highest version that doesn't exceed system version
-            best_match = None
-            for major, minor, filename in sorted(
-                candidates, key=lambda x: (x[0], x[1])
-            ):
-                if major < sys_glibc[0] or (
-                    major == sys_glibc[0] and minor <= sys_glibc[1]
-                ):
-                    best_match = filename
-                elif best_match is None:
-                    # If no compatible version found, use the lowest version as fallback
-                    best_match = filename
-                    break
-
-            if best_match:
-                return best_match
-
-        # Fallback to old naming convention
-        return fallback_name
-
-    raise RuntimeError(
-        f"Unsupported platform/architecture: {platform_name} / {machine_type}"
-    )
-
-
-# Load the transport library
-_dll_name = _get_dll_name()
-_dll_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "TransportDLL", _dll_name
-)
-_transport_lib = ctypes.CDLL(_dll_path)
-
-
-class _HidDeviceInfo(ctypes.Structure):
-    """
-    Structure definition for the hid_device_info structure defined
-    in the HIDAPI library.
-    """
-
-    pass
-
-
-_HidDeviceInfo._fields_ = [
-    ("path", ctypes.c_char_p),
-    ("vendor_id", ctypes.c_ushort),
-    ("product_id", ctypes.c_ushort),
-    ("serial_number", ctypes.c_wchar_p),
-    ("release_number", ctypes.c_ushort),
-    ("manufacturer_string", ctypes.c_wchar_p),
-    ("product_string", ctypes.c_wchar_p),
-    ("usage_page", ctypes.c_ushort),
-    ("usage", ctypes.c_ushort),
-    ("interface_number", ctypes.c_int),
-    ("next", ctypes.POINTER(_HidDeviceInfo)),
-]
-
-
-# Define C function signatures
-_transport_lib.transport_create.restype = c_uint32  # TransportResult
-_transport_lib.transport_create.argtypes = [POINTER(_HidDeviceInfo), POINTER(c_void_p)]
-
-_transport_lib.transport_destroy.restype = c_uint32  # TransportResult
-_transport_lib.transport_destroy.argtypes = [c_void_p]
-
-_transport_lib.transport_get_firmware_version.restype = c_uint32
-_transport_lib.transport_get_firmware_version.argtypes = [c_void_p, c_char_p, c_size_t]
-
-_transport_lib.transport_clear_task_queue.restype = c_uint32
-_transport_lib.transport_clear_task_queue.argtypes = [c_void_p]
-
-_transport_lib.transport_can_write.restype = c_uint32
-_transport_lib.transport_can_write.argtypes = [c_void_p, POINTER(c_int)]
-
-_transport_lib.transport_read.restype = c_uint32  # TransportResult
-_transport_lib.transport_read.argtypes = [
-    c_void_p,
-    POINTER(c_uint8),
-    POINTER(c_size_t),
-    c_int32,
-]
-
-_transport_lib.transport_wakeup_screen.restype = c_uint32
-_transport_lib.transport_wakeup_screen.argtypes = [c_void_p]
-
-_transport_lib.transport_magnetic_calibration.restype = c_uint32
-_transport_lib.transport_magnetic_calibration.argtypes = [c_void_p]
-
-_transport_lib.transport_set_key_brightness.restype = c_uint32
-_transport_lib.transport_set_key_brightness.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_clear_all_keys.restype = c_uint32
-_transport_lib.transport_clear_all_keys.argtypes = [c_void_p]
-
-_transport_lib.transport_clear_key.restype = c_uint32
-_transport_lib.transport_clear_key.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_refresh.restype = c_uint32
-_transport_lib.transport_refresh.argtypes = [c_void_p]
-
-_transport_lib.transport_sleep.restype = c_uint32
-_transport_lib.transport_sleep.argtypes = [c_void_p]
-
-_transport_lib.transport_disconnected.restype = c_uint32
-_transport_lib.transport_disconnected.argtypes = [c_void_p]
-
-_transport_lib.transport_heartbeat.restype = c_uint32
-_transport_lib.transport_heartbeat.argtypes = [c_void_p]
-
-_transport_lib.transport_set_background_bitmap.restype = c_uint32
-_transport_lib.transport_set_background_bitmap.argtypes = [
-    c_void_p,
-    c_char_p,
-    c_size_t,
-    c_uint32,
-]
-
-_transport_lib.transport_set_key_image_stream.restype = c_uint32
-_transport_lib.transport_set_key_image_stream.argtypes = [
-    c_void_p,
-    c_char_p,
-    c_size_t,
-    c_uint8,
-]
-
-_transport_lib.transport_set_background_image_stream.restype = c_uint32
-_transport_lib.transport_set_background_image_stream.argtypes = [
-    c_void_p,
-    c_char_p,
-    c_size_t,
-    c_uint32,
-]
-
-_transport_lib.transport_set_background_frame_stream.restype = c_uint32
-_transport_lib.transport_set_background_frame_stream.argtypes = [
-    c_void_p,
-    c_char_p,
-    c_size_t,
-    c_uint16,
-    c_uint16,
-    c_uint16,
-    c_uint16,
-    c_uint8,
-]
-
-_transport_lib.transport_clear_background_frame_stream.restype = c_uint32
-_transport_lib.transport_clear_background_frame_stream.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_set_led_brightness.restype = c_uint32
-_transport_lib.transport_set_led_brightness.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_set_led_color.restype = c_uint32
-_transport_lib.transport_set_led_color.argtypes = [
-    c_void_p,
-    c_uint16,
-    c_uint8,
-    c_uint8,
-    c_uint8,
-]
-
-_transport_lib.transport_reset_led_color.restype = c_uint32
-_transport_lib.transport_reset_led_color.argtypes = [c_void_p]
-
-_transport_lib.transport_set_device_config.restype = c_uint32
-_transport_lib.transport_set_device_config.argtypes = [
-    c_void_p,
-    POINTER(c_uint8),
-    c_size_t,
-]
-
-_transport_lib.transport_change_mode.restype = c_uint32
-_transport_lib.transport_change_mode.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_change_page.restype = c_uint32
-_transport_lib.transport_change_page.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_set_n1_skin_bitmap.restype = c_uint32
-_transport_lib.transport_set_n1_skin_bitmap.argtypes = [
-    c_void_p,
-    c_char_p,
-    c_size_t,
-    c_uint8,
-    c_uint8,
-    c_uint8,
-    c_uint8,
-    c_int32,
-]
-
-_transport_lib.transport_set_reportID.restype = c_uint32
-_transport_lib.transport_set_reportID.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_reportID.restype = c_uint32
-_transport_lib.transport_reportID.argtypes = [c_void_p, POINTER(c_uint8)]
-
-_transport_lib.transport_set_reportSize.restype = c_uint32
-_transport_lib.transport_set_reportSize.argtypes = [
-    c_void_p,
-    c_uint16,
-    c_uint16,
-    c_uint16,
-]
-
-_transport_lib.transport_raw_hid_last_error.restype = c_uint32
-_transport_lib.transport_raw_hid_last_error.argtypes = [
-    c_void_p,
-    ctypes.c_void_p,
-    POINTER(c_size_t),
-]
-
-_transport_lib.transport_disable_output.restype = c_uint32
-_transport_lib.transport_disable_output.argtypes = [ctypes.c_int8]
-
-# ========== Keyboard Lighting Functions ==========
-_transport_lib.transport_set_keyboard_backlight_brightness.restype = c_uint32
-_transport_lib.transport_set_keyboard_backlight_brightness.argtypes = [
-    c_void_p,
-    c_uint8,
-]
-
-_transport_lib.transport_set_keyboard_lighting_effects.restype = c_uint32
-_transport_lib.transport_set_keyboard_lighting_effects.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_set_keyboard_lighting_speed.restype = c_uint32
-_transport_lib.transport_set_keyboard_lighting_speed.argtypes = [c_void_p, c_uint8]
-
-_transport_lib.transport_set_keyboard_rgb_backlight.restype = c_uint32
-_transport_lib.transport_set_keyboard_rgb_backlight.argtypes = [
-    c_void_p,
-    c_uint8,
-    c_uint8,
-    c_uint8,
-]
-
-_transport_lib.transport_keyboard_os_mode_switch.restype = c_uint32
-_transport_lib.transport_keyboard_os_mode_switch.argtypes = [c_void_p, c_uint8]
-
-# Add missing function signature
-_transport_lib.transport_get_last_error_info.restype = c_uint32  # TransportResult
-_transport_lib.transport_get_last_error_info.argtypes = [
-    c_void_p,
-    c_void_p,
-]  # TransportErrorInfo*
-
-# Load hidapi functions directly from the transport library
-# This prevents conflicts with Python's hidapi package
-try:
-    _transport_lib.transport_hid_enumerate.restype = POINTER(_HidDeviceInfo)
-    _transport_lib.transport_hid_enumerate.argtypes = [c_uint16, c_uint16]
-
-    _transport_lib.transport_hid_free_enumeration.restype = None
-    _transport_lib.transport_hid_free_enumeration.argtypes = [POINTER(_HidDeviceInfo)]
-
-    _HID_API_AVAILABLE = True
-except AttributeError:
-    _HID_API_AVAILABLE = False
-    print("Warning: hidapi functions not available in transport library")
+import struct
+import threading
+
+from typing import Optional, Union, List
+from ctypes import c_char_p
+from os import PathLike
+
+import hid
+
+
+class _HidDeviceInfo:
+    """Drop-in for the hid_device_info ctypes Structure used by the SDK's DeviceManager."""
+
+    def __init__(self):
+        self.path: str = ""
+        self.vendor_id: int = 0
+        self.product_id: int = 0
+        self.serial_number: str = ""
+        self.release_number: int = 0
+        self.manufacturer_string: str = ""
+        self.product_string: str = ""
+        self.usage_page: int = 0
+        self.usage: int = 0
+        self.interface_number: int = 0
+        self.next = None
 
 
 class LibUSBHIDAPI:
+    """Pure-Python transport for StreamDock devices.
+
+    API-compatible with the ctypes-based original. Uses the ``hid`` package
+    for raw HID I/O and constructs protocol packets in-process.
     """
-    Python wrapper for the StreamDock Transport C library.
 
-    This class provides a high-level, Pythonic interface to the underlying C transport library,
-    managing HID device operations with RAII-style resource management.
-
-    Features:
-    - Device initialization and cleanup
-    - I/O operations (read/write)
-    - Image transfer (key images, background images, bitmap streams)
-    - LED control (brightness, color)
-    - Device configuration and mode switching
-    - Firmware version retrieval
-
-    Example:
-        device_info = get_device_info()  # from hidapi
-        device = LibUSBHIDAPI(device_info)
-        device.set_led_color(1, 255, 0, 0)  # Set first LED to red
-        device.set_key_brightness(50)
-        firmware = device.get_firmware_version()
-    """
+    _DEFAULT_REPORT_SIZE = 1024
 
     def __init__(self, device_info: Optional[_HidDeviceInfo] = None):
         """
-        Initialize the transport wrapper.
+        Initialize the transport.
 
         Args:
             device_info: HID device information structure. If None, creates an uninitialized handle.
         """
-        self._handle = None
-        self._input_report_size = 0
-        self._output_report_size = 0
-        self._feature_report_size = 0
-        # CRITICAL: Store device_info properly for resource management
         self._device_info = device_info
+        self._device: Optional[hid.device] = None
         self._is_open = False
-
-        # Don't create handle immediately, wait for open() call
-        # This maintains compatibility with the existing StreamDock API
+        self._report_id: int = 0
+        self._input_report_size: int = 0
+        self._output_report_size: int = 0
+        self._feature_report_size: int = 0
+        self._write_lock = threading.RLock()
 
     def __del__(self):
-        """
-        Destructor - automatically releases the transport handle.
-
-        CRITICAL: This is called during garbage collection which may happen
-        during interpreter shutdown. We need to be extremely careful about
-        calling C code here as it can cause segmentation faults.
-        """
-        # Only destroy if we have a handle and Python interpreter is still running
-        if self._handle:
-            try:
-                # Check if Python interpreter is shutting down
-                import sys
-
-                if sys.is_finalizing():
-                    # During interpreter shutdown, skip C calls to avoid segfault
-                    # The OS will clean up resources when process exits
-                    return
-                _transport_lib.transport_destroy(self._handle)
-            except (AttributeError, TypeError, ValueError):
-                # C library may already be unloaded or corrupted state
-                # Silently skip to avoid cascading failures during shutdown
-                pass
-            finally:
-                self._handle = None
+        self.close()
 
     def __enter__(self):
-        """Context manager support."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager cleanup."""
-        self.__del__()
+        self.close()
         return False
 
-    # ========== Device Information and Status ==========
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
-    def get_firmware_version(self) -> str:
+    @property
+    def _report_size(self) -> int:
+        if self._output_report_size > 0:
+            return self._output_report_size - 1
+        else:
+            return self._DEFAULT_REPORT_SIZE
+
+    def _pad(self, buffer: bytes):
+        return buffer + b"\x00" * (self._report_size - len(buffer))
+
+    def _crt(self, cmd: str, params: bytes = b"", bulk: bytes = b"", crt: bytes = b"CRT\x00\x00"):
         """
-        Get the firmware version string from the device.
-
-        Returns:
-            str: Firmware version string
-        """
-        if not self._handle:
-            return ""
-
-        buffer_size = 64
-        buffer = ctypes.create_string_buffer(buffer_size)
-        result = _transport_lib.transport_get_firmware_version(
-            self._handle, buffer, buffer_size
-        )
-        if result != 0:
-            return ""
-        raw = buffer.raw
-
-        parts = raw.split(b"\x00")
-        decoded = ""
-        for part in parts:
-            if part:
-                try:
-                    decoded = part.decode("utf-8", errors="ignore")
-                    break
-                except Exception:
-                    # fallback to continue searching
-                    continue
-
-        return decoded
-
-    def clear_task_queue(self) -> None:
-        """Clear all pending data in the transport library's task queue."""
-        if not self._handle:
-            return
-        _transport_lib.transport_clear_task_queue(self._handle)
-
-    def can_write(self) -> bool:
-        """
-        Check if the device is currently writable.
-
-        Returns:
-            bool: True if device can accept write operations
-        """
-        if not self._handle:
-            return False
-        can_write_val = c_int()
-        result = _transport_lib.transport_can_write(
-            self._handle, ctypes.byref(can_write_val)
-        )
-        if result != 0:
-            return False
-        return bool(can_write_val.value)
-
-    def read(self, timeout_ms: int = -1) -> Optional[bytes]:
-        """
-        Read data from the device.
+        Send a `CRT` command to the device.
 
         Args:
-            timeout_ms: Timeout in milliseconds. -1 means blocking read.
-
-        Returns:
-            bytes: Data read from device, or None if error occurred
+            cmd: Command to execute
+            params: Additional parameters that follow the command. Optional byte string, usually `struct.pack()`-ed data.
+            bulk: Bulk data that will be streamed to the device after the command has been sent. Usually image data.
+            crt: Allows to override the `CRT` command header. Useful for non-standard commands.
         """
-        if not self._handle:
+        with self._write_lock:
+            if self._device is None:
+                return
+
+            pkt = crt + cmd.encode("ascii") + params
+            # print(f"write {pkt}")
+            pkt = self._pad(pkt)
+            self._device.write(self._pad(pkt))
+
+            if len(bulk) > 0:
+                for i in range(0, len(bulk), self._report_size):
+                    # print(f"bulk {i=} {bulk[i:i+16]=} ")
+                    stuff = b""
+                    if bulk[i] == 0:
+                        # for some reason hidapi seems to drop a leading nullbyte,
+                        # we duplicate it, so the device receives the correct message
+                        stuff = b"\x00"
+                    self._device.write(self._pad(stuff + bulk[i:i+self._report_size]))
+
+    # ------------------------------------------------------------------
+    # Device lifecycle
+    # ------------------------------------------------------------------
+
+    def open(self, device_path: bytes) -> bool:
+        """
+        Open a device connection using the device path.
+
+        Args:
+            device_path: Device path as bytes
+        """
+
+        if self._is_open or self._device is not None:
+            print("[WARNING] Device already open", flush=True)
+            return False
+
+        try:
+            self._device = hid.device()
+            assert self._device is not None
+            self._device.open_path(device_path)
+            self._device.set_nonblocking(False)
+            self._is_open = True
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to open device: {e}", flush=True)
+            return False
+
+    def close(self):
+        """
+        Close the device connection.
+        """
+        try:
+            if self._device is not None:
+                self._device.close()
+        except Exception as e:
+            print(f"[WARNING] Error closing device: {e}", flush=True)
+        finally:
+            self._device = None
+            self._is_open = False
+
+    # ------------------------------------------------------------------
+    # Device info / status
+    # ------------------------------------------------------------------
+
+    def get_firmware_version(self) -> str:
+        if not self._device:
+            return ""
+
+        # TODO: does this work?
+        try:
+            buf = bytes([self._report_id]) + b"\x00" * self._report_size
+            result = self._device.get_input_report(buf)
+            # Response starts after report ID byte
+            raw = bytes(result[1:])
+            # Strip trailing nulls
+            firmware = raw.split(b"\x00")[0]
+            return firmware.decode("utf-8", errors="ignore") if firmware else ""
+        except Exception:
+            return ""
+
+    def clear_task_queue(self):
+        pass  # No-op in pure Python (no internal task queue)
+
+    def can_write(self) -> bool:
+        return self._device is not None and self._is_open
+
+    # ------------------------------------------------------------------
+    # Read
+    # ------------------------------------------------------------------
+
+    def read(self, timeout_ms: int = -1) -> Optional[bytes]:
+        if not self._device:
+            return None
+        try:
+            size = max(self._input_report_size, 1024) if self._input_report_size else 1024
+            data = self._device.read(size, timeout_ms=timeout_ms)
+            # if len(data) > 0:
+            #     _data = bytes(data).rstrip(b"\x00")
+            #     print(f"read() {_data=}")
+            return bytes(data) if data else None
+        except Exception:
             return None
 
-        buffer_size = max(self._input_report_size, 1024)
-        response = (c_uint8 * buffer_size)()
-        length = c_size_t(buffer_size)
+    def read_(self, size: int) -> Optional[bytes]:
+        """Read with fixed buffer size and 100ms timeout (matches original behavior)."""
+        # TODO: actually honor size
+        return self.read(timeout_ms=100)
 
-        result = _transport_lib.transport_read(
-            self._handle, response, ctypes.byref(length), timeout_ms
-        )
+    # ------------------------------------------------------------------
+    # Screen control
+    # ------------------------------------------------------------------
 
-        if result == 0:  # TRANSPORT_SUCCESS is 0
-            return bytes(response[: length.value])
-        return None
-
-    # ========== Screen Control ==========
-
-    def wakeup_screen(self) -> None:
+    def wakeup_screen(self):
         """Wake up the device screen."""
-        if not self._handle:
-            return
-        _transport_lib.transport_wakeup_screen(self._handle)
+        self._crt("DIS")
 
-    def magnetic_calibration(self) -> None:
+    def magnetic_calibration(self):
         """Perform magnetic calibration."""
-        if not self._handle:
-            return
-        _transport_lib.transport_magnetic_calibration(self._handle)
+        self._crt("CHECK")
 
-    def refresh_screen(self) -> None:
+    def refresh_screen(self):
         """Refresh the screen display."""
-        if not self._handle:
-            return
-        _transport_lib.transport_refresh(self._handle)
+        self._crt("STP")
 
-    def sleep(self) -> None:
+    def sleep(self):
         """Put the device into sleep mode."""
-        if not self._handle:
-            return
-        _transport_lib.transport_sleep(self._handle)
+        self._crt("HAN")
 
-    # ========== Key Control ==========
+    # ------------------------------------------------------------------
+    # Key control
+    # ------------------------------------------------------------------
 
-    def set_key_brightness(self, brightness: int) -> None:
+    def set_key_brightness(self, brightness: int):
         """
         Set the brightness of keys.
 
         Args:
             brightness: Brightness value, typically 0-100
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_key_brightness(self._handle, brightness)
+        self._crt("LIG", struct.pack(">HB", 0, brightness))
 
-    def clear_all_keys(self) -> None:
+    def clear_all_keys(self):
         """Clear all keys on the device."""
-        if not self._handle:
-            return
-        _transport_lib.transport_clear_all_keys(self._handle)
+        self.clear_key(0xff)
 
-    def clear_key(self, key_index: int) -> None:
+    def clear_key(self, key_index: int):
         """
         Clear the content of a specific key.
 
         Args:
             key_index: Index of the key to clear
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_clear_key(self._handle, key_index)
+        self._crt("CLE", struct.pack(">HB", 0, key_index))
 
-    # ========== Image Transfer ==========
+    # ------------------------------------------------------------------
+    # Image transfer
+    # ------------------------------------------------------------------
 
-    def set_background_bitmap(self, bitmap_data: bytes, timeout_ms: int = 5000) -> None:
-        """
-        Set the full-screen background using raw bitmap data.
-
-        Args:
-            bitmap_data: Raw bitmap bytes
-            timeout_ms: Transmission timeout in milliseconds
-        """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_background_bitmap(
-            self._handle, bitmap_data, len(bitmap_data), timeout_ms
-        )
-
-    def set_key_image_stream(self, jpeg_data: bytes, key_index: int) -> None:
+    def set_key_image_stream(self, jpeg_data: bytes, key_index: int):
         """
         Set a JPEG image to a specific key.
 
@@ -616,16 +256,19 @@ class LibUSBHIDAPI:
             jpeg_data: JPEG image data
             key_index: Target key index
         """
-        if not self._handle:
-            return
-        res = _transport_lib.transport_set_key_image_stream(
-            self._handle, jpeg_data, len(jpeg_data), key_index
-        )
-        return res
+        self._crt("BAT", struct.pack(">IB", len(jpeg_data), key_index), jpeg_data)
 
-    def set_background_image_stream(
-        self, jpeg_data: bytes, timeout_ms: int = 3000
-    ) -> None:
+    def set_background_bitmap(self, bitmap_data: bytes, timeout_ms: int = 5000):
+        """
+        Set the full-screen background using raw bitmap data.
+
+        Args:
+            bitmap_data: Raw bitmap bytes
+            timeout_ms: Transmission timeout in milliseconds
+        """
+        self.set_key_image_stream(bitmap_data, 1)
+
+    def set_background_image_stream(self, jpeg_data: bytes, timeout_ms: int = 3000):
         """
         Set a JPEG image as full-screen background.
 
@@ -633,11 +276,7 @@ class LibUSBHIDAPI:
             jpeg_data: JPEG image data
             timeout_ms: Transmission timeout in milliseconds
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_background_image_stream(
-            self._handle, jpeg_data, len(jpeg_data), timeout_ms
-        )
+        self.set_key_image_stream(jpeg_data, 1)
 
     def set_background_frame_stream(
         self,
@@ -659,37 +298,31 @@ class LibUSBHIDAPI:
             y: Y-coordinate position
             fb_layer: Framebuffer layer index
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_background_frame_stream(
-            self._handle, jpeg_data, len(jpeg_data), width, height, x, y, fb_layer
-        )
+        self._crt("BGPIC", struct.pack(">I4H2B", len(jpeg_data), x, y, width, height, 0, fb_layer), jpeg_data)
 
-    def clear_background_frame_stream(self, position: int = 0x03) -> None:
+    def clear_background_frame_stream(self, position: int = 0x03):
         """
         Clear background frame on the specified framebuffer layer.
 
         Args:
             position: Layer index (default 0x03)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_clear_background_frame_stream(self._handle, position)
+        self._crt("BGCLE", struct.pack(">HB", 0, position))
 
-    # ========== LED Control ==========
+    # ------------------------------------------------------------------
+    # LED control
+    # ------------------------------------------------------------------
 
-    def set_led_brightness(self, brightness: int) -> None:
+    def set_led_brightness(self, brightness: int):
         """
         Set LED brightness.
 
         Args:
             brightness: Brightness value, typically 0-100
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_led_brightness(self._handle, brightness)
+        self._crt("LBLIG", struct.pack(">B", brightness))
 
-    def set_led_color(self, count: int, r: int, g: int, b: int) -> None:
+    def set_led_color(self, count: int, r: int, g: int, b: int):
         """
         Set color for the first N LEDs.
 
@@ -699,55 +332,54 @@ class LibUSBHIDAPI:
             g: Green component (0-255)
             b: Blue component (0-255)
         """
-        if not self._handle:
-            return
-        res = _transport_lib.transport_set_led_color(self._handle, count, r, g, b)
+        assert 0 <= count <= 4
+        rgb = ((r, g, b) * count) + ((0, 0, 0) * (4 - count))
+        self._crt("SETLB", struct.pack(">12B", *rgb))
 
-    def reset_led_color(self) -> None | int:
+    def reset_led_color(self):
         """Reset LED colors to default."""
-        if not self._handle:
-            return
-        res = _transport_lib.transport_reset_led_color(self._handle)
-        return res
+        self._crt("DELED")
 
-    # ========== Keyboard Control ==========
+    def set_led_color_individual(self, a: tuple[int, int, int], b: tuple[int, int, int], c: tuple[int, int, int], d: tuple[int, int, int]):
+        """Set color of the 4 LEDs individually."""
+        rgb = a + b + c + d
+        self._crt("SETLB", struct.pack(">12B", *rgb))
 
-    def set_keyboard_backlight_brightness(self, brightness: int) -> None:
+    # ------------------------------------------------------------------
+    # Keyboard control
+    # ------------------------------------------------------------------
+
+    def set_keyboard_backlight_brightness(self, brightness: int):
         """
         Set the keyboard backlight brightness.
 
         Args:
             brightness: Brightness value (0-6)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_keyboard_backlight_brightness(
-            self._handle, brightness
-        )
+        assert 0 <= brightness <= 6
+        self._crt("LLUM", struct.pack(">H", brightness))
 
-    def set_keyboard_lighting_effects(self, effect: int) -> None:
+    def set_keyboard_lighting_effects(self, effect: int):
         """
         Set the keyboard lighting effect.
         0 is static lighting.
         Args:
             effect: Effect mode identifier (0-9)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_keyboard_lighting_effects(self._handle, effect)
+        assert 0 <= effect <= 9
+        self._crt("LMOD", struct.pack(">H", effect))
 
-    def set_keyboard_lighting_speed(self, speed: int) -> None:
+    def set_keyboard_lighting_speed(self, speed: int):
         """
         Set the keyboard lighting effect speed.
 
         Args:
             speed: Speed value for lighting effects (0-7)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_keyboard_lighting_speed(self._handle, speed)
+        assert 0 <= speed <= 7
+        self._crt("LSPE", struct.pack(">H", speed))
 
-    def set_keyboard_rgb_backlight(self, red: int, green: int, blue: int) -> None:
+    def set_keyboard_rgb_backlight(self, red: int, green: int, blue: int):
         """
         Set the keyboard RGB backlight color.
 
@@ -756,11 +388,7 @@ class LibUSBHIDAPI:
             green: Green component (0-255)
             blue: Blue component (0-255)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_keyboard_rgb_backlight(
-            self._handle, red, green, blue
-        )
+        self._crt("COLOR", struct.pack(">6B", 0, 0, 0, red, green, blue))
 
     def keyboard_os_mode_switch(self, os_mode: int) -> None:
         """
@@ -769,47 +397,40 @@ class LibUSBHIDAPI:
         Args:
             os_mode: OS mode enum value (e.g., 0 for Windows, 1 for macOS)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_keyboard_os_mode_switch(self._handle, os_mode)
+        assert 0 <= os_mode <= 1
+        m = ord("M") if os_mode == 1 else ord("W")
+        self._crt("CPOS", struct.pack(">H", m))
 
-    # ========== Device Configuration ==========
+    # ------------------------------------------------------------------
+    # Device configuration
+    # ------------------------------------------------------------------
 
-    def set_device_config(self, configs: List[int]) -> None:
+    def set_device_config(self, configs: List[int]):
         """
         Send raw configuration data to the device.
 
         Args:
             configs: List of configuration byte values
         """
-        if not self._handle:
-            return
-        config_array = (c_uint8 * len(configs))(*configs)
-        _transport_lib.transport_set_device_config(
-            self._handle, config_array, len(configs)
-        )
+        self._crt("QUCMD", bytes(configs))
 
-    def change_mode(self, mode: int) -> None:
+    def change_mode(self, mode: int):
         """
         Change device working mode.
 
         Args:
             mode: Mode identifier
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_change_mode(self._handle, mode)
+        self._crt("MOD", struct.pack(">B", ord("1") + mode))
 
-    def change_page(self, page: int) -> None:
+    def change_page(self, page: int):
         """
         Change N1 device calculator mode working page.
 
         Args:
             page: Page identifier
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_change_page(self._handle, page)
+        self._crt("M_V", struct.pack(">B", page), crt=b"")
 
     def set_n1_skin_bitmap(
         self,
@@ -819,7 +440,7 @@ class LibUSBHIDAPI:
         skin_status: int,
         key_index: int,
         timeout_ms: int = 3000,
-    ) -> None:
+    ):
         """
         Set N1 skin bitmap for a specific mode, page, and key.
         Args:
@@ -830,43 +451,32 @@ class LibUSBHIDAPI:
             key_index: Target key index for the skin, calculator (1-15), keyboard (1-18)
             timeout_ms: Transmission timeout in milliseconds
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_n1_skin_bitmap(
-            self._handle,
-            jpeg_data,
-            len(jpeg_data),
-            skin_mode,
-            skin_page,
-            skin_status,
-            key_index,
-            timeout_ms,
-        )
+        self._crt("LOG", struct.pack(">I4B", len(jpeg_data), skin_mode, skin_page, skin_status, key_index), jpeg_data, crt=b"CRT\xff\x00")
 
-    def notify_disconnected(self) -> None:
-        """Notify the device of disconnection."""
-        if not self._handle:
-            return
-        _transport_lib.transport_disconnected(self._handle)
+    # ------------------------------------------------------------------
+    # Heartbeat / disconnect
+    # ------------------------------------------------------------------
 
-    def heartbeat(self) -> None:
+    def heartbeat(self):
         """Send a heartbeat packet to the device."""
-        if not self._handle:
-            return
-        _transport_lib.transport_heartbeat(self._handle)
+        self._crt("CONNECT")
 
-    # ========== Report Configuration ==========
+    def notify_disconnected(self):
+        """Notify the device of disconnection."""
+        self._crt("CLE\x00\x00DC")
 
-    def set_report_id(self, report_id: int) -> None:
+    # ------------------------------------------------------------------
+    # Report configuration
+    # ------------------------------------------------------------------
+
+    def set_report_id(self, report_id: int):
         """
         Set the report ID used for communication.
 
         Args:
             report_id: Report ID value (default is typically 0x01)
         """
-        if not self._handle:
-            return
-        _transport_lib.transport_set_reportID(self._handle, report_id)
+        self._report_id = report_id & 0xFF
 
     def get_report_id(self) -> int:
         """
@@ -875,17 +485,11 @@ class LibUSBHIDAPI:
         Returns:
             int: Current report ID value
         """
-        if not self._handle:
-            return 0x00
-        out_id = c_uint8()
-        result = _transport_lib.transport_reportID(self._handle, ctypes.byref(out_id))
-        if result != 0:
-            return 0x00
-        return int(out_id.value)
+        return self._report_id
 
     def set_report_size(
         self, input_report_size: int, output_report_size: int, feature_report_size: int
-    ) -> None:
+    ):
         """
         Set the sizes of the input, output, and feature reports.
 
@@ -894,16 +498,13 @@ class LibUSBHIDAPI:
             output_report_size: Output report length
             feature_report_size: Feature report length
         """
-        if not self._handle:
-            return
         self._input_report_size = input_report_size
         self._output_report_size = output_report_size
         self._feature_report_size = feature_report_size
-        _transport_lib.transport_set_reportSize(
-            self._handle, input_report_size, output_report_size, feature_report_size
-        )
 
-    # ========== Error Handling ==========
+    # ------------------------------------------------------------------
+    # Error handling
+    # ------------------------------------------------------------------
 
     def get_last_error(self) -> str:
         """
@@ -912,69 +513,24 @@ class LibUSBHIDAPI:
         Returns:
             str: Error message string
         """
-        if not self._handle:
+        if self._device is None:
             return ""
-
-        buffer_size = 256
-        buffer = ctypes.create_unicode_buffer(buffer_size)
-        length = c_size_t(buffer_size)
-        result = _transport_lib.transport_raw_hid_last_error(
-            self._handle, ctypes.cast(buffer, ctypes.c_void_p), ctypes.byref(length)
-        )
-        if result != 0:
+        try:
+            return str(self._device.error())
+        except Exception:
             return ""
-        return buffer.value
 
     def get_last_error_info(self) -> dict:
-        """
-        Get detailed error information from the transport library.
+        err = self.get_last_error()
+        return {"error_message": err} if err else {}
 
-        Returns:
-            dict: Error information containing error_code, error_message, function_name, timestamp, and line_number
-        """
-        if not self._handle:
-            return {}
-
-        # Define TransportErrorInfo structure
-        class TransportErrorInfo(ctypes.Structure):
-            _fields_ = [
-                ("error_code", c_uint32),
-                ("error_message", c_char * 256),
-                ("function_name", c_char * 64),
-                ("timestamp", c_uint32),
-                ("line_number", c_uint32),
-            ]
-
-        error_info = TransportErrorInfo()
-        result = _transport_lib.transport_get_last_error_info(
-            self._handle, ctypes.byref(error_info)
-        )
-
-        if result == 0:  # TRANSPORT_SUCCESS is 0
-            return {
-                "error_code": error_info.error_code,
-                "error_message": error_info.error_message.decode(
-                    "utf-8", errors="ignore"
-                ),
-                "function_name": error_info.function_name.decode(
-                    "utf-8", errors="ignore"
-                ),
-                "timestamp": error_info.timestamp,
-                "line_number": error_info.line_number,
-            }
-        return {}
-
-    # ========== Static Methods ==========
+    # ------------------------------------------------------------------
+    # Static methods
+    # ------------------------------------------------------------------
 
     @staticmethod
-    def disable_output(disable: bool = True) -> None:
-        """
-        Globally disable lower-level output (e.g., debug logs).
-
-        Args:
-            disable: Whether to disable output
-        """
-        _transport_lib.transport_disable_output(1 if disable else 0)
+    def disable_output(disable: bool = True):
+        pass  # Debug log control — no-op in pure Python
 
     @staticmethod
     def create_device_info_from_dict(device_dict: dict) -> _HidDeviceInfo:
@@ -987,20 +543,19 @@ class LibUSBHIDAPI:
         Returns:
             _HidDeviceInfo structure
         """
-        device_info = _HidDeviceInfo()
-        path = device_dict.get("path", "")
-        device_info.path = path.encode("utf-8") if isinstance(path, str) else path
-        device_info.vendor_id = device_dict.get("vendor_id", 0)
-        device_info.product_id = device_dict.get("product_id", 0)
-        device_info.serial_number = device_dict.get("serial_number", "")
-        device_info.release_number = device_dict.get("release_number", 0)
-        device_info.manufacturer_string = device_dict.get("manufacturer_string", "")
-        device_info.product_string = device_dict.get("product_string", "")
-        device_info.usage_page = device_dict.get("usage_page", 0)
-        device_info.usage = device_dict.get("usage", 0)
-        device_info.interface_number = device_dict.get("interface_number", 0)
-        device_info.next = None
-        return device_info
+        info = _HidDeviceInfo()
+        info.path = device_dict.get("path", "")
+        info.vendor_id = device_dict.get("vendor_id", 0)
+        info.product_id = device_dict.get("product_id", 0)
+        info.serial_number = device_dict.get("serial_number", "")
+        info.release_number = device_dict.get("release_number", 0)
+        info.manufacturer_string = device_dict.get("manufacturer_string", "")
+        info.product_string = device_dict.get("product_string", "")
+        info.usage_page = device_dict.get("usage_page", 0)
+        info.usage = device_dict.get("usage", 0)
+        info.interface_number = device_dict.get("interface_number", 0)
+        info.next = None
+        return info
 
     @staticmethod
     def enumerate_devices(vendor_id: int, product_id: int) -> List[dict]:
@@ -1017,47 +572,26 @@ class LibUSBHIDAPI:
             List of device information dictionaries
         """
         device_list = []
-        # Use C library's hidapi to avoid conflicts
-        dev_info_ptr = _transport_lib.transport_hid_enumerate(vendor_id, product_id)
-
-        if not dev_info_ptr:
-            return device_list
-
-        try:
-            current = dev_info_ptr
-            while current:
-                info = current.contents
-                if info.usage_page > 1025 and info.usage == 1:
-                    device_list.append(
-                        {
-                            "path": info.path.decode("utf-8") if info.path else "",
-                            "vendor_id": info.vendor_id,
-                            "product_id": info.product_id,
-                            "serial_number": (
-                                info.serial_number if info.serial_number else ""
-                            ),
-                            "manufacturer_string": (
-                                info.manufacturer_string
-                                if info.manufacturer_string
-                                else ""
-                            ),
-                            "product_string": (
-                                info.product_string if info.product_string else ""
-                            ),
-                            "release_number": info.release_number,
-                            "usage_page": info.usage_page,
-                            "usage": info.usage,
-                            "interface_number": info.interface_number,
-                        }
-                    )
-                current = info.next
-        finally:
-            # Free the enumeration list
-            _transport_lib.transport_hid_free_enumeration(dev_info_ptr)
-
+        for info in hid.enumerate(vendor_id, product_id):
+            if info.get("interface_number") != 0:
+                continue
+            device_list.append({
+                "path": info.get("path", ""),
+                "vendor_id": info.get("vendor_id", 0),
+                "product_id": info.get("product_id", 0),
+                "serial_number": info.get("serial_number", ""),
+                "manufacturer_string": info.get("manufacturer_string", ""),
+                "product_string": info.get("product_string", ""),
+                "release_number": info.get("release_number", 0),
+                "usage_page": info.get("usage_page", 0),
+                "usage": info.get("usage", 0),
+                "interface_number": info.get("interface_number", 0),
+            })
         return device_list
 
-    # ========== Properties ==========
+    # ------------------------------------------------------------------
+    # Properties
+    # ------------------------------------------------------------------
 
     @property
     def input_report_size(self) -> int:
@@ -1074,44 +608,55 @@ class LibUSBHIDAPI:
         """Get the feature report size."""
         return self._feature_report_size
 
-    # ========== Legacy Method Aliases (for backward compatibility) ==========
+    # ------------------------------------------------------------------
+    # Legacy method aliases (backward compatibility)
+    # ------------------------------------------------------------------
 
     def getFirmwareVersion(self) -> str:
         """Legacy alias for get_firmware_version()."""
         return self.get_firmware_version()
 
-    def clearTaskQueue(self) -> None:
+    def clearTaskQueue(self):
         """Legacy alias for clear_task_queue()."""
         self.clear_task_queue()
 
-    def wakeScreen(self) -> None:
+    def wakeScreen(self):
         """Legacy alias for wakeup_screen()."""
         self.wakeup_screen()
 
-    def keyClear(self, index: int) -> None:
+    def keyClear(self, index: int):
         """Legacy alias for clear_key()."""
         self.clear_key(index)
 
-    def keyAllClear(self) -> None:
+    def keyAllClear(self):
         """Legacy alias for clear_all_keys()."""
         self.clear_all_keys()
 
-    def changePage(self, page: int) -> None:
+    def changePage(self, page: int):
         """Legacy alias for change_page()."""
         self.change_page(page)
 
-    def switchMode(self, mode: int) -> None:
+    def switchMode(self, mode: int):
         """Legacy alias for change_mode()."""
         self.change_mode(mode)
 
+    @staticmethod
+    def _read_jpeg(path: Union[str, bytes, c_char_p, PathLike]) -> bytes:
+        if isinstance(path, c_char_p):
+            if path.value is None:
+                raise ValueError("Path cannot be None")
+            path = path.value
+        with open(path, "rb") as fh:
+            return fh.read()
+
     def setN1SkinBitMap(
         self,
-        path,
+        path: Union[str, bytes, c_char_p, PathLike],
         skin_mode: int,
         skin_page: int,
         skin_status: int,
         key_index: int,
-    ) -> None:
+    ):
         """
         Legacy method to set N1 skin bitmap from an image file path.
         Args:
@@ -1122,150 +667,13 @@ class LibUSBHIDAPI:
             key_index: Target key index for the skin, calculator (1-15), keyboard (1-18)
         """
         try:
-            # Convert c_char_p to string if needed
-            if isinstance(path, c_char_p):
-                path = (
-                    path.value.decode("utf-8")
-                    if isinstance(path.value, bytes)
-                    else path.value
-                )
-            elif isinstance(path, bytes):
-                path = path.decode("utf-8")
-
-            if path is None:
-                raise ValueError("Path cannot be None")
-
-            with open(path, "rb") as f:
-                jpeg_data = f.read()
             self.set_n1_skin_bitmap(
-                jpeg_data, skin_mode, skin_page, skin_status, key_index
+                self._read_jpeg(path), skin_mode, skin_page, skin_status, key_index
             )
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")
 
-    def open(self, device_path: bytes) -> bool:
-        """
-        Open a device connection using the device path.
-
-        Args:
-            device_path: Device path as bytes
-        """
-        if self._is_open or self._handle is not None:
-            # Already opened
-            print("[WARNING] Device already open", flush=True)
-            return False
-
-        # Create device info structure from path
-        device_info = _HidDeviceInfo()
-        device_info.path = device_path
-
-        if self._device_info:
-            # Use stored device info for other fields
-            device_info.vendor_id = self._device_info.vendor_id
-            device_info.product_id = self._device_info.product_id
-            device_info.serial_number = self._device_info.serial_number
-            device_info.release_number = self._device_info.release_number
-            device_info.manufacturer_string = self._device_info.manufacturer_string
-            device_info.product_string = self._device_info.product_string
-            device_info.usage_page = self._device_info.usage_page
-            device_info.usage = self._device_info.usage
-            device_info.interface_number = self._device_info.interface_number
-
-        # Create the transport handle
-        handle_ptr = c_void_p()
-        result = _transport_lib.transport_create(
-            ctypes.byref(device_info), ctypes.byref(handle_ptr)
-        )
-        if result != 0:  # TRANSPORT_SUCCESS is 0
-            print(f"[ERROR] Failed to create transport handle: {result}", flush=True)
-            return False
-        self._handle = handle_ptr.value
-        self._is_open = True
-        return True
-
-    def close(self) -> None:
-        """
-        Close the device connection and release resources.
-
-        This method should be called explicitly before object destruction to ensure
-        clean shutdown of the C library resources.
-        """
-        # CRITICAL: Ensure clean shutdown even if called multiple times
-        if not self._is_open and not self._handle:
-            return
-
-        if self._handle:
-            try:
-                # Attempt clean shutdown via C library
-                _transport_lib.transport_destroy(self._handle)
-            except Exception as e:
-                # Log but don't raise - close() should be idempotent and safe
-                print(f"[WARNING] Failed to destroy transport: {e}", flush=True)
-            finally:
-                self._handle = None
-                self._is_open = False
-
-    def read_(self, size: int) -> Optional[bytes]:
-        """
-        Read data from the device with specified size.
-
-        Args:
-            size: Number of bytes to read
-
-        Returns:
-            bytes: Data read from device, or None if error occurred
-        """
-        if not self._handle:
-            return None
-
-        try:
-            # CRITICAL: Allocate buffer and prepare for C call
-            buffer = (c_uint8 * size)()
-            length = c_size_t(size)
-
-            # Store handle locally to avoid attribute access during C call
-            handle = self._handle
-
-            # CRITICAL FOR LINUX: Release GIL before blocking C call
-            # This prevents deadlocks when C library blocks on I/O
-            import threading
-
-            gil_state = None
-            try:
-                # Call C function - ctypes should handle GIL automatically
-                # but we ensure thread safety by using local variables
-                result = _transport_lib.transport_read(
-                    handle,
-                    buffer,
-                    ctypes.byref(length),
-                    100,  # Use a 100ms timeout for polling to avoid long blocking
-                )
-            finally:
-                # GIL is automatically reacquired by ctypes
-                pass
-
-            # Check result: 0 means success, non-zero means error
-            if result == 0 and length.value > 0:
-                # CRITICAL: Use simple bytes() constructor for safer conversion
-                # ctypes.string_at can cause issues in multi-threaded environments on Linux
-                data_length = int(length.value)
-                # Create bytes directly from buffer slice
-                data_bytes = bytes(buffer[:data_length])
-                return data_bytes
-            else:
-                # Timeout or no data is normal (when the device has no events); return None
-                return None
-        except Exception as e:
-            # Catch all possible exceptions to avoid thread crashes
-            import traceback
-
-            print(f"read_ exception: {e}", flush=True)
-            traceback.print_exc()
-            return None
-
-    # ========== Legacy Image Methods (DualDevice support) ==========
-
-    def setBackgroundImg(self, buffer: bytes, size: int) -> None:
+    def setBackgroundImg(self, buffer: bytes, size: int):
         """
         Legacy method: Set background image from buffer.
 
@@ -1275,7 +683,7 @@ class LibUSBHIDAPI:
         """
         self.set_background_bitmap(buffer[:size])
 
-    def setBackgroundImgDualDevice(self, path) -> None:
+    def setBackgroundImgDualDevice(self, path: Union[str, bytes, c_char_p, PathLike]):
         """
         Legacy method: Set background image from file path (for dual device).
 
@@ -1283,26 +691,11 @@ class LibUSBHIDAPI:
             path: Path to the image file (can be str, bytes, c_char_p, or os.PathLike)
         """
         try:
-            # Convert c_char_p to string if needed
-            if isinstance(path, c_char_p):
-                path = (
-                    path.value.decode("utf-8")
-                    if isinstance(path.value, bytes)
-                    else path.value
-                )
-            elif isinstance(path, bytes):
-                path = path.decode("utf-8")
-
-            if path is None:
-                raise ValueError("Path cannot be None")
-
-            with open(path, "rb") as f:
-                jpeg_data = f.read()
-            self.set_background_image_stream(jpeg_data)
+            self.set_background_image_stream(self._read_jpeg(path))
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")
 
-    def setBackgroundImgFrame(self, path, img_width, img_height) -> None:
+    def setBackgroundImgFrame(self, path: Union[str, bytes, c_char_p, PathLike], img_width: int, img_height: int):
         """
         Legacy method: Set Temporary background image from file path (for dual device).
 
@@ -1312,26 +705,11 @@ class LibUSBHIDAPI:
             img_height: Height of the image
         """
         try:
-            # Convert c_char_p to string if needed
-            if isinstance(path, c_char_p):
-                path = (
-                    path.value.decode("utf-8")
-                    if isinstance(path.value, bytes)
-                    else path.value
-                )
-            elif isinstance(path, bytes):
-                path = path.decode("utf-8")
-
-            if path is None:
-                raise ValueError("Path cannot be None")
-
-            with open(path, "rb") as f:
-                jpeg_data = f.read()
-            self.set_background_frame_stream(jpeg_data, img_width, img_height)
+            self.set_background_frame_stream(self._read_jpeg(path), img_width, img_height)
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")
 
-    def setKeyImg(self, path, key: int) -> None:
+    def setKeyImg(self, path: Union[str, bytes, c_char_p, PathLike], key: int):
         """
         Legacy method: Set key image from file path.
 
@@ -1340,27 +718,11 @@ class LibUSBHIDAPI:
             key: Key index
         """
         try:
-            # Convert c_char_p to string if needed
-            if isinstance(path, c_char_p):
-                path = (
-                    path.value.decode("utf-8")
-                    if isinstance(path.value, bytes)
-                    else path.value
-                )
-            elif isinstance(path, bytes):
-                path = path.decode("utf-8")
-
-            if path is None:
-                raise ValueError("Path cannot be None")
-
-            with open(path, "rb") as f:
-                jpeg_data = f.read()
-            res = self.set_key_image_stream(jpeg_data, key)
-            return res
+            return self.set_key_image_stream(self._read_jpeg(path), key)
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")
 
-    def setKeyImgDualDevice(self, path, key: int) -> None:
+    def setKeyImgDualDevice(self, path, key: int):
         """
         Legacy method: Set key image from file path (for dual device).
 
@@ -1370,7 +732,7 @@ class LibUSBHIDAPI:
         """
         return self.setKeyImg(path, key)
 
-    def setKeyImgDataDualDevice(self, data: bytes, key: int) -> None:
+    def setKeyImgDataDualDevice(self, data: bytes, key: int):
         """
         Legacy method: Set key image from data buffer (for dual device).
 
@@ -1380,7 +742,7 @@ class LibUSBHIDAPI:
         """
         self.set_key_image_stream(data, key)
 
-    def setBrightness(self, percent: int) -> None:
+    def setBrightness(self, percent: int):
         """
         Legacy method: Set brightness.
 
@@ -1389,10 +751,10 @@ class LibUSBHIDAPI:
         """
         self.set_key_brightness(percent)
 
-    def disconnected(self) -> None:
+    def disconnected(self):
         """Legacy method: Notify device of disconnection."""
         self.notify_disconnected()
 
-    def refresh(self) -> None:
+    def refresh(self):
         """Legacy method: Refresh the display."""
         self.refresh_screen()
