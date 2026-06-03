@@ -206,6 +206,8 @@ if __name__ == "__main__":
    # 刷新显示
    device.refresh()
    ```
+
+   N4Pro、M3、XL 的按键图标支持传入 PNG 和 JPEG 文件。透明图片在必须转换为 JPEG 时，会先合成到纯黑背景上。
 5. **LED 控制 (例如 N4 Pro)**
 
    ```python

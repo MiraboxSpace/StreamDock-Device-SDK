@@ -168,7 +168,7 @@ class StreamDockXL(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    # Set device key icon image 80 * 80
+    # Set device key icon image 80 * 80. PNG and JPEG input files are supported.
     def set_key_image(self, key, path):
         try:
             if isinstance(key, int):
@@ -194,9 +194,9 @@ class StreamDockXL(StreamDock):
             image = Image.open(path)
             image = to_native_key_format(self, image)
             temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".jpg"
+                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
             )
-            image.save(temp_image_path)
+            image.save(temp_image_path, "PNG")
 
             # encode send
             path_bytes = temp_image_path.encode("utf-8")
@@ -220,7 +220,7 @@ class StreamDockXL(StreamDock):
     def key_image_format(self):
         return {
             "size": (80, 80),
-            "format": "JPEG",
+            "format": "PNG",
             "rotation": 180,
             "flip": (False, False),
         }

@@ -26,9 +26,18 @@ def _scale_image(image, image_format, margins=[0, 0, 0, 0], background='black'):
     return final_image
 
 
+def _to_rgb_with_background(image, background='black'):
+    rgba_image = image.convert("RGBA")
+    background_image = Image.new("RGBA", rgba_image.size, background)
+    return Image.alpha_composite(background_image, rgba_image).convert("RGB")
+
+
 def _to_native_format(image, image_format):
-    if image_format["format"].lower() != "jpeg" and image_format["format"].lower() != "jpg":
-        raise ValueError(f"no support format: {image_format['format']}. only 'jpeg' or 'jpg' is supported")
+    image_type = image_format["format"].lower()
+    if image_type not in ("jpeg", "jpg", "png"):
+        raise ValueError(
+            f"no support format: {image_format['format']}. only 'jpeg', 'jpg' or 'png' is supported"
+        )
     
     _expand = True
     if image.size[1] == image_format["size"][0] and image.size[0] == image_format["size"][1]:
@@ -51,7 +60,10 @@ def _to_native_format(image, image_format):
     if image_format['flip'][1]:
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
     
-    image = image.convert('RGB')
+    if image_type == "png":
+        image = image.convert("RGBA")
+    else:
+        image = _to_rgb_with_background(image)
     
     return image
 
