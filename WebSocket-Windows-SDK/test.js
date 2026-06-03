@@ -7,7 +7,7 @@
 // - Node.js environment
 // - WebSocket server running on ws://127.0.0.1:9002
 // - ws package: npm install ws
-// - Test images in E:/img/ directory (or update paths below)
+// - Test images in img/ directory (resolved relative to project root)
 //
 // Usage:
 // - Uncomment the test section you want to run
@@ -15,14 +15,17 @@
 // =============================================================================
 
 const WebSocket = require('ws');
+const path = require('path');
 
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
 
 const WS_URL = 'ws://127.0.0.1:9002';
-const TEST_IMAGE_PATH = "button_test.jpg";
-const TEST_BACKGROUND_PATH = 'background_test.png';
+const TEST_IMAGE_PATH = path.join(__dirname, 'img', 'button_test.jpg');
+const TEST_BACKGROUND_PATH = path.join(__dirname, 'img', 'backgroud_test.png');
+const TEST_FRAME_BACKGROUND_PATH = path.join(__dirname, 'img', 'backgroud_test2.png');
+const TEST_PNG_KEY_IMAGE_PATH = path.join(__dirname, 'img', 'mark.png');
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -46,6 +49,14 @@ function sendCommand(ws, event, path, payload = {}) {
   };
   console.log(`Sending: ${event}`);
   ws.send(JSON.stringify(command));
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function supportsPNGKeyImage(deviceType) {
+  return deviceType === 'N4Pro' || deviceType === 'M3' || deviceType === 'XL';
 }
 
 /**
@@ -154,12 +165,12 @@ async function testComprehensive() {
     console.log(`  Serial: ${deviceInfo.SerialNumber}`);
 
     // Set background image
-    console.log('\n--- Setting background image ---');
-    sendCommand(ws, 'setBackgroundImg', devicePath, {
-      imagePath: TEST_BACKGROUND_PATH
-    });
+    // The image will be written to ROM. Keep this disabled to match Python SDK main.py.
+    // sendCommand(ws, 'setBackgroundImg', devicePath, {
+    //   imagePath: TEST_BACKGROUND_PATH
+    // });
     sendCommand(ws, 'refresh', devicePath, {});
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await sleep(2000);
 
     // Device-specific tests
     const deviceType = deviceInfo.Type;
@@ -169,13 +180,18 @@ async function testComprehensive() {
       console.log('\n--- N4Pro special functions ---');
       sendCommand(ws, 'setLEDBrightness', devicePath, { brightness: 100 });
       sendCommand(ws, 'setLEDColor', devicePath, { r: 0, g: 0, b: 255 });
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      sendCommand(ws, 'setTemporaryBackgroundImg', devicePath, {
+        imagePath: TEST_FRAME_BACKGROUND_PATH
+      });
+      await sleep(2000);
     }
 
     // XL special functions
     if (deviceType === 'XL') {
       console.log('\n--- XL special functions ---');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Python SDK calls set_frame_background here. The WebSocket server currently
+      // exposes temporary frame background only for M18/N4Pro.
+      await sleep(2000);
     }
 
     // K1Pro special functions
@@ -197,7 +213,7 @@ async function testComprehensive() {
       for (let page = 1; page <= 5; page++) {
         console.log(`Changing to page ${page}`);
         sendCommand(ws, 'changeN1Page', devicePath, { page: page });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await sleep(1000);
       }
 
       // Test calculator mode
@@ -205,7 +221,7 @@ async function testComprehensive() {
       for (let page = 1; page <= 5; page++) {
         console.log(`Changing to page ${page}`);
         sendCommand(ws, 'changeN1Page', devicePath, { page: page });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await sleep(1000);
       }
 
       // Switch back to dock mode
@@ -216,41 +232,29 @@ async function testComprehensive() {
     // M3 special functions
     if (deviceType === 'M3') {
       console.log('\n--- M3 special functions ---');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Python SDK calls set_frame_background here. The WebSocket server currently
+      // exposes temporary frame background only for M18/N4Pro.
+      await sleep(2000);
 
-      console.log('Performing magnetic calibration...');
-      sendCommand(ws, 'magneticCalibration', devicePath, {});
+      // sendCommand(ws, 'magneticCalibration', devicePath, {});
     }
 
     // Set key images for all keys
     console.log('\n--- Setting key images ---');
-    let maxKeys = 32;
-    switch (deviceType) {
-      case 'N1':
-        maxKeys = 18;
-        break;
-      case 'N4Pro':
-        maxKeys = 14;
-        break;
-      case 'XL':
-        maxKeys = 32;
-        break;
-      case 'K1Pro':
-        maxKeys = 6;
-        break;
-      default:
-        maxKeys = 18;
-        break;
-    }
-    for (let i = 1; i <= maxKeys; i++) {
+    const keyImagePath = supportsPNGKeyImage(deviceType)
+      ? TEST_PNG_KEY_IMAGE_PATH
+      : TEST_IMAGE_PATH;
+
+    for (let i = 1; i <= 18; i++) {
       sendCommand(ws, 'setKeyImg', devicePath, {
         keyIndex: i,
-        imagePath: TEST_IMAGE_PATH
+        imagePath: keyImagePath
       });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      sendCommand(ws, 'refresh', devicePath, {});
+      await sleep(100);
     }
     sendCommand(ws, 'refresh', devicePath, {});
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await sleep(500);
 
     // Start input event listener
     console.log('\n--- Starting input event listener ---');
