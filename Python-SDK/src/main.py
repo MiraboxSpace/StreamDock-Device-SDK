@@ -32,13 +32,98 @@ def key_callback(device, event):
             print(f"Knob {event.knob_id.value} {action}", flush=True)
         elif event.event_type == EventType.SWIPE:
             print(f"Swipe gesture: {event.direction.value}", flush=True)
-        # elif event.event_type == EventType.UNKNOWN:
-        #     print(f"Unknown event: {event}", flush=True)
+        elif event.event_type == EventType.UNKNOWN:
+            print(f"Unknown event: {event}", flush=True)
     except Exception as e:
         print(f"Key callback error: {e}", flush=True)
         import traceback
 
         traceback.print_exc()
+
+
+def setup_device(device):
+    # Activate type checking and completion
+    if not isinstance(device, StreamDock):
+        return
+
+    try:
+        if not device.open():
+            raise RuntimeError(f"Failed to open device path: {device.path}")
+        device.init()
+    except Exception as e:
+        print(f"Failed to open device: {e}")
+        import traceback
+
+        traceback.print_exc()
+        raise
+    print(
+        f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}"
+    )
+
+    # Set background image
+    res = device.set_background_image("img/backgroud_test.png")
+    device.refresh()
+    time.sleep(2)
+    # N4Pro special function
+    if isinstance(device, StreamDockN4Pro):
+        device.set_led_brightness(100)
+        device.set_led_color(0, 0, 255)
+        device.set_frame_background("img/backgroud_test2.png")
+        time.sleep(2)
+    # XL special function
+    elif isinstance(device, StreamDockXL):
+        device.set_frame_background("img/backgroud_test2.png")
+        time.sleep(2)
+    #  K1Pro special function
+    elif isinstance(device, K1Pro):
+        device.set_keyboard_backlight_brightness(6)
+        device.set_keyboard_lighting_speed(3)
+        device.set_keyboard_lighting_effects(0)  # static
+        device.set_keyboard_rgb_backlight(255, 0, 0)
+        device.keyboard_os_mode_switch(0)  # windows mode
+    # N1 special function
+    elif isinstance(device, StreamDockN1):
+        device.switch_mode(device.DeviceMode.KEYBOARD)
+        for page in range(1, 6):
+            device.change_page(page)
+            time.sleep(1)
+        device.switch_mode(device.DeviceMode.CALCULATOR)
+        for page in range(1, 6):
+            device.change_page(page)
+            time.sleep(1)
+
+        # ⚠️ The target page cannot be the same as the current page. ⚠️
+        # device.switch_mode(device.DeviceMode.CALCULATOR)
+        # device.change_page(2)
+        # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.PRESS, 1)
+        # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.RELEASE, 1)
+        # device.change_page(1)
+        # time.sleep(10)
+
+        device.switch_mode(device.DeviceMode.DOCK)
+        device.refresh()
+
+    # M3 special function
+    if isinstance(device, StreamDockM3):
+        device.set_frame_background("img/backgroud_test2.png")
+        time.sleep(2)
+        # device.magnetic_calibration()
+
+    for i in range(1, 19):
+        device.set_key_image(i, "img/button_test.jpg")
+        device.refresh()
+
+    # Set key event callback
+    device.set_key_callback(key_callback)
+
+
+def device_added_callback(device):
+    print(f"[hotplug] Device added: {device.path}", flush=True)
+    setup_device(device)
+
+
+def device_removed_callback(device):
+    print(f"[hotplug] Device removed: {device.path}", flush=True)
 
 
 def main():
@@ -48,88 +133,25 @@ def main():
     manner = DeviceManager()
     streamdocks = manner.enumerate()
 
-    if not streamdocks:
-        print("No Stream Dock device found")
-        return
-
     # Listen for device plug/unplug events
-    listen_thread = threading.Thread(target=manner.listen)
+    listen_thread = threading.Thread(
+        target=manner.listen,
+        kwargs={
+            "on_device_added": device_added_callback,
+            "on_device_removed": device_removed_callback,
+            "auto_open": False,
+        },
+    )
     listen_thread.daemon = True
     listen_thread.start()
 
-    print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
+    if not streamdocks:
+        print("No Stream Dock device found, waiting for hotplug...")
+    else:
+        print("Found {} Stream Dock(s).\n".format(len(streamdocks)))
+
     for device in streamdocks:
-        # Activate type checking and completion
-        if not isinstance(device, StreamDock):
-            continue
-        try:
-            device.open()
-            device.init()
-        except Exception as e:
-            print(f"Failed to open device: {e}")
-            import traceback
-
-            traceback.print_exc()
-            raise
-        print(
-            f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}"
-        )
-
-        # Set background image
-        # res = device.set_background_image("img/backgroud_test.png")
-        device.refresh()
-        time.sleep(2)
-        # N4Pro special function
-        if isinstance(device, StreamDockN4Pro):
-            device.set_led_brightness(100)
-            device.set_led_color(0, 0, 255)
-            device.set_frame_background("img/backgroud_test2.png")
-            time.sleep(2)
-        # XL special function
-        elif isinstance(device, StreamDockXL):
-            device.set_frame_background("img/backgroud_test2.png")
-            time.sleep(2)
-        #  K1Pro special function
-        elif isinstance(device, K1Pro):
-            device.set_keyboard_backlight_brightness(6)
-            device.set_keyboard_lighting_speed(3)
-            device.set_keyboard_lighting_effects(0)  # static
-            device.set_keyboard_rgb_backlight(255, 0, 0)
-            device.keyboard_os_mode_switch(0)  # windows mode
-        # N1 special function
-        elif isinstance(device, StreamDockN1):
-            device.switch_mode(device.DeviceMode.KEYBOARD)
-            for page in range(1, 6):
-                device.change_page(page)
-                time.sleep(1)
-            device.switch_mode(device.DeviceMode.CALCULATOR)
-            for page in range(1, 6):
-                device.change_page(page)
-                time.sleep(1)
-                
-            # ⚠️ The target page cannot be the same as the current page. ⚠️
-            # device.switch_mode(device.DeviceMode.CALCULATOR)
-            # device.change_page(2)
-            # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.PRESS, 1)
-            # device.set_n1_skin_bitmap("img/button_test.jpg", device.SkinMode.CALCULATOR, 1, device.SkinStatus.RELEASE, 1)
-            # device.change_page(1)
-            # time.sleep(10)
-            
-            device.switch_mode(device.DeviceMode.DOCK)
-            device.refresh()
-
-        # M3 special function
-        if isinstance(device, StreamDockM3):
-            device.set_frame_background("img/backgroud_test2.png")
-            time.sleep(2)
-            # device.magnetic_calibration()
-
-        for i in range(1, 19):
-            device.set_key_image(i, "img/button_test.jpg")
-            device.refresh()
-
-        # Set key event callback
-        device.set_key_callback(key_callback)
+        setup_device(device)
 
         # Clear icon for a specific key
         # device.clearIcon(3)
@@ -156,7 +178,7 @@ def main():
     finally:
         # CRITICAL: Ensure all devices are properly closed to prevent Segmentation fault
         # Close devices in reverse order, ensuring the last opened device is closed first
-        for device in reversed(streamdocks):
+        for device in reversed(list(manner.streamdocks)):
             try:
                 # Clear callback first to avoid triggering callbacks during shutdown
                 device.set_key_callback(None)
