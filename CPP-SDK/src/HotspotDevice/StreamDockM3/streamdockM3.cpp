@@ -54,6 +54,7 @@ StreamDockM3::StreamDockM3(const hid_device_info &device_info)
     _feature->isDualDevice = true;
     _feature->hasSecondScreen = false;
     _feature->supportBackGroundGif = true;
+    _feature->supportKeyJpegPngStream = true;
     _feature->hasRGBLed = false;
     _feature->supportConfig = false;
     _feature->ledCounts = 0;

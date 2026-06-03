@@ -355,9 +355,11 @@ Set an image for the 9th key position, using local file path.
 
 ```cpp
 device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // When calling interfaces related to image operations, the premise must be to set the encoder
-device->gifer()->setKeyGifFile("1.gif", 1);                  // Set an animated image at path ./1.gif at key position 1
+device->gifer()->setKeyGifFile("1.gif", 1);                  // Set an animated image at path ./1.gif at key position 1, encoded according to device capability
 device->gifer()->startGifLoop();                             // Start gif sending thread
 ```
+
+`setKeyGifFile()` encodes GIF frames according to the key image stream capability of the device. Devices that support PNG key streams, such as N4PRO, M3, and XL, send GIF frames as PNG; other devices keep using JPEG.
 
 ### 5.4 Set Key Feedback Callback Handling
 

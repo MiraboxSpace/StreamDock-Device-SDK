@@ -24,8 +24,14 @@ void GifController::setKeyGifFile(const std::string& gifPath, uint8_t keyValue)
 	}
 	if (!_instance->_transport || !_instance->_transport->canWrite() || !_instance->_feature->isDualDevice) return;
 
+	auto keyGifHelper = *(_instance->getKyImgHelper(keyValue));
+	if (_instance->_feature->supportKeyJpegPngStream)
+	{
+		keyGifHelper._imgType = ImgType::PNG;
+	}
+
 	// Use the new method to read frames and delays
-	auto gifDataWithDelays = StreamDock::readGifWithDelays(gifPath, _instance->_encoder, *(_instance->getKyImgHelper(keyValue)));
+	auto gifDataWithDelays = StreamDock::readGifWithDelays(gifPath, _instance->_encoder, keyGifHelper);
 
 	std::vector<std::string> gifFrames;
 	std::vector<uint16_t> frameDelays;

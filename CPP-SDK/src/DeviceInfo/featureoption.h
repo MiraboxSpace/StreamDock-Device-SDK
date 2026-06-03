@@ -17,6 +17,7 @@ struct FeatureOption
 	bool hasRGBLed = false;
 	bool supportBackGroundGif = false;
 	bool supportTransparentIcon = false;
+	bool supportKeyJpegPngStream = false;
 	bool supportConfig = false;
 	uint16_t min2rdScreenKey = 0;
 	uint16_t max2rdScreenKey = 0;
