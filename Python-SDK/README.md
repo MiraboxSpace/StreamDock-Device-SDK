@@ -29,8 +29,23 @@ sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
 > ⚠️ **Important**:
 >
 > Must install `libusb-1.0-0-dev` before installing `libhidapi-libusb0`
->
-> Requires sudo privileges to run
+
+#### 3. Permission Issues
+
+On some `Linux` systems, if user device permissions have not been added, you need to run with `sudo` privileges, for example:
+
+```bash
+sudo python3 src/main.py
+```
+
+**How to add the device permission list:**
+
+Copy `99-streamdock.rules` to the `/etc/udev/rules.d/` directory, then run:
+
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
 
 ### 🔧 Windows Platform
 
@@ -234,20 +249,34 @@ On older devices (like 293 and 293s), when calling `set_key_image` or `set_touch
 
 ### 3. Hotplug and Auto-Recovery
 
-When a device is unplugged and reinserted, `DeviceManager.listen()` will automatically recognize and reconnect.
+When a device is unplugged and reinserted, `DeviceManager.listen()` will automatically detect the device change:
 
-It is recommended to perform initialization after device reconnection:
+- Added devices are appended to `manager.streamdocks`
+- Removed devices are removed from `manager.streamdocks` and closed with `close()`
+- Use `on_device_added` / `on_device_removed` to restore application state
+
+It is recommended to wrap your setup logic in a function and reuse it after reconnection:
 
 ```python
-def autoInit(device):
+def auto_init(device):
     """Device auto-initialization function"""
+    device.open()
+    device.init()
     device.set_key_image(1, "img/default.png")
     device.refresh()
+    device.set_key_callback(key_callback)
     # Other initialization operations...
 
-# Use in reconnection callback
-newDevice.open()
-autoInit(newDevice)
+t = threading.Thread(
+    target=manager.listen,
+    kwargs={
+        "on_device_added": auto_init,
+        "on_device_removed": lambda device: print(f"Device removed: {device.path}"),
+        "auto_open": False,
+    },
+)
+t.daemon = True
+t.start()
 ```
 
 ## License

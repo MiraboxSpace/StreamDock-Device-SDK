@@ -29,8 +29,23 @@ sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
 > ⚠️ **重要**：
 >
 > 必须先安装 `libusb-1.0-0-dev`，然后再安装 `libhidapi-libusb0`
->
-> 需要使用 sudo 权限运行
+
+#### 3. 权限问题
+
+有些 `Linux` 系统在没有添加用户设备权限的情况下,需要使用 `sudo` 权限运行,例如:
+
+```
+sudo python3 src/main.py
+```
+
+**添加设备权限列表方法:**
+
+把 99-streamdock.rules 复制到  /etc/udev/rules.d/ 目录.后执行:
+
+```
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
 
 ### 🔧 Windows 平台
 
@@ -234,20 +249,34 @@ if __name__ == "__main__":
 
 ### 3. 热插拔与自动恢复
 
-当设备被拔出并重新插入时，`DeviceManager.listen()` 会自动识别并进行重连。
+当设备被拔出并重新插入时，`DeviceManager.listen()` 会自动识别设备变化：
 
-建议在设备重连后执行初始化：
+- 插入设备：自动加入 `manager.streamdocks`
+- 拔出设备：自动从 `manager.streamdocks` 移除，并调用 `close()` 释放资源
+- 可通过 `on_device_added` / `on_device_removed` 处理业务恢复逻辑
+
+建议把初始化逻辑封装成函数，并在设备重连回调中复用：
 
 ```python
-def autoInit(device):
+def auto_init(device):
     """设备自动初始化函数"""
+    device.open()
+    device.init()
     device.set_key_image(1, "img/default.png")
     device.refresh()
+    device.set_key_callback(key_callback)
     # 其他初始化操作...
 
-# 在重连回调中使用
-newDevice.open()
-autoInit(newDevice)
+t = threading.Thread(
+    target=manager.listen,
+    kwargs={
+        "on_device_added": auto_init,
+        "on_device_removed": lambda device: print(f"设备已移除: {device.path}"),
+        "auto_open": False,
+    },
+)
+t.daemon = True
+t.start()
 ```
 
 ## 许可证

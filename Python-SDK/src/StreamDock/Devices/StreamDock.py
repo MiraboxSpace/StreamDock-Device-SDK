@@ -79,6 +79,7 @@ class StreamDock(ABC):
         # Heartbeat thread for keeping device alive
         self.heartbeat_thread = None
         self.run_heartbeat_thread = False
+        self._notify_on_close = True
 
         # self.update_lock = threading.RLock()
         # self.screenlicent=threading.Timer(self.__seconds,self.screen_Off)
@@ -142,6 +143,9 @@ class StreamDock(ABC):
     # Open device
     def open(self):
         res1 = self.transport.open(bytes(self.path, "utf-8"))
+        if not res1:
+            return False
+        self._notify_on_close = True
         self._setup_reader(self._read)
         # Start heartbeat with delay to avoid Linux libusb deadlock
         # The read thread needs time to initialize before heartbeat starts
@@ -183,7 +187,7 @@ class StreamDock(ABC):
             return self.transport.reset_led_color()
 
     # Close device
-    def close(self):
+    def close(self, notify=True):
         """
         Close the device and release all resources.
 
@@ -191,6 +195,9 @@ class StreamDock(ABC):
         clean shutdown of the C library and prevent segmentation faults.
         """
         # print(f"[DEBUG] Closing device: {self.path}")
+
+        if not notify:
+            self._notify_on_close = False
 
         # CRITICAL: Stop heartbeat thread first
         self.run_heartbeat_thread = False
@@ -203,26 +210,38 @@ class StreamDock(ABC):
         # CRITICAL: Stop reader thread first and wait for it to finish
         self.run_read_thread = False
 
+        read_thread_alive = False
         if self.read_thread and self.read_thread.is_alive():
             try:
                 # Give thread time to exit naturally
                 self.read_thread.join(timeout=2.0)  # Wait up to 2 seconds
-                if self.read_thread.is_alive():
+                read_thread_alive = self.read_thread.is_alive()
+                if read_thread_alive:
                     print("[WARNING] Read thread did not exit in time", flush=True)
             except Exception as e:
                 print(f"[WARNING] Error while waiting for read thread to exit: {e}", flush=True)
+                read_thread_alive = True
 
-        # Send disconnect command (may fail if device already disconnected)
-        try:
-            self.disconnected()
-        except Exception as e:
-            print(f"[WARNING] Error sending disconnect command: {e}", flush=True)
+        if notify and self._notify_on_close:
+            # Send disconnect command only for an intentional close while the device
+            # is still present. After physical removal, native writes may terminate
+            # the process before Python can catch an exception.
+            try:
+                self.disconnected()
+            except Exception as e:
+                print(f"[WARNING] Error sending disconnect command: {e}", flush=True)
 
         # CRITICAL: Close transport properly to release HID device
-        try:
-            self.transport.close()
-        except Exception as e:
-            print(f"[WARNING] Error closing transport: {e}", flush=True)
+        if read_thread_alive:
+            print(
+                "[WARNING] Transport close deferred because read thread is still active",
+                flush=True,
+            )
+        else:
+            try:
+                self.transport.close()
+            except Exception as e:
+                print(f"[WARNING] Error closing transport: {e}", flush=True)
 
         # Clear callback to break any circular references
         with self._callback_lock:
