@@ -50,10 +50,11 @@ StreamDockN4Pro::StreamDockN4Pro(const hid_device_info& device_info)
 	_info->maxKey = 15;
 	_info->key_rotate_angle = 180.0f;
 	_info->bg_rotate_angle = 180.0f;
-	_info->keyEncodeType = ImgType::JPG;
+	_info->keyEncodeType = ImgType::PNG;
 	_feature->isDualDevice = true;
 	_feature->hasSecondScreen = true;
 	_feature->supportBackGroundGif = true;
+	_feature->supportKeyJpegPngStream = true;
 	_feature->hasRGBLed = true;
 	_feature->supportConfig = true;
 	_feature->ledCounts = 4;

@@ -142,9 +142,23 @@ void StreamDock::setKeyImgFileStream(const std::string& stream, uint8_t keyValue
 		ToolKit::print("[ERROR] Encoder is not set, cannot encode image.");
 		return;
 	}
-	if ((_ky_imgHelper->_imgType == ImgType::JPG && !isJpegData(stream)) || (_feature->supportTransparentIcon && _ky_imgHelper->_imgType == ImgType::PNG && !isPngData(stream)))
+	auto keyImgHelper = getKyImgHelper(keyValue);
+	bool validImageData = false;
+	if (_feature->supportKeyJpegPngStream)
 	{
-		ToolKit::print("[ERROR] Invalid Image data, can not match the imgHelper type.");
+		validImageData = isJpegData(stream) || isPngData(stream);
+	}
+	else if (keyImgHelper->_imgType == ImgType::JPG)
+	{
+		validImageData = isJpegData(stream);
+	}
+	else if (keyImgHelper->_imgType == ImgType::PNG)
+	{
+		validImageData = isPngData(stream);
+	}
+	if (!validImageData)
+	{
+		ToolKit::print("[ERROR] Invalid image data for this device/key.");
 		return;
 	}
 	_transport->setKeyImgFileStream(stream, keyValue);
@@ -190,6 +204,63 @@ void StreamDock::setBackgroundImgStream(const std::string& stream, uint32_t time
 	{
 		_transport->setBackgroundBitmap(stream, timeoutMs);
 	}
+}
+
+void StreamDock::setFrameBackgroundFile(const std::string& filePath, uint16_t x, uint16_t y, uint8_t FBlayer)
+{
+	auto imgData = readImgToString(filePath);
+	setFrameBackgroundStream(imgData, x, y, FBlayer);
+}
+
+void StreamDock::setFrameBackgroundStream(const std::string& imageData, uint16_t x, uint16_t y, uint8_t FBlayer)
+{
+	if (!canTransportWrite())
+	{
+		ToolKit::print("[ERROR] Transport is not running.");
+		return;
+	}
+	if (!_encoder)
+	{
+		ToolKit::print("[ERROR] Encoder is not set, cannot encode image.");
+		return;
+	}
+	if (!_feature->isDualDevice || !_feature->supportBackGroundGif)
+	{
+		ToolKit::print("[ERROR] This device does not support frame background image.");
+		return;
+	}
+
+	auto backgroundGifHelper = getBackgroundGifHelper();
+	if (!backgroundGifHelper || backgroundGifHelper->_width == 0 || backgroundGifHelper->_height == 0)
+	{
+		ToolKit::print("[ERROR] Background frame image helper is not set.");
+		return;
+	}
+
+	ImgHelper jpegHelper = *backgroundGifHelper;
+	jpegHelper._imgType = ImgType::JPG;
+
+	std::vector<uint8_t> input(imageData.begin(), imageData.end());
+	std::vector<uint8_t> output;
+	if (!_encoder->encodeToMemory(output, input, 80, jpegHelper))
+	{
+		ToolKit::print("[ERROR] Failed to encode frame background image.");
+		return;
+	}
+
+	std::string jpegData(reinterpret_cast<const char*>(output.data()), output.size());
+	if (!isJpegData(jpegData))
+	{
+		ToolKit::print("[ERROR] Invalid JPEG data.");
+		return;
+	}
+
+	_transport->setBackgroundFrameStream(jpegData,
+		static_cast<uint16_t>(jpegHelper._width),
+		static_cast<uint16_t>(jpegHelper._height),
+		x,
+		y,
+		FBlayer);
 }
 
 bool StreamDock::canTransportWrite()

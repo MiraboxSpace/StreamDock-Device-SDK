@@ -61,7 +61,8 @@ def setup_device(device):
     )
 
     # Set background image
-    res = device.set_background_image("img/backgroud_test.png")
+    # the image will be written to the rom.
+    # res = device.set_background_image("img/backgroud_test.png")
     device.refresh()
     time.sleep(2)
     # N4Pro special function
@@ -74,7 +75,7 @@ def setup_device(device):
     elif isinstance(device, StreamDockXL):
         device.set_frame_background("img/backgroud_test2.png")
         time.sleep(2)
-    #  K1Pro special function
+    # K1Pro special function
     elif isinstance(device, K1Pro):
         device.set_keyboard_backlight_brightness(6)
         device.set_keyboard_lighting_speed(3)
@@ -110,7 +111,15 @@ def setup_device(device):
         # device.magnetic_calibration()
 
     for i in range(1, 19):
-        device.set_key_image(i, "img/button_test.jpg")
+        # N4Pro, M3 and XL support PNG and JPEG key icons, other devices only support JPEG key icons
+        if (
+            isinstance(device, StreamDockN4Pro)
+            or isinstance(device, StreamDockM3)
+            or isinstance(device, StreamDockXL)
+        ):
+            device.set_key_image(i, "img/mark.png")
+        else:
+            device.set_key_image(i, "img/button_test.jpg")
         device.refresh()
 
     # Set key event callback

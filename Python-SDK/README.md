@@ -206,6 +206,8 @@ if __name__ == "__main__":
    # Refresh display
    device.refresh()
    ```
+
+   N4Pro, M3, and XL key icons support PNG and JPEG input files. When transparent images must be converted to JPEG for a device, transparent pixels are composited over black.
 5. **LED Control (e.g. N4 Pro)**
 
    ```python

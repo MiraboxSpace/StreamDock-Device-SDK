@@ -52,10 +52,11 @@ StreamDockXL::StreamDockXL(const hid_device_info &device_info)
   _info->maxKey = 32;
   _info->key_rotate_angle = 180.0f;
   _info->bg_rotate_angle = 180.0f;
-  _info->keyEncodeType = ImgType::JPG;
+  _info->keyEncodeType = ImgType::PNG;
   _feature->isDualDevice = true;
   _feature->hasSecondScreen = false;
   _feature->supportBackGroundGif = true;
+  _feature->supportKeyJpegPngStream = true;
   _feature->supportConfig = true;
   _feature->hasRGBLed = true;
   _feature->ledCounts = 6;

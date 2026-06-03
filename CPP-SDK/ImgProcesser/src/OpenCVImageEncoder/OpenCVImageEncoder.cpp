@@ -1,11 +1,58 @@
 #include "OpenCVImageEncoder.h"
 
+namespace
+{
+cv::Mat compositeAlphaToBlack(const cv::Mat& input)
+{
+	if (input.empty() || input.channels() != 4)
+		return input;
+
+	cv::Mat output(input.rows, input.cols, CV_8UC3);
+	for (int y = 0; y < input.rows; ++y)
+	{
+		const cv::Vec4b* src = input.ptr<cv::Vec4b>(y);
+		cv::Vec3b* dst = output.ptr<cv::Vec3b>(y);
+		for (int x = 0; x < input.cols; ++x)
+		{
+			const int alpha = src[x][3];
+			dst[x][0] = static_cast<uint8_t>((static_cast<int>(src[x][0]) * alpha + 127) / 255);
+			dst[x][1] = static_cast<uint8_t>((static_cast<int>(src[x][1]) * alpha + 127) / 255);
+			dst[x][2] = static_cast<uint8_t>((static_cast<int>(src[x][2]) * alpha + 127) / 255);
+		}
+	}
+	return output;
+}
+
+cv::Mat prepareForOutput(const cv::Mat& input, ImgType targetType)
+{
+	if (input.empty())
+		return input;
+
+	if (input.channels() == 4)
+	{
+		if (IImageEncoder::supportsAlpha(targetType))
+			return input.clone();
+		return compositeAlphaToBlack(input);
+	}
+
+	if (input.channels() == 1 && !IImageEncoder::supportsAlpha(targetType))
+	{
+		cv::Mat bgr;
+		cv::cvtColor(input, bgr, cv::COLOR_GRAY2BGR);
+		return bgr;
+	}
+
+	return input.clone();
+}
+}
+
 bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	const RawCanvas& canvas,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	cv::Mat input = canvas.as<cv::Mat>();
+	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
+	cv::Mat input = prepareForOutput(canvas.as<cv::Mat>(), targetType);
 	if (input.empty()) return false;
 
 	// Default parameters: write directly
@@ -73,7 +120,8 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	cv::Mat input = canvas.as<cv::Mat>();
+	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
+	cv::Mat input = prepareForOutput(canvas.as<cv::Mat>(), targetType);
 	if (input.empty()) return false;
 
 	if (imgHelper == ImgHelper())
@@ -140,7 +188,8 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	cv::Mat input = cv::imdecode(in, cv::IMREAD_COLOR);
+	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
+	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), targetType);
 	if (input.empty()) return false;
 
 	// Reuse existing flow
@@ -187,7 +236,8 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	cv::Mat input = cv::imdecode(in, cv::IMREAD_COLOR);
+	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
+	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), targetType);
 	if (input.empty()) return false;
 
 	if (imgHelper == ImgHelper())
@@ -249,7 +299,7 @@ bool OpenCVImageEncoder::encodeToBitmap(std::vector<uint8_t>& out,
 	const std::vector<uint8_t>& in,
 	const ImgHelper& imgHelper) const
 {
-	cv::Mat input = cv::imdecode(in, cv::IMREAD_COLOR);
+	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), ImgType::RAW);
 
 	if (input.empty()) return false;
 

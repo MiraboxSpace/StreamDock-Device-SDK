@@ -109,13 +109,13 @@ public:
 
 	/**
 	 * @brief Set a key image from a file path.
-	 * @param filePath Path to a JPEG or PNG(on N4Pro) image file.
+	 * @param filePath Path to a JPEG or PNG(on N4PRO/M3/XL) image file.
 	 * @param keyValue Target key index.
 	 */
 	virtual void setKeyImgFile(const std::string& filePath, uint8_t keyValue);
 
 	/**
-	 * @brief Set a key image using raw JPEG/PNG(on N4Pro) data stream.
+	 * @brief Set a key image using raw JPEG/PNG(on N4PRO/M3/XL) data stream.
 	 * @param stream Image byte stream.
 	 * @param keyValue Target key index.
 	 */
@@ -134,6 +134,24 @@ public:
 	 * @param timeoutMs Timeout in milliseconds.
 	 */
 	virtual void setBackgroundImgStream(const std::string& stream, uint32_t timeoutMs = 3000);
+
+	/**
+	 * @brief Draw a static image on the background framebuffer from a file path.
+	 * @param filePath Image file path. Non-JPEG images are encoded to JPEG before sending.
+	 * @param x X-position in the background framebuffer.
+	 * @param y Y-position in the background framebuffer.
+	 * @param FBlayer Framebuffer layer index.
+	 */
+	virtual void setFrameBackgroundFile(const std::string& filePath, uint16_t x = 0, uint16_t y = 0, uint8_t FBlayer = 0x00);
+
+	/**
+	 * @brief Draw a static image on the background framebuffer from image bytes.
+	 * @param imageData Source image data. Non-JPEG images are encoded to JPEG before sending.
+	 * @param x X-position in the background framebuffer.
+	 * @param y Y-position in the background framebuffer.
+	 * @param FBlayer Framebuffer layer index.
+	 */
+	virtual void setFrameBackgroundStream(const std::string& imageData, uint16_t x = 0, uint16_t y = 0, uint8_t FBlayer = 0x00);
 
 public:
 	/**

@@ -610,10 +610,10 @@ class LibUSBHIDAPI:
 
     def set_key_image_stream(self, jpeg_data: bytes, key_index: int) -> None:
         """
-        Set a JPEG image to a specific key.
+        Set image bytes to a specific key.
 
         Args:
-            jpeg_data: JPEG image data
+            jpeg_data: Image data, typically JPEG or PNG depending on device support
             key_index: Target key index
         """
         if not self._handle:
@@ -1355,8 +1355,8 @@ class LibUSBHIDAPI:
                 raise ValueError("Path cannot be None")
 
             with open(path, "rb") as f:
-                jpeg_data = f.read()
-            res = self.set_key_image_stream(jpeg_data, key)
+                image_data = f.read()
+            res = self.set_key_image_stream(image_data, key)
             return res
         except Exception as e:
             raise RuntimeError(f"Failed to load image from {path}: {e}")

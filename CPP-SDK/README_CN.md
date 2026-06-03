@@ -351,9 +351,11 @@ device->refresh();
 
 ```cpp
 device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // 在调用关联图片操作的接口时, 前提必须设置编码器
-device->gifer()->setKeyGifFile("1.gif", 1);                  // 在按键 1 的位置设置路径为 ./1.gif 的动态图片
+device->gifer()->setKeyGifFile("1.gif", 1);                  // 在按键 1 的位置设置路径为 ./1.gif 的动态图片，并按设备能力编码
 device->gifer()->startGifLoop();                             // 启动 gif 发送线程
 ```
+
+`setKeyGifFile()` 会根据设备的按键图片流能力编码 GIF 帧。支持 PNG 按键流的设备（例如 N4PRO、M3、XL）会以 PNG 发送 GIF 帧；其它设备继续使用 JPEG。
 
 ### 6.4 设置按键反馈回调处理
 
