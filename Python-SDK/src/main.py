@@ -32,10 +32,19 @@ def key_callback(device, event):
             print(f"Knob {event.knob_id.value} {action}", flush=True)
         elif event.event_type == EventType.SWIPE:
             print(f"Swipe gesture: {event.direction.value}", flush=True)
-        elif event.event_type == EventType.UNKNOWN:
-            print(f"Unknown event: {event}", flush=True)
     except Exception as e:
         print(f"Key callback error: {e}", flush=True)
+        import traceback
+
+        traceback.print_exc()
+
+
+def touch_callback(device, event):
+    try:
+        if event.event_type == EventType.TOUCH_POINT:
+            print(f"N4Pro touch point: ({event.x}, {event.y})", flush=True)
+    except Exception as e:
+        print(f"Touch callback error: {e}", flush=True)
         import traceback
 
         traceback.print_exc()
@@ -69,11 +78,22 @@ def setup_device(device):
     if isinstance(device, StreamDockN4Pro):
         device.set_led_brightness(100)
         device.set_led_color(0, 0, 255)
-        device.set_frame_background("img/backgroud_test2.png")
+        # device.set_frame_background("img/backgroud_test2.png")
+        device.set_background_gif("img/backgroud_test.gif")
+        # device.set_background_mp4("img/bad_apple.mp4")
+        # N4Pro supports config
+        device.config.enable_vibration = False
+        device.send_config()
+        device.set_touch_bar_callback(touch_callback)
         time.sleep(2)
     # XL special function
     elif isinstance(device, StreamDockXL):
-        device.set_frame_background("img/backgroud_test2.png")
+        # device.set_frame_background("img/backgroud_test2.png")
+        device.set_background_gif("img/backgroud_test.gif")
+        # device.set_background_mp4("img/bad_apple.mp4")
+        # XL supports config
+        device.config.led_follow_key_light = True
+        device.send_config()
         time.sleep(2)
     # K1Pro special function
     elif isinstance(device, K1Pro):
@@ -107,21 +127,21 @@ def setup_device(device):
     # M3 special function
     if isinstance(device, StreamDockM3):
         device.set_frame_background("img/backgroud_test2.png")
+        # device.set_background_gif("img/backgroud_test.gif")
+        # device.set_background_mp4("img/bad_apple.mp4")
         time.sleep(2)
         # device.magnetic_calibration()
 
-    for i in range(1, 19):
-        # N4Pro, M3 and XL support PNG and JPEG key icons, other devices only support JPEG key icons
-        if (
-            isinstance(device, StreamDockN4Pro)
-            or isinstance(device, StreamDockM3)
-            or isinstance(device, StreamDockXL)
-        ):
-            device.set_key_image(i, "img/mark.png")
-        else:
+    for i in device.image_keys():
+        if 0 == i % 3:
+            device.set_key_gif(i, "img/test.gif")
+        elif 1 == i % 3:
             device.set_key_image(i, "img/button_test.jpg")
-        device.refresh()
+        elif 2 == i % 3:
+            device.set_key_image(i, "img/mark.png")
 
+    device.start_gif_loop()
+    device.start_animation_loop()
     # Set key event callback
     device.set_key_callback(key_callback)
 
@@ -191,6 +211,7 @@ def main():
             try:
                 # Clear callback first to avoid triggering callbacks during shutdown
                 device.set_key_callback(None)
+                device.set_touchscreen_callback(None)
                 # Give some time for the read thread to exit the loop
                 time.sleep(0.1)
                 # Close device

@@ -20,5 +20,6 @@ class FeatrueOption:
         self.hasRGBLed = False
         self.ledCounts = 0
         self.supportConfig = False
-        self.supportBackgroundImage = True
+        self.supportKeyGif = True
+        self.supportBackgroundGif = False
         self.deviceType = device_type.dock_universal

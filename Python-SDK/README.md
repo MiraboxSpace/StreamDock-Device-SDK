@@ -203,11 +203,55 @@ if __name__ == "__main__":
    # Set key icon
    device.set_key_image(key_index, "path/to/icon.jpg")
 
+   # Set animated GIF key icons. Use image_keys() to skip knobs or inputs
+   # that do not have a key display.
+   for key_index in device.image_keys():
+       device.set_key_gif(key_index, "path/to/icon.gif")
+   device.start_gif_loop()
+
    # Refresh display
    device.refresh()
    ```
 
    N4Pro, M3, and XL key icons support PNG and JPEG input files. When transparent images must be converted to JPEG for a device, transparent pixels are composited over black.
+
+   N4Pro, XL, and M3 also support animated GIF backgrounds through frame background streaming:
+
+   ```python
+   # Background GIF is sent as temporary frame background data, not written to ROM.
+   device.set_background_gif("path/to/background.gif")
+   device.start_gif_loop()
+
+   # Optional placement and framebuffer layer.
+   device.set_background_gif("path/to/background.gif", x=0, y=0, fb_layer=0x00)
+
+   # Stop GIF playback and clear the streamed background layer.
+   device.stop_gif_loop()
+   device.clear_background_gif()
+   ```
+
+   Background GIF is only supported on N4Pro, XL, and M3. On other devices, `set_background_gif()` returns `-1`.
+
+   MP4 backgrounds use the same temporary frame background stream. Install the optional video dependency before using MP4 playback:
+
+   ```bash
+   pip install opencv-python
+   ```
+
+   ```python
+   # Background MP4 is decoded frame by frame and looped.
+   device.set_background_mp4("path/to/background.mp4")
+   device.start_animation_loop()
+
+   # Optional playback FPS override.
+   device.set_background_mp4("path/to/background.mp4", fps=24)
+
+   # Stop animation playback and clear the streamed background layer.
+   device.stop_animation_loop()
+   device.clear_background_animation()
+   ```
+
+   Background MP4 is only supported on N4Pro, XL, and M3. On other devices, `set_background_mp4()` returns `-1`. MP4 audio is ignored.
 5. **LED Control (e.g. N4 Pro)**
 
    ```python
@@ -215,7 +259,36 @@ if __name__ == "__main__":
        device.set_led_brightness(100)  # Set LED brightness (0-100)
        device.set_led_color(0, 0, 255)  # Set LED color (R, G, B)
    ```
-6. **Listen for key events**
+6. **Device Config (N4Pro and XL)**
+
+   N4Pro and XL expose a `device.config` object. Set the supported fields, then call `device.send_config()` to apply them.
+
+   ```python
+   from StreamDock.Devices.StreamDockN4Pro import StreamDockN4Pro
+   from StreamDock.Devices.StreamDockXL import StreamDockXL
+
+   if isinstance(device, StreamDockN4Pro):
+       device.config.enable_vibration = False
+       device.config.led_follow_key_light = True
+       device.send_config()
+
+   if isinstance(device, StreamDockXL):
+       device.config.led_follow_key_light = True
+       device.send_config()
+   ```
+
+   Config values can be `True`, `False`, or `None`. `None` uses the device default value. Call `device.config.reset()` to reset all fields to `None`.
+
+   | Device | Config field | Description |
+   | ------ | ------------ | ----------- |
+   | N4Pro | `led_follow_key_light` | Link RGB LED state with key light state |
+   | N4Pro | `key_light_on_disconnect` | Keep key light behavior enabled after disconnect |
+   | N4Pro | `check_usb_power` | Enable USB power checking |
+   | N4Pro | `enable_vibration` | Enable vibration feedback |
+   | N4Pro | `reset_usb_report` | Enable USB report reset behavior |
+   | N4Pro | `enable_boot_video` | Enable boot video |
+   | XL | `led_follow_key_light` | Link RGB LED state with key light state |
+7. **Listen for key events**
 
    ```python
    def key_callback(device, key, state):
@@ -224,7 +297,20 @@ if __name__ == "__main__":
 
    device.set_key_callback(key_callback)
    ```
-7. **Clean up resources**
+8. **Listen for N4Pro touch points**
+
+   ```python
+   from StreamDock.InputTypes import EventType
+   from StreamDock.Devices.StreamDockN4Pro import StreamDockN4Pro
+
+   def touch_callback(device, event):
+       if event.event_type == EventType.TOUCH_POINT:
+           print(f"Touch point: ({event.x}, {event.y})")
+
+   if isinstance(device, StreamDockN4Pro):
+       device.set_touch_bar_callback(touch_callback)
+   ```
+9. **Clean up resources**
 
    ```python
    device.close()
