@@ -18,3 +18,4 @@ requires-python = ">=3.10.0"
 [project.optional-dependencies]
 linux = ["pyudev"]
 windows = ["wmi", "pywin32"]
+video = ["opencv-python"]

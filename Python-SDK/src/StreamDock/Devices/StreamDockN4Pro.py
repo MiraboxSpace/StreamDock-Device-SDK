@@ -1,5 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
+from ..DeviceConfig import StreamDockN4ProConfig
 from ..InputTypes import InputEvent, ButtonKey, EventType, KnobId, Direction
 from PIL import Image
 import ctypes
@@ -41,6 +42,75 @@ class StreamDockN4Pro(StreamDock):
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
+        self.config = StreamDockN4ProConfig()
+
+    def decode_touch_bar_event(self, data):
+        """
+        Decode an N4Pro touch-bar raw packet into an InputEvent.
+
+        The N4Pro touch packet header is ACK ARX and stores the touch point as
+        big-endian X/Y coordinates at bytes 10-13.
+        """
+        if data is None or len(data) < 14:
+            return None
+
+        is_touch_packet = (
+            data[0] == 0x41
+            and data[1] == 0x43
+            and data[2] == 0x4B
+            and data[4] == 0x41
+            and data[5] == 0x52
+            and data[6] == 0x58
+        )
+        if not is_touch_packet:
+            return None
+
+        x_pos = (data[10] << 8) | data[11]
+        y_pos = (data[12] << 8) | data[13]
+        return InputEvent(
+            event_type=EventType.TOUCH_POINT,
+            x=x_pos,
+            y=y_pos,
+            raw_data=bytes(data),
+        )
+
+    def _handle_raw_read(self, data):
+        super()._handle_raw_read(data)
+
+        event = self.decode_touch_bar_event(data)
+        if event is None:
+            return
+
+        with self._callback_lock:
+            callback = self.touchscreen_callback
+            async_run = self.touchscreen_callback_async
+
+        if callback is None:
+            return
+
+        if async_run:
+            import threading
+
+            threading.Thread(target=callback, args=(self, event), daemon=True).start()
+        else:
+            callback(self, event)
+
+    def set_touch_bar_callback(self, callback, async_run=False):
+        """
+        Register a callback for N4Pro touch-bar points.
+
+        Callback signature:
+            callback(device: StreamDockN4Pro, event: InputEvent)
+
+        The touch coordinates are available as event.x and event.y.
+        """
+        self.set_touchscreen_callback(callback, async_run=async_run)
+
+    def register_touch_bar_callback(self, callback, async_run=False):
+        return self.set_touch_bar_callback(callback, async_run=async_run)
+
+    def registerTouchBarCallback(self, callback, asyncRun=False):
+        return self.set_touch_bar_callback(callback, async_run=asyncRun)
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
@@ -303,4 +373,6 @@ class StreamDockN4Pro(StreamDock):
         self.feature_option.hasRGBLed = True
         self.feature_option.ledCounts = 4
         self.feature_option.deviceType = device_type.dock_n4pro
+        self.feature_option.supportBackgroundGif = True
+        self.feature_option.supportConfig = True
         pass

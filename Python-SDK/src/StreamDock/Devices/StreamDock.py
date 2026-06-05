@@ -12,7 +12,8 @@ from typing import Optional
 
 from ..FeatrueOption import FeatrueOption, device_type
 from ..Transport.LibUSBHIDAPI import LibUSBHIDAPI
-from ..InputTypes import InputEvent, ButtonKey
+from ..InputTypes import InputEvent, ButtonKey, EventType
+from .GifController import GifController
 
 
 class TransportError(Exception):
@@ -73,7 +74,13 @@ class StreamDock(ABC):
         self.read_thread = None
         self.run_read_thread = False
         self.feature_option = FeatrueOption()
+        self.config = None
+        self.gif_controller = GifController(self)
         self.key_callback = None
+        self.raw_read_callback = None
+        self.raw_read_callback_async = False
+        self.touchscreen_callback = None
+        self.touchscreen_callback_async = False
         # CRITICAL: Add lock to protect callback access in multi-threaded environment
         self._callback_lock = threading.Lock()
         # Heartbeat thread for keeping device alive
@@ -186,6 +193,13 @@ class StreamDock(ABC):
         if self.feature_option.hasRGBLed:
             return self.transport.reset_led_color()
 
+    def send_config(self):
+        if self.config is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} does not support device config"
+            )
+        return self.transport.set_device_config(self.config.to_bytes())
+
     # Close device
     def close(self, notify=True):
         """
@@ -199,13 +213,21 @@ class StreamDock(ABC):
         if not notify:
             self._notify_on_close = False
 
+        try:
+            self.gif_controller.close()
+        except Exception as e:
+            print(f"[WARNING] Error while stopping GIF controller: {e}", flush=True)
+
         # CRITICAL: Stop heartbeat thread first
         self.run_heartbeat_thread = False
         if self.heartbeat_thread and self.heartbeat_thread.is_alive():
             try:
                 self.heartbeat_thread.join(timeout=2.0)
             except Exception as e:
-                print(f"[WARNING] Error while waiting for heartbeat thread to exit: {e}", flush=True)
+                print(
+                    f"[WARNING] Error while waiting for heartbeat thread to exit: {e}",
+                    flush=True,
+                )
 
         # CRITICAL: Stop reader thread first and wait for it to finish
         self.run_read_thread = False
@@ -219,7 +241,10 @@ class StreamDock(ABC):
                 if read_thread_alive:
                     print("[WARNING] Read thread did not exit in time", flush=True)
             except Exception as e:
-                print(f"[WARNING] Error while waiting for read thread to exit: {e}", flush=True)
+                print(
+                    f"[WARNING] Error while waiting for read thread to exit: {e}",
+                    flush=True,
+                )
                 read_thread_alive = True
 
         if notify and self._notify_on_close:
@@ -246,6 +271,8 @@ class StreamDock(ABC):
         # Clear callback to break any circular references
         with self._callback_lock:
             self.key_callback = None
+            self.raw_read_callback = None
+            self.touchscreen_callback = None
 
         # print("[DEBUG] Device closed")
 
@@ -274,6 +301,61 @@ class StreamDock(ABC):
     # Refresh the device display
     def refresh(self):
         self.transport.refresh()
+
+    def image_keys(self):
+        """Return logical key numbers that support key images."""
+        image_key_map = getattr(self, "_IMAGE_KEY_MAP", None)
+        if image_key_map:
+            return sorted(key.value for key in image_key_map)
+        return list(range(1, self.KEY_COUNT + 1))
+
+    def gifer(self):
+        """Return the GIF controller for this device."""
+        return self.gif_controller
+
+    def set_key_gif(self, key, path):
+        return self.gif_controller.set_key_gif(path, key)
+
+    def set_key_gif_stream(self, frames, delays, key):
+        return self.gif_controller.set_key_gif_stream(frames, delays, key)
+
+    def clear_key_gif(self, key):
+        return self.gif_controller.clear_key_gif(key)
+
+    def set_background_gif(self, path, x=0, y=0, fb_layer=0x00):
+        return self.gif_controller.set_background_gif(path, x, y, fb_layer)
+
+    def set_background_mp4(self, path, x=0, y=0, fb_layer=0x00, fps=None):
+        return self.gif_controller.set_background_mp4(path, x, y, fb_layer, fps)
+
+    def set_background_gif_stream(self, frames, delays, x=0, y=0, fb_layer=0x00):
+        return self.gif_controller.set_background_gif_stream(
+            frames, delays, x, y, fb_layer
+        )
+
+    def clear_background_gif(self, position=0x03):
+        return self.gif_controller.clear_background_gif(position)
+
+    def clear_background_animation(self, position=0x03):
+        return self.gif_controller.clear_background_animation(position)
+
+    def start_gif_loop(self):
+        return self.gif_controller.start_gif_loop()
+
+    def stop_gif_loop(self):
+        return self.gif_controller.stop_gif_loop()
+
+    def gif_loop_status(self):
+        return self.gif_controller.gif_loop_status()
+
+    def start_animation_loop(self):
+        return self.gif_controller.start_animation_loop()
+
+    def stop_animation_loop(self):
+        return self.gif_controller.stop_animation_loop()
+
+    def animation_loop_status(self):
+        return self.gif_controller.animation_loop_status()
 
     # Get device path
     def getPath(self):
@@ -352,7 +434,6 @@ class StreamDock(ABC):
         """Return the device serial number."""
         return self.serial_number
 
-
     @abstractmethod
     def set_key_image(self, key, path) -> int | None:
         pass
@@ -368,11 +449,10 @@ class StreamDock(ABC):
     @abstractmethod
     def set_touchscreen_image(self, path) -> int | None:
         pass
-    
+
     def set_background_image(self, path) -> int | None:
         self.set_touchscreen_image(path)
-        
-    
+
     @abstractmethod
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
@@ -415,17 +495,26 @@ class StreamDock(ABC):
             while self.run_read_thread:
                 try:
                     arr = self.read()
+                    if arr is not None:
+                        try:
+                            self._handle_raw_read(arr)
+                        except Exception as raw_error:
+                            print(f"Raw read callback error: {raw_error}", flush=True)
+                            traceback.print_exc()
+
                     if arr is not None and len(arr) >= 10:
                         if arr[9] == 0xFF:
                             # Confirm write success
                             pass
-                        else:
+                        elif self._is_input_event_packet(arr):
                             try:
                                 # Use the device class event decoder
                                 if self.feature_option.deviceType != device_type.k1pro:
                                     event = self.decode_input_event(arr[9], arr[10])
                                 else:
                                     event = self.decode_input_event(arr[10], arr[11])
+                                if event.event_type == EventType.UNKNOWN:
+                                    continue
                                 # Get callback reference with lock
                                 with self._callback_lock:
                                     callback = self.key_callback
@@ -459,6 +548,40 @@ class StreamDock(ABC):
         finally:
             pass
 
+    def _is_input_event_packet(self, data):
+        if self.feature_option.deviceType == device_type.k1pro:
+            return (
+                len(data) >= 12
+                and data[0] == 0x04
+                and data[1] == 0x41
+                and data[2] == 0x43
+                and data[3] == 0x4B
+                and data[6] == 0x4F
+                and data[7] == 0x4B
+            )
+
+        return (
+            len(data) >= 11
+            and data[0] == 0x41
+            and data[1] == 0x43
+            and data[2] == 0x4B
+            and data[5] == 0x4F
+            and data[6] == 0x4B
+        )
+
+    def _handle_raw_read(self, data):
+        with self._callback_lock:
+            callback = self.raw_read_callback
+            async_run = self.raw_read_callback_async
+
+        if callback is None:
+            return
+
+        if async_run:
+            threading.Thread(target=callback, args=(self, data), daemon=True).start()
+        else:
+            callback(self, data)
+
     def _heartbeat_worker(self):
         """
         Worker method that sends heartbeat packets to the device every 10 seconds.
@@ -476,7 +599,9 @@ class StreamDock(ABC):
                 # Wait 10 seconds before next heartbeat
                 time.sleep(10)
         except Exception as outer_error:
-            print(f"[FATAL] Heartbeat thread outer exception: {outer_error}", flush=True)
+            print(
+                f"[FATAL] Heartbeat thread outer exception: {outer_error}", flush=True
+            )
         finally:
             pass
 
@@ -548,6 +673,19 @@ class StreamDock(ABC):
         with self._callback_lock:
             self.key_callback = callback
 
+    def set_raw_read_callback(self, callback, async_run=False):
+        """
+        Sets the callback function called for every raw HID packet read from the
+        device before normal input event decoding.
+
+        :param function callback: Callback function with signature:
+                                  callback(device: StreamDock, data: bytes)
+        :param bool async_run: Run the callback in a detached daemon thread.
+        """
+        with self._callback_lock:
+            self.raw_read_callback = callback
+            self.raw_read_callback_async = async_run
+
     def set_key_callback_async(self, async_callback, loop=None):
         """
         Sets the asynchronous callback function called each time a button on the
@@ -574,7 +712,7 @@ class StreamDock(ABC):
 
         self.set_key_callback(callback)
 
-    def set_touchscreen_callback(self, callback):
+    def set_touchscreen_callback(self, callback, async_run=False):
         """
         Sets the callback function called each time there is an interaction
         with a touchscreen on the StreamDock.
@@ -588,10 +726,13 @@ class StreamDock(ABC):
                      method for a version compatible with Python 3 `asyncio`
                      asynchronous functions.
 
-        :param function callback: Callback function to fire each time a button
-                                state changes.
+        :param function callback: Callback function with signature:
+                                  callback(device: StreamDock, event: InputEvent)
+        :param bool async_run: Run the callback in a detached daemon thread.
         """
-        self.touchscreen_callback = callback
+        with self._callback_lock:
+            self.touchscreen_callback = callback
+            self.touchscreen_callback_async = async_run
 
     def set_touchscreen_callback_async(self, async_callback, loop=None):
         """

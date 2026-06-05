@@ -1,5 +1,7 @@
 # Core dependencies
 pillow
+# Optional: required only for MP4 background playback.
+# Install with `pip install opencv-python`.
 
 # Platform-specific dependencies
 pyudev ; sys_platform == "linux"

@@ -1,5 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
+from ..DeviceConfig import StreamDockXLConfig
 from ..InputTypes import InputEvent, ButtonKey, EventType, KnobId, Direction
 from PIL import Image
 import ctypes
@@ -56,6 +57,7 @@ class StreamDockXL(StreamDock):
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
+        self.config = StreamDockXLConfig()
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         """
@@ -239,4 +241,6 @@ class StreamDockXL(StreamDock):
         self.feature_option.hasRGBLed = True
         self.feature_option.ledCounts = 6
         self.feature_option.deviceType = device_type.dock_xl
+        self.feature_option.supportBackgroundGif = True
+        self.feature_option.supportConfig = True
         pass

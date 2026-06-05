@@ -15,6 +15,7 @@ class EventType(Enum):
     KNOB_ROTATE = "knob_rotate" # Knob rotation
     KNOB_PRESS = "knob_press"   # Knob press
     SWIPE = "swipe"             # Swipe gesture
+    TOUCH_POINT = "touch_point" # Touchscreen point
     UNKNOWN = "unknown"
 
 
@@ -87,12 +88,18 @@ class InputEvent:
         knob_id: Knob event: which knob
         direction: Direction: knob rotation direction or swipe direction
         state: State: 0=release, 1=press
+        x: Touch event X coordinate
+        y: Touch event Y coordinate
+        raw_data: Raw HID packet for touch/raw events
     """
     event_type: EventType
     key: Optional[ButtonKey] = None      # Button event: which key
     knob_id: Optional[KnobId] = None     # Knob event: which knob
     direction: Optional[Direction] = None # Direction: knob rotation direction or swipe direction
     state: int = 0                       # State: 0=release, 1=press
+    x: Optional[int] = None              # Touch event X coordinate
+    y: Optional[int] = None              # Touch event Y coordinate
+    raw_data: Optional[bytes] = None     # Raw HID packet
 
     def __post_init__(self):
         """Data validation"""
@@ -107,3 +114,6 @@ class InputEvent:
         elif self.event_type == EventType.SWIPE:
             if self.direction is None:
                 raise ValueError("SWIPE event requires direction")
+        elif self.event_type == EventType.TOUCH_POINT:
+            if self.x is None or self.y is None:
+                raise ValueError("TOUCH_POINT event requires x and y")
