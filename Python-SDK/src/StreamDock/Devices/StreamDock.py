@@ -8,7 +8,7 @@ import ctypes
 import ctypes.util
 import threading
 import traceback
-from typing import Optional
+from typing import Optional, Sequence
 
 from ..FeatrueOption import FeatrueOption, device_type
 from ..Transport.LibUSBHIDAPI import LibUSBHIDAPI
@@ -187,6 +187,11 @@ class StreamDock(ABC):
     def set_led_color(self, r, g, b):
         if self.feature_option.hasRGBLed:
             return self.transport.set_led_color(self.feature_option.ledCounts, r, g, b)
+
+    # Set individual device LED colors
+    def set_single_led_color(self, colors: Sequence[Sequence[int]]):
+        if self.feature_option.hasRGBLed:
+            return self.transport.set_single_led_color(colors)
 
     # Reset device LED effects
     def reset_led_effect(self):

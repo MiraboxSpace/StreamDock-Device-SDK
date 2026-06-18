@@ -18,6 +18,10 @@ public:
 	}
 
 	/// No-op implementation
+	virtual void setSingleLedColor(const std::vector<std::array<uint8_t, 3>> &colors) override {
+	}
+
+	/// No-op implementation
 	virtual void resetLedColor() override {
 	}
 };

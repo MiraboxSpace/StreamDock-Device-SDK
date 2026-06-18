@@ -26,6 +26,39 @@
 | StreamDock M3       |
 | K1Pro               |
 
+## OEM 设备别名
+
+部分 OEM 设备与已支持型号使用相同的 StreamDock 信令协议，但 USB VID/PID 不同。可以在启动服务时使用可重复的 `-oem` 参数注册：
+
+```bash
+WebsocketSDK.exe -oem N4Pro:0x1234:0x5678
+```
+
+可以同时注册多个 OEM 设备：
+
+```bash
+WebsocketSDK.exe -oem N4Pro:0x1234:0x5678 -oem XL:0x2345:0x6789
+```
+
+格式为 `型号:VID:PID`。`VID` 和 `PID` 可以使用十六进制，例如 `0x1234`，也可以使用十进制。OEM 设备必须与所选择的型号使用相同协议。
+
+可用的 `型号` 别名如下，大小写不敏感：
+
+| OEM 别名 | 对应协议型号 |
+| -------- | ------------ |
+| `293`    | StreamDock 293 |
+| `293V3`  | StreamDock 293V3 |
+| `293s`   | StreamDock 293s |
+| `293sV3` | StreamDock 293sV3 |
+| `N3`     | StreamDock N3 |
+| `N4`     | StreamDock N4 |
+| `N1`     | StreamDock N1 |
+| `N4Pro`  | StreamDock N4Pro |
+| `XL`     | StreamDock XL |
+| `M18`    | StreamDock M18 |
+| `M3`     | StreamDock M3 |
+| `K1Pro`  | K1Pro |
+
 ## Linux 运行依赖
 
 在 Linux 上，预编译的 `StreamDockWebsocketSDK` 可执行文件会动态链接以下系统库：
@@ -58,6 +91,13 @@ sudo StreamDockWebsocketSDK
 ```
 sudo udevadm control --reload-rules
 sudo udevadm trigger
+```
+
+对于 OEM 设备，请在重新加载 udev 规则前，为 OEM VID/PID 增加规则。以下示例对应 `0x1234:0x5678`：
+
+```bash
+SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="1234", MODE="0666", GROUP="plugdev"
 ```
 
 ## 快速开始
@@ -210,6 +250,23 @@ const setLEDColor = {
 ws.send(JSON.stringify(setLEDColor));
 ```
 
+### 分别设置 LED 颜色
+
+```javascript
+const setSingleLedColor = {
+    event: "setSingleLedColor",
+    path: devicePath,
+    payload: {
+        colors: [
+            [255, 0, 0],
+            [0, 255, 0],
+            [0, 0, 255]
+        ]
+    }
+};
+ws.send(JSON.stringify(setSingleLedColor));
+```
+
 ### 开始监听按键输入
 
 ```javascript
@@ -330,7 +387,7 @@ ws.send(JSON.stringify(refresh));
 | 参数名 | 类型   | 说明            |
 | ------ | ------ | --------------- |
 | knobId | number | 旋钮 ID         |
-| state  | string | 状态："pressed" |
+| state  | string | 状态："pressed" 或 "released" |
 
 **滑动手势事件 Payload：**
 
@@ -698,7 +755,7 @@ ws.send(JSON.stringify(refresh));
 
 | 参数名     | 类型   | 必填 | 说明                   |
 | ---------- | ------ | ---- | ---------------------- |
-| brightness | number | 是   | LED 亮度值，范围 0-100 |
+| brightness | number | 是   | LED 亮度值，范围 0-255 |
 
 **请求示例：**
 
@@ -712,7 +769,7 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### setLEDColor - 设置 LED 颜色
+#### setLEDColor - 设置全部的 LED 颜色
 
 设置设备 LED 灯的 RGB 颜色。
 
@@ -734,6 +791,32 @@ ws.send(JSON.stringify(refresh));
     "r": 255,
     "g": 0,
     "b": 0
+  }
+}
+```
+
+#### setSingleLedColor - 分别设置 LED 颜色
+
+按设备 LED 顺序分别设置 RGB 颜色。
+
+**Payload 参数：**
+
+| 参数名 | 类型       | 必填 | 说明                                      |
+| ------ | ---------- | ---- | ----------------------------------------- |
+| colors | number[][] | 是   | 按 LED 顺序排列的 RGB 三元组；每个分量范围 0-255 |
+
+**请求示例：**
+
+```json
+{
+  "event": "setSingleLedColor",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "colors": [
+      [255, 0, 0],
+      [0, 255, 0],
+      [0, 0, 255]
+    ]
   }
 }
 ```
@@ -903,6 +986,8 @@ ws.send(JSON.stringify(refresh));
 ### M3 设备专用事件
 
 以下事件仅适用于 M3 设备：
+
+M3 旋钮按压输入也会通过 `read` 事件的旋钮按下 Payload 上报 `"pressed"` 和 `"released"` 状态。
 
 #### magneticCalibration - M3 磁力校准
 

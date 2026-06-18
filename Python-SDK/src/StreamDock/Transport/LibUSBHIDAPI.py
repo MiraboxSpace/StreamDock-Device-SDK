@@ -32,7 +32,7 @@ from ctypes import (
     c_char,
 )
 import re
-from typing import Optional, List, Tuple
+from typing import Optional, List, Sequence, Tuple
 
 
 def _get_glibc_version() -> Tuple[int, int]:
@@ -270,6 +270,15 @@ _transport_lib.transport_clear_background_frame_stream.argtypes = [c_void_p, c_u
 
 _transport_lib.transport_set_led_brightness.restype = c_uint32
 _transport_lib.transport_set_led_brightness.argtypes = [c_void_p, c_uint8]
+
+_LedColor = c_uint8 * 3
+
+_transport_lib.transport_set_single_led_color.restype = c_uint32
+_transport_lib.transport_set_single_led_color.argtypes = [
+    c_void_p,
+    c_uint16,
+    POINTER(_LedColor),
+]
 
 _transport_lib.transport_set_led_color.restype = c_uint32
 _transport_lib.transport_set_led_color.argtypes = [
@@ -683,7 +692,7 @@ class LibUSBHIDAPI:
         Set LED brightness.
 
         Args:
-            brightness: Brightness value, typically 0-100
+            brightness: Brightness value, typically 0-255
         """
         if not self._handle:
             return
@@ -702,6 +711,30 @@ class LibUSBHIDAPI:
         if not self._handle:
             return
         res = _transport_lib.transport_set_led_color(self._handle, count, r, g, b)
+
+    def set_single_led_color(self, colors: Sequence[Sequence[int]]) -> None | int:
+        """
+        Set individual RGB colors for LEDs.
+
+        Args:
+            colors: Sequence of RGB values. Example: [(255, 0, 0), (0, 255, 0)]
+        """
+        if not self._handle:
+            return
+        if not colors:
+            return
+
+        color_array_type = _LedColor * len(colors)
+        color_array = color_array_type()
+        for index, color in enumerate(colors):
+            if len(color) != 3:
+                raise ValueError("Each LED color must contain exactly 3 values: R, G, B")
+            r, g, b = color
+            color_array[index] = _LedColor(r, g, b)
+
+        return _transport_lib.transport_set_single_led_color(
+            self._handle, len(colors), color_array
+        )
 
     def reset_led_color(self) -> None | int:
         """Reset LED colors to default."""

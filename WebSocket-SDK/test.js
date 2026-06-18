@@ -219,8 +219,17 @@ async function testComprehensive() {
     // N4Pro special functions
     if (deviceType === 'N4Pro') {
       console.log('\n--- N4Pro special functions ---');
-      sendCommand(ws, 'setLEDBrightness', devicePath, { brightness: 100 });
-      sendCommand(ws, 'setLEDColor', devicePath, { r: 0, g: 0, b: 255 });
+      sendCommand(ws, 'setLEDBrightness', devicePath, { brightness: 255 });
+      // sendCommand(ws, 'setLEDColor', devicePath, { r: 0, g: 0, b: 255 });
+      // N4 Pro supports control single LED colors
+      sendCommand(ws, 'setSingleLedColor', devicePath, {
+        colors: [
+          [255, 0, 0],
+          [0, 0, 255],
+          [255, 0, 255],
+          [255, 255, 0]
+        ]
+      });
       sendCommand(ws, 'setTemporaryBackgroundImg', devicePath, {
         imagePath: TEST_FRAME_BACKGROUND_PATH
       });

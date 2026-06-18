@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -440,8 +441,16 @@ namespace TEST_N4Pro
 															{N4ProConfigEnumerate::EnableBootVideo, ConfigState::Off}});
 		device->configer()->setDeviceConfig(configs);
 		device->setKeyBrightness(100);
-		device->rgber()->setLedColor(0, 255, 0);
-		device->rgber()->setLedBrightness(10);
+		// setLedColor uses the device configured LED count automatically.
+		// device->rgber()->setLedColor(255, 0, 0);
+		device->rgber()->setLedBrightness(255);
+		// N4Pro Supports setting single LED color
+		device->rgber()->setSingleLedColor({
+			{255, 0, 0},
+			{0, 0, 255},
+			{255, 0, 255},
+			{255, 255, 0},
+		});
 		// device->rgber()->resetLedColor();
 		device->reader()->startReadLoop();
 		device->wakeupScreen();
@@ -512,7 +521,7 @@ namespace TEST_XL
 		device->configer()->setDeviceConfig(configs);
 		device->setKeyBrightness(100);
 		device->rgber()->setLedColor(0, 255, 0);
-		device->rgber()->setLedBrightness(10);
+		device->rgber()->setLedBrightness(255);
 		// device->rgber()->resetLedColor();
 		device->reader()->startReadLoop();
 		device->wakeupScreen();
