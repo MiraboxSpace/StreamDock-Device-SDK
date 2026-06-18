@@ -77,7 +77,16 @@ def setup_device(device):
     # N4Pro special function
     if isinstance(device, StreamDockN4Pro):
         device.set_led_brightness(100)
-        device.set_led_color(0, 0, 255)
+        # device.set_led_color(0, 0, 255)
+        # N4 Pro support control the single led
+        device.set_single_led_color(
+            [
+                (255, 0, 0),
+                (0, 0, 255),
+                (255, 0, 255),
+                (255, 255, 0),
+            ]
+        ) 
         # device.set_frame_background("img/backgroud_test2.png")
         device.set_background_gif("img/backgroud_test.gif")
         # device.set_background_mp4("img/bad_apple.mp4")
