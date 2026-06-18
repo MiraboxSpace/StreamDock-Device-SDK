@@ -29,6 +29,9 @@ public:
 	/// @copydoc IRGBController::setLedColor
 	virtual void setLedColor(uint8_t red, uint8_t green, uint8_t blue) override;
 
+	/// @copydoc IRGBController::setSingleLedColor
+	virtual void setSingleLedColor(const std::vector<std::array<uint8_t, 3>> &colors) override;
+
 	/// @copydoc IRGBController::resetLedColor
 	virtual void resetLedColor() override;
 

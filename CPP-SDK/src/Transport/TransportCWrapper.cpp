@@ -189,6 +189,13 @@ void TransportCWrapper::setLedColor(uint16_t count, uint8_t r, uint8_t g, uint8_
 	transport_set_led_color(_handle, count, r, g, b);
 }
 
+void TransportCWrapper::setSingleLedColor(const std::vector<std::array<uint8_t, 3>> &colors) const
+{
+	if (!_handle || colors.empty())
+		return;
+	transport_set_single_led_color(_handle, static_cast<uint16_t>(colors.size()), reinterpret_cast<const uint8_t(*)[3]>(colors.data()));
+}
+
 void TransportCWrapper::resetLedColor() const
 {
 	if (!_handle)

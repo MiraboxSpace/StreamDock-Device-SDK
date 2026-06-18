@@ -22,6 +22,7 @@
  */
 
 #pragma once
+#include <array>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -168,6 +169,12 @@ public:
 	 * @param b Blue component.
 	 */
 	void setLedColor(uint16_t count, uint8_t r, uint8_t g, uint8_t b) const;
+
+	/**
+	 * @brief Set individual colors for LEDs in order.
+	 * @param colors RGB values for each LED.
+	 */
+	void setSingleLedColor(const std::vector<std::array<uint8_t, 3>> &colors) const;
 
 	/** @brief Reset LED colors. */
 	void resetLedColor() const;
