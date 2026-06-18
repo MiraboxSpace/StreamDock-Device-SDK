@@ -26,6 +26,39 @@
 | StreamDock M3       |
 | K1Pro               |
 
+## OEM Device Aliases
+
+Some OEM devices use the same StreamDock protocol as a supported model, but expose different USB VID/PID values. Register those devices at startup with the repeatable `-oem` option:
+
+```bash
+WebsocketSDK.exe -oem N4Pro:0x1234:0x5678
+```
+
+You can register multiple OEM devices:
+
+```bash
+WebsocketSDK.exe -oem N4Pro:0x1234:0x5678 -oem XL:0x2345:0x6789
+```
+
+The format is `Model:VID:PID`. `VID` and `PID` can be hexadecimal, such as `0x1234`, or decimal. The OEM device must use the same protocol as the selected model.
+
+Available `Model` aliases are case-insensitive:
+
+| OEM alias | Protocol model |
+| --------- | -------------- |
+| `293`     | StreamDock 293 |
+| `293V3`   | StreamDock 293V3 |
+| `293s`    | StreamDock 293s |
+| `293sV3`  | StreamDock 293sV3 |
+| `N3`      | StreamDock N3 |
+| `N4`      | StreamDock N4 |
+| `N1`      | StreamDock N1 |
+| `N4Pro`   | StreamDock N4Pro |
+| `XL`      | StreamDock XL |
+| `M18`     | StreamDock M18 |
+| `M3`      | StreamDock M3 |
+| `K1Pro`   | K1Pro |
+
 ## Linux Runtime Dependencies
 
 On Linux, the prebuilt `StreamDockWebsocketSDK` executable dynamically links the following system libraries:
@@ -58,6 +91,13 @@ Copy `99-streamdock.rules` to `/etc/udev/rules.d/`, then run:
 ```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger
+```
+
+For OEM devices, add rules for the OEM VID/PID before reloading udev rules. Example for `0x1234:0x5678`:
+
+```bash
+SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="1234", MODE="0666", GROUP="plugdev"
 ```
 
 ## Quick Start
@@ -210,6 +250,23 @@ const setLEDColor = {
 ws.send(JSON.stringify(setLEDColor));
 ```
 
+### Set Individual LED Colors
+
+```javascript
+const setSingleLedColor = {
+    event: "setSingleLedColor",
+    path: devicePath,
+    payload: {
+        colors: [
+            [255, 0, 0],
+            [0, 255, 0],
+            [0, 0, 255]
+        ]
+    }
+};
+ws.send(JSON.stringify(setSingleLedColor));
+```
+
 ### Start Listening for Key Input
 
 ```javascript
@@ -330,7 +387,7 @@ Triggered when listening for key, knob, or touch input.
 | Parameter | Type   | Description        |
 | --------- | ------ | ------------------ |
 | knobId    | number | Knob ID            |
-| state     | string | State: `"pressed"` |
+| state     | string | State: `"pressed"` or `"released"` |
 
 **Swipe gesture event payload:**
 
@@ -698,7 +755,7 @@ Sets the brightness of the device LEDs.
 
 | Parameter  | Type   | Required | Description                 |
 | ---------- | ------ | -------- | --------------------------- |
-| brightness | number | Yes      | LED brightness value, 0-100 |
+| brightness | number | Yes      | LED brightness value, 0-255 |
 
 **Request example:**
 
@@ -712,7 +769,7 @@ Sets the brightness of the device LEDs.
 }
 ```
 
-#### setLEDColor - Set LED Color
+#### setLEDColor - Set All LED Colors
 
 Sets the RGB color of the device LEDs.
 
@@ -734,6 +791,32 @@ Sets the RGB color of the device LEDs.
     "r": 255,
     "g": 0,
     "b": 0
+  }
+}
+```
+
+#### setSingleLedColor - Set Individual LED Colors
+
+Sets RGB colors for LEDs in device LED order.
+
+**Payload parameters:**
+
+| Parameter | Type       | Required | Description                                      |
+| --------- | ---------- | -------- | ------------------------------------------------ |
+| colors    | number[][] | Yes      | RGB triples in LED order; each component is 0-255 |
+
+**Request example:**
+
+```json
+{
+  "event": "setSingleLedColor",
+  "path": "XHk6XFxXZW50YnVnZGV2aWNlcw==",
+  "payload": {
+    "colors": [
+      [255, 0, 0],
+      [0, 255, 0],
+      [0, 0, 255]
+    ]
   }
 }
 ```
@@ -903,6 +986,8 @@ Sets an N1 device skin image from a local file path.
 ### M3 Device-Specific Events
 
 The following events apply only to M3 devices:
+
+M3 knob press input also reports both `"pressed"` and `"released"` states through the `read` event's knob press payload.
 
 #### magneticCalibration - M3 Magnetic Calibration
 
