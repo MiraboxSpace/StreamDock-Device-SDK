@@ -6,6 +6,7 @@ from StreamDock.Devices.StreamDockN1 import StreamDockN1
 from StreamDock.Devices.StreamDockN4Pro import StreamDockN4Pro
 from StreamDock.InputTypes import EventType
 from StreamDock.Devices.StreamDockXL import StreamDockXL
+from StreamDock.Devices.StreamDockMini import StreamDockMini
 import threading
 import time
 
@@ -32,6 +33,16 @@ def key_callback(device, event):
             print(f"Knob {event.knob_id.value} {action}", flush=True)
         elif event.event_type == EventType.SWIPE:
             print(f"Swipe gesture: {event.direction.value}", flush=True)
+        elif event.event_type == EventType.DIP_SWITCH:
+            action = "active" if event.state == 1 else "ended"
+            if event.direction is None:
+                action = "pressed" if event.state == 1 else "released"
+                print(f"DIP {event.dip_id.value} {action}", flush=True)
+            else:
+                print(
+                    f"DIP {event.dip_id.value} {event.direction.value} {action}",
+                    flush=True,
+                )
     except Exception as e:
         print(f"Key callback error: {e}", flush=True)
         import traceback
@@ -86,7 +97,7 @@ def setup_device(device):
                 (255, 0, 255),
                 (255, 255, 0),
             ]
-        ) 
+        )
         # device.set_frame_background("img/backgroud_test2.png")
         device.set_background_gif("img/backgroud_test.gif")
         # device.set_background_mp4("img/bad_apple.mp4")
@@ -134,12 +145,16 @@ def setup_device(device):
         device.refresh()
 
     # M3 special function
-    if isinstance(device, StreamDockM3):
+    elif isinstance(device, StreamDockM3):
         device.set_frame_background("img/backgroud_test2.png")
         # device.set_background_gif("img/backgroud_test.gif")
         # device.set_background_mp4("img/bad_apple.mp4")
         time.sleep(2)
         # device.magnetic_calibration()
+    # mini special function
+    elif isinstance(device, StreamDockMini):
+        # mini only set all colors
+        device.set_led_color(0, 0, 255)
 
     for i in device.image_keys():
         if 0 == i % 3:

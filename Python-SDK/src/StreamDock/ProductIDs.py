@@ -32,6 +32,8 @@ class USBVendorIDs:
     USB_VID_M3EN = 0x5548
     USB_VID_K1_PRO = 0x6603
     USB_VID_K1_PROEU = 0x6603
+    USB_VID_Mini = 0x5548
+    USB_VID_MiniW = 0x5548
 
 
 class USBProductIDs:
@@ -69,6 +71,8 @@ class USBProductIDs:
     USB_PID_STREAMDOCK_M3EN = 0x1032
     USB_PID_K1_PRO = 0x1015
     USB_PID_K1_PROEU = 0x1019
+    USB_PID_Mini = 0x1036
+    USB_PID_MiniW = 0x1037
 
 
 from .Devices.StreamDock293 import StreamDock293
@@ -83,15 +87,32 @@ from .Devices.StreamDockXL import StreamDockXL
 from .Devices.StreamDockM18 import StreamDockM18
 from .Devices.StreamDockM3 import StreamDockM3
 from .Devices.K1Pro import K1Pro
+from .Devices.StreamDockMini import StreamDockMini
 
 g_products = [
     # 293 serial
     (USBVendorIDs.USB_VID_293, USBProductIDs.USB_PID_STREAMDOCK_293, StreamDock293),
-    (USBVendorIDs.USB_VID_293V3,USBProductIDs.USB_PID_STREAMDOCK_293V3,StreamDock293V3),
-    (USBVendorIDs.USB_VID_293V3EN,USBProductIDs.USB_PID_STREAMDOCK_293V3EN,StreamDock293V3),
-    (USBVendorIDs.USB_VID_293V3,USBProductIDs.USB_PID_STREAMDOCK_293V25,StreamDock293V3),
+    (
+        USBVendorIDs.USB_VID_293V3,
+        USBProductIDs.USB_PID_STREAMDOCK_293V3,
+        StreamDock293V3,
+    ),
+    (
+        USBVendorIDs.USB_VID_293V3EN,
+        USBProductIDs.USB_PID_STREAMDOCK_293V3EN,
+        StreamDock293V3,
+    ),
+    (
+        USBVendorIDs.USB_VID_293V3,
+        USBProductIDs.USB_PID_STREAMDOCK_293V25,
+        StreamDock293V3,
+    ),
     (USBVendorIDs.USB_VID_293s, USBProductIDs.USB_PID_STREAMDOCK_293s, StreamDock293s),
-    (USBVendorIDs.USB_VID_293sV3, USBProductIDs.USB_PID_STREAMDOCK_293sV3, StreamDock293sV3),
+    (
+        USBVendorIDs.USB_VID_293sV3,
+        USBProductIDs.USB_PID_STREAMDOCK_293sV3,
+        StreamDock293sV3,
+    ),
     # N3
     (USBVendorIDs.USB_VIDN3, USBProductIDs.USB_PID_STREAMDOCK_N3, StreamDockN3),
     (USBVendorIDs.USB_VIDN3, USBProductIDs.USB_PID_STREAMDOCK_N3EN, StreamDockN3),
@@ -106,8 +127,16 @@ g_products = [
     (USBVendorIDs.USB_VIDN1, USBProductIDs.USB_PID_STREAMDOCK_N1, StreamDockN1),
     (USBVendorIDs.USB_VIDN1EN, USBProductIDs.USB_PID_STREAMDOCK_N1EN, StreamDockN1),
     # N4PRO
-    (USBVendorIDs.USB_VID_N4PRO, USBProductIDs.USB_PID_STREAMDOCK_N4PRO, StreamDockN4Pro),
-    (USBVendorIDs.USB_VID_N4PROEN, USBProductIDs.USB_PID_STREAMDOCK_N4PROEN, StreamDockN4Pro),
+    (
+        USBVendorIDs.USB_VID_N4PRO,
+        USBProductIDs.USB_PID_STREAMDOCK_N4PRO,
+        StreamDockN4Pro,
+    ),
+    (
+        USBVendorIDs.USB_VID_N4PROEN,
+        USBProductIDs.USB_PID_STREAMDOCK_N4PROEN,
+        StreamDockN4Pro,
+    ),
     # XL
     (USBVendorIDs.USB_VID_XL, USBProductIDs.USB_PID_STREAMDOCK_XL, StreamDockXL),
     (USBVendorIDs.USB_VID_XLEN, USBProductIDs.USB_PID_STREAMDOCK_XLEN, StreamDockXL),
@@ -126,5 +155,7 @@ g_products = [
     # K1 Pro
     (USBVendorIDs.USB_VID_K1_PRO, USBProductIDs.USB_PID_K1_PRO, K1Pro),
     (USBVendorIDs.USB_VID_K1_PROEU, USBProductIDs.USB_PID_K1_PROEU, K1Pro),
-
+    # Mini
+    (USBVendorIDs.USB_VID_Mini, USBProductIDs.USB_PID_Mini, StreamDockMini),
+    (USBVendorIDs.USB_VID_MiniW, USBProductIDs.USB_PID_MiniW, StreamDockMini),
 ]

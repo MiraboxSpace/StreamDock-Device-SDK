@@ -87,6 +87,7 @@ class StreamDock(ABC):
         self.heartbeat_thread = None
         self.run_heartbeat_thread = False
         self._notify_on_close = True
+        self.support_single_led_color = False
 
         # self.update_lock = threading.RLock()
         # self.screenlicent=threading.Timer(self.__seconds,self.screen_Off)
@@ -190,7 +191,7 @@ class StreamDock(ABC):
 
     # Set individual device LED colors
     def set_single_led_color(self, colors: Sequence[Sequence[int]]):
-        if self.feature_option.hasRGBLed:
+        if self.feature_option.hasRGBLed and self.feature_option.support_single_led_color:
             return self.transport.set_single_led_color(colors)
 
     # Reset device LED effects
