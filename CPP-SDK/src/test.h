@@ -14,6 +14,7 @@
 #include <HotspotDevice/StreamDockXL/streamdockXL.h>
 #include <HotspotDevice/StreamDockM3/streamdockM3.h>
 #include <HotspotDevice/StreamDockM18V3/streamdockM18V3.h>
+#include <HotspotDevice/StreamDockMini/streamdockMini.h>
 #include <HotspotDevice/K1Pro/K1Pro.h>
 
 template <typename T, typename... Args>
@@ -727,5 +728,67 @@ namespace TEST_K1Pro
 		K1ProDevice->setKeyboardLightingEffects(1);
 		K1ProDevice->setKeyboardBacklightBrightness(6);
 		K1ProDevice->setKeyboardRgbBacklight(255, 0, 0);
+	}
+}
+namespace TEST_Mini
+{
+	void test(std::shared_ptr<StreamDock> device)
+	{
+		if (device->info()->originType != DeviceOriginType::SDMini)
+			return;
+		device->heartbeater()->startHeartBeatLoop();
+		device->wakeupScreen();
+		device->setKeyBrightness(100);
+		device->reader()->startReadLoop();
+		device->clearAllKeys();
+		device->setEncoder(std::make_shared<OpenCVImageEncoder>());
+		// device->setBackgroundImgFile("../../img/backgroud_test2.png");
+		// std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		for (int i = 1; i <= 6; i++)
+		{
+			if (0 == i % 3)
+				device->gifer()->setKeyGifFile("../../img/test.gif", i);
+			else if (1 == i % 3)
+				device->setKeyImgFile("../../img/button_test.jpg", i);
+			else if (2 == i % 3)
+				device->setKeyImgFile("../../img/mark.png", i);
+		}
+		device->gifer()->startGifLoop();
+		device->refresh();
+		device->rgber()->setLedColor(0, 0, 255);
+
+		for (int i = 1; i <= 6; i++)
+		{
+			int keyIndex = i;
+			device->reader()->registerReadCallback(keyIndex, [keyIndex]()
+												   { debugPrint("Key " + std::to_string(keyIndex) + " pressed"); }, RegisterEvent::KeyPress);
+			device->reader()->registerReadCallback(keyIndex, [keyIndex]()
+												   { debugPrint("Key " + std::to_string(keyIndex) + " release"); }, RegisterEvent::KeyRelease);
+		}
+
+		device->reader()->registerReadCallback(7, []()
+											   { debugPrint("dip 1 left"); }, RegisterEvent::DIPLeft);
+		device->reader()->registerReadCallback(7, []()
+											   { debugPrint("dip 1 left end"); }, RegisterEvent::DIPLeftEnd);
+		device->reader()->registerReadCallback(8, []()
+											   { debugPrint("dip 1 right"); }, RegisterEvent::DIPRight);
+		device->reader()->registerReadCallback(8, []()
+											   { debugPrint("dip 1 right end"); }, RegisterEvent::DIPRightEnd);
+		device->reader()->registerReadCallback(9, []()
+											   { debugPrint("dip 1 pressed"); }, RegisterEvent::DIPPress);
+		device->reader()->registerReadCallback(9, []()
+											   { debugPrint("dip 1 release"); }, RegisterEvent::DIPRelease);
+		device->reader()->registerReadCallback(10, []()
+											   { debugPrint("dip 2 left"); }, RegisterEvent::DIPLeft);
+		device->reader()->registerReadCallback(10, []()
+											   { debugPrint("dip 2 left end"); }, RegisterEvent::DIPLeftEnd);
+		device->reader()->registerReadCallback(11, []()
+											   { debugPrint("dip 2 right"); }, RegisterEvent::DIPRight);
+		device->reader()->registerReadCallback(11, []()
+											   { debugPrint("dip 2 right end"); }, RegisterEvent::DIPRightEnd);
+		device->reader()->registerReadCallback(12, []()
+											   { debugPrint("dip 2 pressed"); }, RegisterEvent::DIPPress);
+		device->reader()->registerReadCallback(12, []()
+											   { debugPrint("dip 2 release"); }, RegisterEvent::DIPRelease);
 	}
 }

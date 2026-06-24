@@ -17,6 +17,7 @@ void doSomething(std::shared_ptr<StreamDock> device)
 	TEST_XL::test(device);
 	TEST_M3::test(device);
 	TEST_M18V3::test(device);
+	TEST_Mini::test(device);
 	TEST_K1Pro::test(device);
 }
 
