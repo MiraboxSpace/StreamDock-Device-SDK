@@ -24,6 +24,7 @@
 | StreamDock XL       |
 | StreamDock M18      |
 | StreamDock M3       |
+| StreamDock Mini     |
 | K1Pro               |
 
 ## OEM 设备别名
@@ -44,20 +45,21 @@ WebsocketSDK.exe -oem N4Pro:0x1234:0x5678 -oem XL:0x2345:0x6789
 
 可用的 `型号` 别名如下，大小写不敏感：
 
-| OEM 别名 | 对应协议型号 |
-| -------- | ------------ |
-| `293`    | StreamDock 293 |
-| `293V3`  | StreamDock 293V3 |
-| `293s`   | StreamDock 293s |
+| OEM 别名   | 对应协议型号      |
+| ---------- | ----------------- |
+| `293`    | StreamDock 293    |
+| `293V3`  | StreamDock 293V3  |
+| `293s`   | StreamDock 293s   |
 | `293sV3` | StreamDock 293sV3 |
-| `N3`     | StreamDock N3 |
-| `N4`     | StreamDock N4 |
-| `N1`     | StreamDock N1 |
-| `N4Pro`  | StreamDock N4Pro |
-| `XL`     | StreamDock XL |
-| `M18`    | StreamDock M18 |
-| `M3`     | StreamDock M3 |
-| `K1Pro`  | K1Pro |
+| `N3`     | StreamDock N3     |
+| `N4`     | StreamDock N4     |
+| `N1`     | StreamDock N1     |
+| `N4Pro`  | StreamDock N4Pro  |
+| `XL`     | StreamDock XL     |
+| `M18`    | StreamDock M18    |
+| `M3`     | StreamDock M3     |
+| `Mini`   | StreamDock Mini   |
+| `K1Pro`  | K1Pro             |
 
 ## Linux 运行依赖
 
@@ -384,9 +386,9 @@ ws.send(JSON.stringify(refresh));
 
 **旋钮按下事件 Payload：**
 
-| 参数名 | 类型   | 说明            |
-| ------ | ------ | --------------- |
-| knobId | number | 旋钮 ID         |
+| 参数名 | 类型   | 说明                          |
+| ------ | ------ | ----------------------------- |
+| knobId | number | 旋钮 ID                       |
 | state  | string | 状态："pressed" 或 "released" |
 
 **滑动手势事件 Payload：**
@@ -397,11 +399,21 @@ ws.send(JSON.stringify(refresh));
 
 **N4Pro 触摸点事件 Payload：**
 
-| 参数名 | 类型   | 说明                     |
-| ------ | ------ | ------------------------ |
-| type   | string | 固定为 `"touch_point"` |
-| x      | number | 触摸 X 坐标              |
-| y      | number | 触摸 Y 坐标              |
+| 参数名 | 类型   | 说明                    |
+| ------ | ------ | ----------------------- |
+| type   | string | 固定为`"touch_point"` |
+| x      | number | 触摸 X 坐标             |
+| y      | number | 触摸 Y 坐标             |
+
+**Mini 拨码开关事件 Payload：**
+
+| 参数名    | 类型   | 说明                                     |
+| --------- | ------ | ---------------------------------------- |
+| type      | string | 固定为`"dip_switch"`                   |
+| dipId     | number | 拨码开关 ID：`1` 或 `2`              |
+| direction | string | 可选方向：`"left"` 或 `"right"`      |
+| state     | string | 状态：`"pressed"` 或 `"released"`    |
+| rawState  | number | 数值状态：`1` 表示触发，`0` 表示结束 |
 
 ### 客户端发送事件
 
@@ -747,7 +759,7 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### setLEDBrightness - 设置 LED 亮度
+#### ==setLED==Brightness - 设置 LED 亮度
 
 设置设备 LED 灯的亮度。
 
@@ -769,7 +781,7 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### setLEDColor - 设置全部的 LED 颜色
+#### ==setLED==Color - 设置全部的 LED 颜色
 
 设置设备 LED 灯的 RGB 颜色。
 
@@ -801,8 +813,8 @@ ws.send(JSON.stringify(refresh));
 
 **Payload 参数：**
 
-| 参数名 | 类型       | 必填 | 说明                                      |
-| ------ | ---------- | ---- | ----------------------------------------- |
+| 参数名 | 类型       | 必填 | 说明                                             |
+| ------ | ---------- | ---- | ------------------------------------------------ |
 | colors | number[][] | 是   | 按 LED 顺序排列的 RGB 三元组；每个分量范围 0-255 |
 
 **请求示例：**
@@ -821,7 +833,7 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### resetLEDColor - 重置 LED 颜色
+#### re==setLED==Color - 重置 LED 颜色
 
 重置设备 LED 灯为默认颜色。
 

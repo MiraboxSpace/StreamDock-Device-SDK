@@ -24,6 +24,7 @@
 | StreamDock XL       |
 | StreamDock M18      |
 | StreamDock M3       |
+| StreamDock Mini     |
 | K1Pro               |
 
 ## OEM Device Aliases
@@ -57,6 +58,7 @@ Available `Model` aliases are case-insensitive:
 | `XL`      | StreamDock XL |
 | `M18`     | StreamDock M18 |
 | `M3`      | StreamDock M3 |
+| `Mini`    | StreamDock Mini |
 | `K1Pro`   | K1Pro |
 
 ## Linux Runtime Dependencies
@@ -402,6 +404,16 @@ Triggered when listening for key, knob, or touch input.
 | type      | string | Fixed value: `"touch_point"`   |
 | x         | number | Touch X coordinate             |
 | y         | number | Touch Y coordinate             |
+
+**Mini DIP switch event payload:**
+
+| Parameter | Type   | Description                                      |
+| --------- | ------ | ------------------------------------------------ |
+| type      | string | Fixed value: `"dip_switch"`                      |
+| dipId     | number | DIP switch ID: `1` or `2`                        |
+| direction | string | Optional direction: `"left"` or `"right"`        |
+| state     | string | State: `"pressed"` or `"released"`               |
+| rawState  | number | Numeric state: `1` for active, `0` for inactive  |
 
 ### Client Events
 

@@ -375,4 +375,5 @@ class StreamDockN4Pro(StreamDock):
         self.feature_option.deviceType = device_type.dock_n4pro
         self.feature_option.supportBackgroundGif = True
         self.feature_option.supportConfig = True
+        self.feature_option.support_single_led_color = True
         pass

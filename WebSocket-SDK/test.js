@@ -11,7 +11,7 @@
 //
 // Usage:
 // - Uncomment the test section you want to run
-// - Run with: node "Test Websocket Command.js"
+// - Run with: node docs/test.js
 // =============================================================================
 
 const WebSocket = require('ws');
@@ -75,10 +75,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function supportsPNGKeyImage(deviceType) {
-  return deviceType === 'N4Pro' || deviceType === 'M3' || deviceType === 'XL';
-}
-
 function keyCountForDevice(deviceType) {
   const keyCounts = {
     '293': 15,
@@ -95,9 +91,15 @@ function keyCountForDevice(deviceType) {
     'XL': 32,
     'M18': 18,
     'M3': 15,
-    'K1Pro': 6
+    'K1Pro': 6,
+    'Mini': 6
   };
   return keyCounts[deviceType] || 18;
+}
+
+function imageKeysForDevice(deviceType) {
+  const keyCount = keyCountForDevice(deviceType);
+  return Array.from({ length: keyCount }, (_, index) => index + 1);
 }
 
 /**
@@ -299,11 +301,23 @@ async function testComprehensive() {
       // sendCommand(ws, 'magneticCalibration', devicePath, {});
     }
 
+    // Mini special functions
+    if (deviceType === 'Mini') {
+      console.log('\n--- Mini special functions ---');
+      sendCommand(ws, 'setLEDBrightness', devicePath, { brightness: 255 });
+      sendCommand(ws, 'setLEDColor', devicePath, {
+        r: 255,
+        g: 0,
+        b: 0
+      });
+      await sleep(1000);
+    }
+
     // Set key GIFs/images for all image keys
-    // i % 3 == 0 -> key GIF, i % 3 == 1 -> JPG, i % 3 == 2 -> PNG when supported.
+    // Matches Python SDK main.py:
+    // i % 3 == 0 -> GIF, i % 3 == 1 -> button_test.jpg, i % 3 == 2 -> mark.png.
     console.log('\n--- Setting key GIFs/images ---');
-    const keyCount = keyCountForDevice(deviceType);
-    for (let i = 1; i <= keyCount; i++) {
+    for (const i of imageKeysForDevice(deviceType)) {
       if (i % 3 === 0) {
         sendCommand(ws, 'setKeyGif', devicePath, {
           keyIndex: i,
@@ -317,7 +331,7 @@ async function testComprehensive() {
       } else {
         sendCommand(ws, 'setKeyImg', devicePath, {
           keyIndex: i,
-          imagePath: supportsPNGKeyImage(deviceType) ? TEST_PNG_KEY_IMAGE_PATH : TEST_IMAGE_PATH
+          imagePath: TEST_PNG_KEY_IMAGE_PATH
         });
         sendCommand(ws, 'refresh', devicePath, {});
       }
@@ -330,7 +344,7 @@ async function testComprehensive() {
 
     // Start input event listener
     console.log('\n--- Starting input event listener ---');
-    console.log('Press keys, rotate knobs, swipe, or touch N4Pro touch bar to see events...');
+    console.log('Press keys, rotate knobs, swipe, touch N4Pro touch bar, or toggle Mini DIP switches to see events...');
     console.log('Press Ctrl+C to stop\n');
 
     sendCommand(ws, 'read', devicePath, {});
@@ -357,8 +371,19 @@ async function testComprehensive() {
           console.log(`Knob ${payload.knobId} ${payload.state}`);
         }
 
+        // Mini DIP switch events
+        if (payload.type === 'dip_switch') {
+          const direction = payload.direction ? ` ${payload.direction}` : '';
+          console.log(`DIP switch ${payload.dipId}${direction} ${payload.state} (${payload.rawState})`);
+        }
+
         // Swipe events
-        if (payload.direction !== undefined && payload.keyId === undefined) {
+        if (
+          payload.direction !== undefined &&
+          payload.keyId === undefined &&
+          payload.knobId === undefined &&
+          payload.type === undefined
+        ) {
           console.log(`Swipe gesture: ${payload.direction}`);
         }
 

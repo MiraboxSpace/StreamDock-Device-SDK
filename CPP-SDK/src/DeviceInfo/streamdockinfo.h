@@ -27,6 +27,7 @@ enum class DeviceOriginType
 	SDXL = 0x08,	///< StreamDock StreamDockXL
 	SDM3 = 0x09,	///< StreamDock StreamDockM3
 	K1Pro = 0x0A,	///< StreamDock K1Pro
+	SDMini = 0x0B,	///< StreamDock StreamDockMini
 };
 
 struct StreamDockInfo
@@ -67,5 +68,11 @@ enum class RegisterEvent : uint8_t
 	SwipeLeft = 0x07,	///< Swipe left gesture
 	SwipeRight = 0x08,	///< Swipe right gesture
 	ToggleUp = 0x09,    ///< Toggle switch up event
-	ToggleDown = 0x0A   ///< Toggle switch down event
+	ToggleDown = 0x0A,  ///< Toggle switch down event
+	DIPLeft = 0x0B,        ///< DIP switch left event
+	DIPLeftEnd = 0x0C,     ///< DIP switch left end event
+	DIPRight = 0x0D,       ///< DIP switch right event
+	DIPRightEnd = 0x0E,    ///< DIP switch right end event
+	DIPPress = 0x0F,       ///< DIP switch press event
+	DIPRelease = 0x10     ///< DIP switch press end event
 };
