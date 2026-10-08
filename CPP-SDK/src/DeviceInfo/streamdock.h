@@ -52,6 +52,9 @@ public:
 	virtual ~StreamDock();
 
 protected:
+	// Translate logical key numbers only when writing an image to the device.
+	virtual uint8_t getImageKeyValue(uint8_t keyValue) const { return keyValue; }
+
 	virtual RegisterEvent dispatchEvent(uint8_t readValue, uint8_t eventValue) = 0;
 
 public:

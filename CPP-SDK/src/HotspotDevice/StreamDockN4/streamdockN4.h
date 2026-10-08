@@ -9,6 +9,8 @@ public:
 	virtual RegisterEvent dispatchEvent(uint8_t readValue, uint8_t eventValue) override;
 
 private:
+	uint8_t getImageKeyValue(uint8_t keyValue) const override;
+
 	static bool registered_N4;
 	static bool registered_N4E;
 };
