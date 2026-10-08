@@ -91,8 +91,9 @@ def create_scaled_key_image(dock, image, margins=[0, 0, 0, 0], background='black
 def create_scaled_touchscreen_image(dock, image, margins=[0, 0, 0, 0], background='black'):
     return _scale_image(image, dock.touchscreen_image_format(), margins, background)
 
-def to_native_key_format(dock, image):
-    return _to_native_format(image, dock.key_image_format())
+def to_native_key_format(dock, image, key=None):
+    image_format = dock.key_image_format() if key is None else dock.key_image_format(key)
+    return _to_native_format(image, image_format)
 
 def to_native_seondscreen_format(dock, image):
     return _to_native_format(image, dock.secondscreen_image_format())

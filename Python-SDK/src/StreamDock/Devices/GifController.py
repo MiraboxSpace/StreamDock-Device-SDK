@@ -50,7 +50,7 @@ class GifController:
         if hardware_key is None:
             return -1
 
-        image_format = self._key_image_format(logical_key, hardware_key)
+        image_format = self._device.key_image_format(logical_key)
         frames, delays, _, _ = self._read_gif(path, image_format, allow_png=True)
         if not frames:
             return -1
@@ -247,17 +247,6 @@ class GifController:
         except Exception as e:
             print(f"Error: {e}")
             return None, None
-
-    def _key_image_format(self, logical_key, hardware_key):
-        if (
-            hasattr(self._device, "secondscreen_image_format")
-            and (
-                hardware_key in range(16, 19)
-                or (logical_key is not None and logical_key.value in range(11, 15))
-            )
-        ):
-            return self._device.secondscreen_image_format()
-        return self._device.key_image_format()
 
     def _read_gif(self, path, image_format, allow_png):
         try:

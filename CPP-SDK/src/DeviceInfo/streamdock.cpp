@@ -77,7 +77,7 @@ void StreamDock::clearKey(uint8_t keyValue)
 		return;
 	}
 	if (_transport->canWrite())
-		_transport->clearKey(keyValue);
+		_transport->clearKey(getImageKeyValue(keyValue));
 }
 
 void StreamDock::refresh()
@@ -161,7 +161,7 @@ void StreamDock::setKeyImgFileStream(const std::string& stream, uint8_t keyValue
 		ToolKit::print("[ERROR] Invalid image data for this device/key.");
 		return;
 	}
-	_transport->setKeyImgFileStream(stream, keyValue);
+	_transport->setKeyImgFileStream(stream, getImageKeyValue(keyValue));
 }
 
 void StreamDock::setBackgroundImgFile(const std::string& filePath, uint32_t timeoutMs)

@@ -285,7 +285,7 @@ class StreamDockN4Pro(StreamDock):
 
             # open formatter
             image = Image.open(path)
-            image = to_native_key_format(self, image)
+            image = to_native_key_format(self, image, logical_key)
             temp_image_path = (
                 "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
             )
@@ -318,7 +318,7 @@ class StreamDockN4Pro(StreamDock):
 
             # open formatter
             image = Image.open(path)
-            image = to_native_seondscreen_format(self, image)
+            image = to_native_key_format(self, image, logical_key)
             temp_image_path = (
                 "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
             )
@@ -343,7 +343,9 @@ class StreamDockN4Pro(StreamDock):
     def get_serial_number(self):
         return self.serial_number
 
-    def key_image_format(self):
+    def key_image_format(self, key=None):
+        if key is not None and key in range(11, 15):
+            return self.secondscreen_image_format()
         return {
             "size": (112, 112),
             "format": "PNG",

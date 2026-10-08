@@ -224,7 +224,7 @@ class StreamDockXL(StreamDock):
     def get_serial_number(self):
         return self.serial_number
 
-    def key_image_format(self):
+    def key_image_format(self, key=None):
         return {
             "size": (80, 80),
             "format": "PNG",

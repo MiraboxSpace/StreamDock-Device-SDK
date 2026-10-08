@@ -142,7 +142,7 @@ class StreamDockH1Pro(StreamDock):
     def get_serial_number(self):
         return self.serial_number
 
-    def key_image_format(self):
+    def key_image_format(self, key=None):
         return {
             "size": (64, 64), "format": "JPEG",
             "rotation": 90, "flip": (False, False),

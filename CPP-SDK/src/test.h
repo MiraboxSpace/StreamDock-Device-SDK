@@ -391,45 +391,55 @@ namespace TEST_N4
 	{
 		if (device->info()->originType != DeviceOriginType::SDN4)
 			return;
-		device->reader()->startReadLoop();
+		device->heartbeater()->startHeartBeatLoop();
 		device->wakeupScreen();
+		device->setKeyBrightness(100);
 		device->clearAllKeys();
 		device->setEncoder(std::make_shared<OpenCVImageEncoder>());
-		device->setBackgroundImgFile("../../img/backgroud_test.png");
+		// Background images are written to ROM; leave this disabled like Python main.py.
+		// device->setBackgroundImgFile("../../img/backgroud_test.png");
 		device->refresh();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		device->gifer()->setKeyGifFile("../../img/test.gif", 1);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 2);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 2);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 4);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 10);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 11);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 15);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 7);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 3);
-		device->gifer()->setKeyGifFile("../../img/test.gif", 13);
-		device->setKeyImgFile("../../img/button_test.jpg", 9);
-		device->rgber()->setLedBrightness(13);
-		device->gifer()->startGifLoop();
-		device->reader()->registerReadCallback(1, []()
-											   { debugPrint("secondary screen 1 release"); }, RegisterEvent::EveryThing);
-		device->reader()->registerReadCallback(11, []()
-											   { debugPrint("Key 11 pressed"); }, RegisterEvent::KeyPress);
-		device->reader()->registerReadCallback(11, []()
-											   { debugPrint("Key 11 release"); }, RegisterEvent::KeyRelease);
-		device->reader()->registerReadCallback(28, []()
-											   { debugPrint("secondary screen swipe left"); }, RegisterEvent::SwipeLeft);
-		device->reader()->registerReadCallback(28, []()
-											   { debugPrint("secondary screen Unknown event"); }, RegisterEvent::EveryThing, true);
-		device->reader()->registerReadCallback(16, []()
-											   { debugPrint("knob 1 left"); }, RegisterEvent::KnobLeft, true);
-		device->reader()->registerReadCallback(17, []()
-											   { debugPrint("knob 1 right"); }, RegisterEvent::KnobRight, true);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 
-		device->setBackgroundImgFile("../../img/backgroud_test.png");
+		// Match Python: key % 3 == 1 uses JPG, 2 uses PNG, and 0 uses GIF.
+		for (uint8_t key = 1; key <= 14; ++key)
+		{
+			if (key % 3 == 0)
+				device->gifer()->setKeyGifFile("../../img/test.gif", key);
+			else if (key % 3 == 1)
+				device->setKeyImgFile("../../img/button_test.jpg", key);
+			else
+				device->setKeyImgFile("../../img/mark.png", key);
+
+			device->reader()->registerReadCallback(key, [key]()
+				{ debugPrint("Key " + std::to_string(key) + " pressed"); }, RegisterEvent::KeyPress);
+			device->reader()->registerReadCallback(key, [key]()
+				{ debugPrint("Key " + std::to_string(key) + " released"); }, RegisterEvent::KeyRelease);
+		}
+
+		// Rotation callback IDs are 16-23; press/release IDs are 24-27.
+		for (uint8_t knob = 1; knob <= 4; ++knob)
+		{
+			const uint8_t left = 16 + (knob - 1) * 2;
+			const uint8_t right = left + 1;
+			const uint8_t press = 24 + knob - 1;
+			device->reader()->registerReadCallback(left, [knob]()
+				{ debugPrint("Knob " + std::to_string(knob) + " rotated left"); }, RegisterEvent::KnobLeft);
+			device->reader()->registerReadCallback(right, [knob]()
+				{ debugPrint("Knob " + std::to_string(knob) + " rotated right"); }, RegisterEvent::KnobRight);
+			device->reader()->registerReadCallback(press, [knob]()
+				{ debugPrint("Knob " + std::to_string(knob) + " pressed"); }, RegisterEvent::KnobPress);
+			device->reader()->registerReadCallback(press, [knob]()
+				{ debugPrint("Knob " + std::to_string(knob) + " released"); }, RegisterEvent::KnobRelease);
+		}
+		device->reader()->registerReadCallback(28, []()
+			{ debugPrint("Swipe gesture: left"); }, RegisterEvent::SwipeLeft);
+		device->reader()->registerReadCallback(29, []()
+			{ debugPrint("Swipe gesture: right"); }, RegisterEvent::SwipeRight);
+
 		device->refresh();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		device->reader()->startReadLoop();
+		device->gifer()->startGifLoop();
 	}
 }
 

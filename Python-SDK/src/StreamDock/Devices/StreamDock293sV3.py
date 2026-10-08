@@ -148,7 +148,9 @@ class StreamDock293sV3(StreamDock):
     def get_serial_number(self):
         return self.serial_number
 
-    def key_image_format(self):
+    def key_image_format(self, key=None):
+        if key is not None and key in range(16, 19):
+            return self.secondscreen_image_format()
         return {
             "size": (96, 96),
             "format": "JPEG",
