@@ -292,7 +292,9 @@ class StreamDockN1(StreamDock):
             print(f"Error: {e}")
             return -1
 
-    def key_image_format(self):
+    def key_image_format(self, key=None):
+        if key is not None and key in range(16, 19):
+            return self.secondscreen_image_format()
         return {
             "size": (96, 96),
             "format": "JPEG",
