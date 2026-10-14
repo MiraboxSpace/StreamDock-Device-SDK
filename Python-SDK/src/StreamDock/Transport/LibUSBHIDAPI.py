@@ -97,6 +97,9 @@ def _get_dll_name() -> str:
         if "aarch64" in machine_type or "arm64" in machine_type:
             arch_prefix = "arm64"
             fallback_name = "libtransport_arm64.so"
+        elif machine_type.startswith("armv7"):
+            arch_prefix = "arm32"
+            fallback_name = "libtransport_arm32.so"
         elif "x86_64" in machine_type or "amd64" in machine_type:
             arch_prefix = ""
             fallback_name = "libtransport.so"
@@ -104,8 +107,11 @@ def _get_dll_name() -> str:
             raise RuntimeError(f"Unsupported architecture on Linux: {machine_type}")
 
         # Pattern for glibc-versioned libraries:
-        # libtransport[_arm64]_glibcX.XX.so or libtransport_glibcX.XX.so
+        # Match ARMv7 libraries explicitly to avoid selecting an x86_64 library.
+        # Other architectures retain their existing glibc library matching.
         pattern = re.compile(rf"^libtransport(_{arch_prefix})?_glibc(\d+)\.(\d+)\.so$")
+        if arch_prefix == "arm32":
+            pattern = re.compile(r"^libtransport(_arm32)_glibc(\d+)\.(\d+)\.so$")
 
         # Search for matching libraries
         candidates = []

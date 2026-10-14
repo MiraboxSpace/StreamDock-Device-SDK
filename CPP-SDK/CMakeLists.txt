@@ -61,6 +61,11 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_
             if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
                 message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
             endif()
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^armv7")
+            # ARMv7 Linux
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
+            endif()
         else()
             # x86_64 Linux
             if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport.so")
