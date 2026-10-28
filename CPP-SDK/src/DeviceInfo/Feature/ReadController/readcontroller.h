@@ -63,6 +63,7 @@ private:
 	std::thread _readThread;         ///< Read loop worker thread.
 	std::atomic<bool> _running = false; ///< Whether the worker thread is active.
 	std::atomic<bool> _readLoopEnabled = false; ///< Whether the read loop should continue running.
+	std::mutex _readStateMutex;
 	std::mutex _readMutex;
 	std::condition_variable _readCv;
 

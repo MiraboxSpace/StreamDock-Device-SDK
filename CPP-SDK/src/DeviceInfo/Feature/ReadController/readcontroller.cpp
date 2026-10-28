@@ -72,8 +72,11 @@ void ReadController::startReadLoop()
 {
 	if (!_instance)
 		return;
-	if (_instance->_transport)
-		_readLoopEnabled = true;
+	{
+		std::lock_guard<std::mutex> lock(_readStateMutex);
+		if (_instance->_transport)
+			_readLoopEnabled = true;
+	}
 	_readCv.notify_all();
 }
 
@@ -81,6 +84,7 @@ void ReadController::stopReadLoop()
 {
 	if (!_instance)
 		return;
+	std::lock_guard<std::mutex> lock(_readStateMutex);
 	if (_instance->_transport)
 		_readLoopEnabled = false;
 }
@@ -92,7 +96,7 @@ void ReadController::readLoop()
 	while (_running)
 	{
 		{
-			std::unique_lock<std::mutex> lock(_readMutex);
+			std::unique_lock<std::mutex> lock(_readStateMutex);
 			_readCv.wait(lock, [this]
 						 { return !_running || _readLoopEnabled; });
 
@@ -183,8 +187,11 @@ void ReadController::startWorkerThread()
 
 void ReadController::stopWorkerThread()
 {
-	_running = false;
+	{
+		std::lock_guard<std::mutex> lock(_readStateMutex);
+		_running = false;
+	}
 	_readCv.notify_all();
-	if (_readThread.joinable())
+	if (_readThread.joinable() && _readThread.get_id() != std::this_thread::get_id())
 		_readThread.join();
 }
