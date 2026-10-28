@@ -164,8 +164,11 @@ void GifController::startGifLoop()
 {
 	if (!_instance)
 		return;
-	if (_instance->_transport && _instance->_transport->canWrite() && _instance->_feature->isDualDevice)
-		_gifLoopEnabled = true;
+	{
+		std::lock_guard<std::mutex> lock(_gifMutex);
+		if (_instance->_transport && _instance->_feature->isDualDevice)
+			_gifLoopEnabled = true;
+	}
 	_gifCv.notify_all();
 }
 
@@ -173,13 +176,14 @@ void GifController::stopGifLoop()
 {
 	if (!_instance)
 		return;
-	if (_instance->_transport && _instance->_transport->canWrite() && _instance->_feature->isDualDevice)
+	std::lock_guard<std::mutex> lock(_gifMutex);
+	if (_instance->_transport && _instance->_feature->isDualDevice)
 		_gifLoopEnabled = false;
 }
 
 void GifController::gifWorkLoop()
 {
-	if (!_instance || !_instance->canTransportWrite() || !_instance->_feature->isDualDevice) return;
+	if (!_instance || !_instance->_transport || !_instance->_feature->isDualDevice) return;
 
 	// Get start time
 	auto lastTime = std::chrono::steady_clock::now();
@@ -191,10 +195,15 @@ void GifController::gifWorkLoop()
 			_gifCv.wait(lock, [this]
 				{ return !_running || _gifLoopEnabled; });
 
-			if (!_instance->canTransportWrite())
-				_running = false;
 			if (!_running)
 				break;
+			if (!_instance->canTransportWrite())
+			{
+				_gifCv.wait_for(lock, std::chrono::milliseconds(100), [this]
+					{ return !_running || !_gifLoopEnabled; });
+				lastTime = std::chrono::steady_clock::now();
+				continue;
+			}
 
 			if (_gifMap.empty()) {
 				lock.unlock();
@@ -283,7 +292,10 @@ void GifController::startWorkerThread()
 
 void GifController::stopWorkerThread()
 {
-	_running = false;
+	{
+		std::lock_guard<std::mutex> lock(_gifMutex);
+		_running = false;
+	}
 	_gifCv.notify_all();
 	if (_gifThread.joinable())
 		_gifThread.join();

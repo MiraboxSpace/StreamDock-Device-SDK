@@ -23,14 +23,17 @@ StreamDock::~StreamDock()
 
 void StreamDock::init()
 {
-	_readController = std::make_unique<ReadController>(this);
-	_heartBeater = std::make_unique<HeartBeat>(this);
-	if (_feature->hasRGBLed)
-		_rgbController = std::make_unique<RGBController>(this);
-	if (_feature->isDualDevice)
-		_gifController = std::make_unique<GifController>(this);
-	if (_feature->supportConfig)
-		_configer = std::make_unique<Configer>(this);
+	std::call_once(_initOnce, [this]
+	{
+		_readController = std::make_unique<ReadController>(this);
+		_heartBeater = std::make_unique<HeartBeat>(this);
+		if (_feature->hasRGBLed)
+			_rgbController = std::make_unique<RGBController>(this);
+		if (_feature->isDualDevice)
+			_gifController = std::make_unique<GifController>(this);
+		if (_feature->supportConfig)
+			_configer = std::make_unique<Configer>(this);
+	});
 }
 
 void StreamDock::initImgHelper()

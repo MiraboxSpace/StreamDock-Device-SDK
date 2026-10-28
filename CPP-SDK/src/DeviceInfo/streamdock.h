@@ -18,6 +18,7 @@
 #include <streamdockinfo.h>
 #include <featureoption.h>
 #include <memory>
+#include <mutex>
 #include <Feature/ReadController/readcontroller.h>
 #include <Feature/RGBController/rgbcontroller.h>
 #include <Feature/GifController/gifcontroller.h>
@@ -59,7 +60,7 @@ protected:
 
 public:
 	/**
-	 * @brief Initialize the StreamDock device and all internal components.
+	 * @brief Initialize internal components once; repeated calls preserve controller state.
 	 */
 	void init();
 	/**
@@ -313,4 +314,6 @@ protected:
 	std::shared_ptr<ImgHelper> _2rdsc_imgHelper = nullptr;      ///< Second screen image helper.
 	std::shared_ptr<ImgHelper> _bg_gifHelper = nullptr;         ///< Background GIF animation helper.
 
+private:
+	std::once_flag _initOnce;
 };

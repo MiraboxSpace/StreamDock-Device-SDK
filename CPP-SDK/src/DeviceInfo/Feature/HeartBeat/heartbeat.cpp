@@ -31,7 +31,7 @@ void HeartBeat::stopHeartBeatLoop()
 
 void HeartBeat::heartBeatLoop()
 {
-	if (!_instance || !_instance->canTransportWrite()) return;
+	if (!_instance || !_instance->_transport) return;
 
 	ToolKit::print("[INFO] heart beat worker started");
 
@@ -43,7 +43,7 @@ void HeartBeat::heartBeatLoop()
 				return !_running;
 				});
 
-			if (!_running || !_instance || !_instance->_transport->canWrite())
+			if (!_running)
 				break;
 		}
 
@@ -61,7 +61,10 @@ void HeartBeat::startWorkerThread()
 }
 void HeartBeat::stopWorkerThread() 
 {
-	_running = false;
+	{
+		std::lock_guard<std::mutex> lock(_heartbeatMutex);
+		_running = false;
+	}
 	_heartbeatCv.notify_all();
 	if (_heartbeatThread.joinable())
 		_heartbeatThread.join();

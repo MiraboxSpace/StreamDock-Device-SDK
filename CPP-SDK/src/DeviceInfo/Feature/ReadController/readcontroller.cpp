@@ -1,4 +1,5 @@
 #include "readcontroller.h"
+#include <chrono>
 #include <future>
 #include <iomanip>
 #include <toolkit.h>
@@ -31,11 +32,6 @@ std::vector<uint8_t> ReadController::read(int32_t timeoutMs)
 		response.resize(length);
 		// ToolKit::printHexBuffer(response);
 		return response;
-	}
-	else if (length == -1)
-	{ /// disconnect or other abort
-		stopWorkerThread();
-		return {};
 	}
 	else
 	{
@@ -99,16 +95,18 @@ void ReadController::readLoop()
 			std::unique_lock<std::mutex> lock(_readStateMutex);
 			_readCv.wait(lock, [this]
 						 { return !_running || _readLoopEnabled; });
-
-			if (!_instance->_transport->canWrite())
-				_running = false;
 			if (!_running)
 				break;
 		}
 
 		std::vector<uint8_t> response = read(READ_LOOP_TIMEOUT);
 		if (response.empty())
+		{
+			std::unique_lock<std::mutex> lock(_readStateMutex);
+			_readCv.wait_for(lock, std::chrono::milliseconds(READ_LOOP_TIMEOUT), [this]
+				{ return !_running || !_readLoopEnabled; });
 			continue;
+		}
 		if (response.size() < 64)
 		{
 			ToolKit::print("[ERROR] Received response is too short.");
