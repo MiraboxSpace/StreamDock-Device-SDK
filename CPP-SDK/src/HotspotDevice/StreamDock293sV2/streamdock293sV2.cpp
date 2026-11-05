@@ -28,8 +28,8 @@ StreamDock293sV2::StreamDock293sV2(const hid_device_info& device_info)
 	std::wcout << "StreamDock293sV2: " << _info->serialNumber << std::endl;
 	_info->width = 854;
 	_info->height = 480;
-	_info->keyWidth = 96;
-	_info->keyHeight = 96;
+	_info->keyWidth = 85;
+	_info->keyHeight = 85;
 	_info->minKey = 1;
 	_info->maxKey = 15;
 	_info->key_rotate_angle = 270.0f;

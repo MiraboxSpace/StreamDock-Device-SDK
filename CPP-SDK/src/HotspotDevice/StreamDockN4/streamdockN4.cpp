@@ -50,7 +50,6 @@ StreamDockN4::StreamDockN4(const hid_device_info& device_info)
 	_info->maxKey = 14;
 	_info->key_rotate_angle = 180.0f;
 	_info->bg_rotate_angle = 180.0f;
-	_info->bg_flip_horizonal = true;
 	_feature->isDualDevice = true;
 	_feature->hasSecondScreen = true;
 	_feature->min2rdScreenKey = 1;

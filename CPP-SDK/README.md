@@ -1,10 +1,25 @@
 # StreamDock C++ SDK Documentation
 
-## H1 Pro / H1 ProE
+## Device image parameters
 
-The H1 Pro (`5548:1030`) and H1 ProE (`5548:1033`) share `StreamDockH1Pro`. Both have 12 keys in a 3 by 4 grid, with 64 × 64 key images and a 320 × 240 background image. Key IDs run from 1 to 12, left to right and top to bottom.
+Dimensions below are width × height **before rotation**. Positive 90° means clockwise; 270° / -90° means counterclockwise. `setKeyImgFile()` and `setBackgroundImgFile()` stretch images to the model's dimensions before rotation and flipping. 
 
-Use `setKeyImgFile()`, `setBackgroundImgFile()`, and `setKeyBrightness()` for images and brightness. `switchMode()` accepts `Screensaver`, `Keys`, or `Gif`. Animations play from device storage; background GIF frame streaming is unsupported. `uploadGifFile("animation.gif")` uses ffmpeg from `PATH` to convert and upload the animation, retrying at lower quality when it exceeds 5 MiB or the device reports insufficient storage. `uploadMp4File()` and `uploadMp4Stream()` also accept prepared MJPEG MP4 data. These upload methods return a `TransportResult`. Uploading may restart the USB device; after reconnection, switch to `Gif` mode to play it. `TEST_H1Pro` in `src/test.h` runs a complete demo: it uploads `img/test.gif` once per device per program run, handles reconnection, cycles modes, draws static and animated key images, and registers key callbacks.
+| Model              | Main key / rotation | Secondary image     | Boot-logo input / rotation / encoding |
+| ------------------ | ------------------- | ------------------- | ------------------------------------- |
+| 293 V2             | 100×100 / 180°    | —                  | 800×480 / 180° / RAW BGR888         |
+| 293 V3             | 112×112 / 180°    | —                  | 800×480 / 180° / JPEG               |
+| 293S V2            | 85×85 / 270°      | 80×80              | 854×480 / 270° / RAW BGR888         |
+| 293S V3            | 96×96 / 270°      | 96×96              | 854×480 / 270° / JPEG               |
+| N3 V2 / V2E        | 60×60 / 0°        | —                  | 320×240 / 90° / RAW RGB565          |
+| N3 V2.5 / V3       | 64×64 / 90°       | —                  | 320×240 / 90° / JPEG                |
+| N1 / N1E           | 96×96 / 0°        | Keys 16–18: 80×80 | 480×854 / 0° / JPEG                 |
+| N4 / N4E           | 112×112 / 180°    | 176×112            | 800×480 / 180° / JPEG               |
+| N4Pro / N4ProE     | 112×112 / 180°    | 176×112            | 800×480 / 180° / JPEG               |
+| M3 / M3E           | 96×96 / 270°      | —                  | 854×480 / 270° / JPEG               |
+| XL / XLE           | 80×80 / 180°      | —                  | 1024×600 / 180° / JPEG              |
+| M18 V2 / V2.5 / V3 | 64×64 / 0°        | —                  | 480×272 / 0° / JPEG                 |
+| Mini / MiniW       | 64×64 / 270°      | —                  | 320×240 / 270° / JPEG               |
+| K1Pro / US / EU    | 64×64 / 90°       | —                  | Not configured                        |
 
 ## 1. 📘 Project Overview
 

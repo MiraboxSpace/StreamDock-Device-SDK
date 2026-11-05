@@ -46,6 +46,19 @@ void StreamDock::initImgHelper()
 		_2rdsc_imgHelper = std::make_shared<ImgHelper>(_feature->_2rdScreenWidth, _feature->_2rdScreenHeights, _info->key_rotate_angle, ResizeOption::Scale, _info->key_flip_vertical, _info->key_flip_horizonal, _feature->_2rdScreenEncodeType);
 	if (!_bg_gifHelper && _feature->supportBackGroundGif)
 		_bg_gifHelper = std::make_shared<ImgHelper>(0, 0, _info->width, _info->height, _info->bg_rotate_angle, ResizeOption::Scale, _info->bg_flip_vertical, _info->bg_flip_horizonal, _feature->backgroundGifEncodeType);
+	const auto keyProfile = _info->originType == DeviceOriginType::SDXL
+		? ImgEncodingProfile::XLKey : ImgEncodingProfile::Key;
+	_ky_imgHelper->_encodingProfile = keyProfile;
+	_ky_imgHelper->_autoJpegPng = _feature->supportKeyJpegPngStream;
+	if (_2rdsc_imgHelper)
+	{
+		_2rdsc_imgHelper->_encodingProfile = keyProfile;
+		_2rdsc_imgHelper->_autoJpegPng = _feature->supportKeyJpegPngStream;
+	}
+	// K1Pro has no boot-logo dimensions configured.
+	if (_info->originType != DeviceOriginType::K1Pro)
+		_bg_imgHelper->_encodingProfile = _info->originType == DeviceOriginType::SDN1
+			? ImgEncodingProfile::N1BootLogo : ImgEncodingProfile::BootLogo;
 }
 
 std::string StreamDock::getFirmwareVersion()
@@ -127,7 +140,7 @@ void StreamDock::setKeyImgFile(const std::string& filePath, uint8_t keyValue)
 	auto imgData = readImgToString(filePath);
 	std::vector<uint8_t> imgDataVec(imgData.data(), imgData.data() + imgData.size());
 	std::vector<uint8_t> output;
-	if (_encoder->encodeToMemory(output, imgDataVec, 95, *getKyImgHelper(keyValue)))
+	if (_encoder->encodeToMemory(output, imgDataVec, 100, *getKyImgHelper(keyValue)))
 		setKeyImgFileStream(std::string(output.data(), output.data() + output.size()), keyValue);
 }
 
@@ -182,8 +195,11 @@ void StreamDock::setBackgroundImgFile(const std::string& filePath, uint32_t time
 	auto imgData = readImgToString(filePath);
 	std::vector<uint8_t> imgDataVec(imgData.data(), imgData.data() + imgData.size());
 	std::vector<uint8_t> output;
-	if (_encoder->encodeToMemory(output, imgDataVec, 85, *_bg_imgHelper))
+	const int quality = _info->originType == DeviceOriginType::K1Pro ? 85 : 100;
+	if (_encoder->encodeToMemory(output, imgDataVec, quality, *_bg_imgHelper))
 		setBackgroundImgStream(std::string(output.data(), output.data() + output.size()), timeoutMs);
+	else
+		ToolKit::print("[ERROR] Failed to encode boot logo; check the image data and encoded size.");
 }
 
 void StreamDock::setBackgroundImgStream(const std::string& stream, uint32_t timeoutMs)
@@ -194,11 +210,18 @@ void StreamDock::setBackgroundImgStream(const std::string& stream, uint32_t time
 		return;
 	}
 
-	if (_feature->isDualDevice)
+	const bool jpegLogo = _info->originType == DeviceOriginType::K1Pro
+		? _feature->isDualDevice : _info->backgroundEncodeType == ImgType::JPG;
+	if (jpegLogo)
 	{
 		if (!isJpegData(stream))
 		{
 			ToolKit::print("[ERROR] Invalid JPEG data.");
+			return;
+		}
+		if (_info->originType != DeviceOriginType::K1Pro && stream.size() > 522240)
+		{
+			ToolKit::print("[ERROR] Boot logo exceeds 522240 bytes.");
 			return;
 		}
 		_transport->setBackgroundImgStream(stream, timeoutMs);
@@ -245,7 +268,7 @@ void StreamDock::setFrameBackgroundStream(const std::string& imageData, uint16_t
 
 	std::vector<uint8_t> input(imageData.begin(), imageData.end());
 	std::vector<uint8_t> output;
-	if (!_encoder->encodeToMemory(output, input, 80, jpegHelper))
+	if (!_encoder->encodeToMemory(output, input, 60, jpegHelper))
 	{
 		ToolKit::print("[ERROR] Failed to encode frame background image.");
 		return;
@@ -443,13 +466,11 @@ std::vector<std::vector<uint8_t>> StreamDock::readGifToStream(const std::string&
 		ToolKit::print("[ERROR] failed to load gif");
 		return {};
 	}
-	// Optimization: lower JPEG quality to reduce USB transfer time and improve smoothness
-	// Quality 70 balances image quality and transfer speed
-	int quality = 70;
-#if __linux__
-	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device
-#endif
-	return gif.encodeFramesToMemory(quality, helper);
+	ImgHelper frameHelper = helper;
+	frameHelper._animated = true;
+	const bool key = helper._encodingProfile == ImgEncodingProfile::Key ||
+		helper._encodingProfile == ImgEncodingProfile::XLKey;
+	return gif.encodeFramesToMemory(key ? 100 : 60, frameHelper);
 }
 
 std::vector<GifFrameData> StreamDock::readGifWithDelays(const std::string& filePath, std::shared_ptr<IImageEncoder> encoder, const ImgHelper& helper)
@@ -465,13 +486,11 @@ std::vector<GifFrameData> StreamDock::readGifWithDelays(const std::string& fileP
 		ToolKit::print("[ERROR] failed to load gif");
 		return {};
 	}
-	// Optimization: lower JPEG quality to reduce USB transfer time and improve smoothness
-	// Quality 70 balances image quality and transfer speed
-	int quality = 70;
-#if __linux__
-	quality = 60;   /// if you use linux in virtual mechine, you should not send high quality pic to device
-#endif
-	return gif.encodeFramesWithDelay(quality, helper);
+	ImgHelper frameHelper = helper;
+	frameHelper._animated = true;
+	const bool key = helper._encodingProfile == ImgEncodingProfile::Key ||
+		helper._encodingProfile == ImgEncodingProfile::XLKey;
+	return gif.encodeFramesWithDelay(key ? 100 : 60, frameHelper);
 }
 
 void StreamDock::setEncoder(std::shared_ptr<IImageEncoder> encoder)

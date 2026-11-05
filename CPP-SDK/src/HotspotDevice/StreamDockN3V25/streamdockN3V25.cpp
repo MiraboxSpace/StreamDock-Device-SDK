@@ -78,8 +78,10 @@ RegisterEvent StreamDockN3V25::dispatchEvent(uint8_t readValue, uint8_t eventVal
 		return RegisterEvent::KeyRelease; /// Bottom button release event
 	if ((0x25 <= readValue && readValue <= 0x31) && eventValue == 0x01)
 		return RegisterEvent::KeyPress; /// Bottom button press event
-	if ((0x33 <= readValue && readValue <= 0x35) && eventValue == 0x00)
+	if ((0x33 <= readValue && readValue <= 0x35) && eventValue == 0x01)
 		return RegisterEvent::KnobPress; /// Knob press event
+	if ((0x33 <= readValue && readValue <= 0x35) && eventValue == 0x00)
+		return RegisterEvent::KnobRelease; /// Knob release event
 	if ((0x90 == readValue || readValue == 0x60 || readValue == 0x50) && eventValue == 0x00)
 		return RegisterEvent::KnobLeft; /// Knob rotate left event
 	if ((0x91 == readValue || readValue == 0x61 || readValue == 0x51) && eventValue == 0x00)

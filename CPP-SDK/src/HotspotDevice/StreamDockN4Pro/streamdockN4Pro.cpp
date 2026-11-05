@@ -90,6 +90,8 @@ RegisterEvent StreamDockN4Pro::dispatchEvent(uint8_t readValue, uint8_t eventVal
 		return RegisterEvent::KnobRight; /// Knob group rotate right event
 	if ((0x37 == readValue || 0x35 == readValue || 0x33 == readValue || 0x36 == readValue) && eventValue == 0x01)
 		return RegisterEvent::KnobPress; /// Knob group press event
+	if ((0x37 == readValue || 0x35 == readValue || 0x33 == readValue || 0x36 == readValue) && eventValue == 0x00)
+		return RegisterEvent::KnobRelease; /// Knob group release event
 	if ((0x38 == readValue) && eventValue == 0x00)
 		return RegisterEvent::SwipeLeft; /// Secondary screen swipe left event
 	if ((0x39 == readValue) && eventValue == 0x00)

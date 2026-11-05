@@ -1,5 +1,7 @@
 #include "streamdockH1Pro.h"
 #include <fstream>
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -111,6 +113,20 @@ StreamDockH1Pro::StreamDockH1Pro(const hid_device_info& device_info)
 	_info->bg_rotate_angle = -90.0;
 	_feature->isDualDevice = true;
 	_feature->supportBackGroundGif = false;
+	_info->firmwareVersion = getFirmwareVersion();
+	std::string firmware = _info->firmwareVersion;
+	std::transform(firmware.begin(), firmware.end(), firmware.begin(),
+		[](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+	// V25/V3 firmware uses 64-pixel keys and JPEG boot logos.
+	if (firmware.find("V25") == std::string::npos && firmware.find("V3") == std::string::npos)
+	{
+		_info->keyWidth = 70;
+		_info->keyHeight = 70;
+		_info->key_rotate_angle = 0.0;
+		_info->bg_rotate_angle = 90.0;
+		_info->backgroundEncodeType = ImgType::RAW;
+		_info->backgroundEncodeFormat = ImgFormat::RGB16;
+	}
 	_readValueMap = {
 		{1, 0x01}, {2, 0x02}, {3, 0x03}, {4, 0x04},
 		{5, 0x05}, {6, 0x06}, {7, 0x07}, {8, 0x08},

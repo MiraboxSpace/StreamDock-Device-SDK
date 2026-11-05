@@ -2,6 +2,46 @@
 
 namespace
 {
+bool isBootLogo(const ImgHelper& helper)
+{
+	return helper._encodingProfile == ImgEncodingProfile::BootLogo ||
+		helper._encodingProfile == ImgEncodingProfile::N1BootLogo;
+}
+
+ImgType outputType(const cv::Mat& input, const ImgHelper& helper)
+{
+	if (helper._autoJpegPng)
+		return input.channels() == 4 ? ImgType::PNG : ImgType::JPG;
+	return helper._imgType;
+}
+
+// Premultiplied ARGB4444 quantization, expanded back to 8-bit for PNG/JPEG.
+cv::Mat toArgb4444(const cv::Mat& input)
+{
+	cv::Mat bgra;
+	if (input.channels() == 4)
+		bgra = input.clone();
+	else
+		cv::cvtColor(input, bgra, input.channels() == 1 ? cv::COLOR_GRAY2BGRA : cv::COLOR_BGR2BGRA);
+	for (int y = 0; y < bgra.rows; ++y)
+	{
+		auto* pixels = bgra.ptr<cv::Vec4b>(y);
+		for (int x = 0; x < bgra.cols; ++x)
+		{
+			auto& pixel = pixels[x];
+			const int alpha = pixel[3];
+			const int alpha4 = alpha >> 4;
+			for (int c = 0; c < 3; ++c)
+			{
+				const int premultiplied4 = ((pixel[c] * alpha + 127) / 255) >> 4;
+				pixel[c] = alpha4 ? static_cast<uint8_t>(std::min(255, premultiplied4 * 255 / alpha4)) : 0;
+			}
+			pixel[3] = static_cast<uint8_t>(alpha4 * 17);
+		}
+	}
+	return bgra;
+}
+
 cv::Mat compositeAlphaToBlack(const cv::Mat& input)
 {
 	if (input.empty() || input.channels() != 4)
@@ -44,6 +84,56 @@ cv::Mat prepareForOutput(const cv::Mat& input, ImgType targetType)
 
 	return input.clone();
 }
+
+bool encodeWithProfile(std::vector<uint8_t>& out, cv::Mat image, int quality,
+	const ImgHelper& helper, ImgType type)
+{
+	const bool key = helper._encodingProfile == ImgEncodingProfile::Key ||
+		helper._encodingProfile == ImgEncodingProfile::XLKey;
+	if (!key && !isBootLogo(helper))
+		return cv::imencode(IImageEncoder::imgTypeToExt(type), image, out,
+			OpenCVImageEncoder::imgEncodeParams(type, quality));
+
+	auto encode = [&](int q)
+	{
+		// PNG quality -1 uses the zlib default; other values map to compression levels.
+		const auto params = type == ImgType::PNG
+			? std::vector<int>{cv::IMWRITE_PNG_COMPRESSION, q < 0 ? 6 : (100 - q) * 9 / 91}
+			: OpenCVImageEncoder::imgEncodeParams(type, q < 0 ? 75 : q);
+		return cv::imencode(IImageEncoder::imgTypeToExt(type), image, out, params);
+	};
+	if (isBootLogo(helper))
+	{
+		for (int q = 100; q >= 0; q -= 10)
+		{
+			if (!encode(q)) return false;
+			if (helper._encodingProfile != ImgEncodingProfile::N1BootLogo || out.size() <= 302080)
+				break;
+		}
+		return out.size() <= 522240;
+	}
+
+	size_t targetBytes = helper._animated ? 3000 : 9000;
+	quality = 100;
+	if (type == ImgType::PNG)
+	{
+		targetBytes = helper._animated ? 20000 : 29000;
+		quality = helper._animated ? 50 : -1;
+		if (helper._animated)
+			image = toArgb4444(image);
+	}
+	else if (helper._animated && helper._encodingProfile == ImgEncodingProfile::XLKey)
+		targetBytes = 2040;
+	if (!encode(quality)) return false;
+	while (out.size() > targetBytes && (quality -= 2) > 0)
+		if (!encode(quality)) return false;
+	if (out.size() > targetBytes)
+	{
+		image = prepareForOutput(toArgb4444(image), type);
+		return encode(-1); // Return the quantized fallback even if it still exceeds the target.
+	}
+	return true;
+}
 }
 
 bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
@@ -51,6 +141,11 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
+	if (imgHelper._encodingProfile != ImgEncodingProfile::Default || imgHelper._autoJpegPng)
+	{
+		std::vector<uint8_t> out;
+		return encodeToMemory(out, canvas, quality, imgHelper) && saveImageToFile(out, filename);
+	}
 	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
 	cv::Mat input = prepareForOutput(canvas.as<cv::Mat>(), targetType);
 	if (input.empty()) return false;
@@ -120,9 +215,11 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
-	cv::Mat input = prepareForOutput(canvas.as<cv::Mat>(), targetType);
-	if (input.empty()) return false;
+	const auto& source = canvas.as<cv::Mat>();
+	out.clear();
+	if (source.empty()) return false;
+	const ImgType targetType = outputType(source, imgHelper);
+	cv::Mat input = prepareForOutput(source, targetType);
 
 	if (imgHelper == ImgHelper())
 		return cv::imencode(imgTypeToExt(ImgType::JPG), input, out, imgEncodeParams(ImgType::JPG, quality));
@@ -179,7 +276,7 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	flip(processed, flipH, flipV);
 
 	// Encode to image byte stream
-	return cv::imencode(imgTypeToExt(imgHelper._imgType), processed, out, imgEncodeParams(imgHelper._imgType, quality));
+	return encodeWithProfile(out, processed, quality, imgHelper, targetType);
 }
 
 
@@ -188,6 +285,11 @@ bool OpenCVImageEncoder::encodeToFile(const std::string& filename,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
+	if (imgHelper._encodingProfile != ImgEncodingProfile::Default || imgHelper._autoJpegPng)
+	{
+		std::vector<uint8_t> out;
+		return encodeToMemory(out, in, quality, imgHelper) && saveImageToFile(out, filename);
+	}
 	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
 	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), targetType);
 	if (input.empty()) return false;
@@ -236,9 +338,12 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	int quality,
 	const ImgHelper& imgHelper) const
 {
-	const ImgType targetType = imgHelper == ImgHelper() ? ImgType::JPG : imgHelper._imgType;
-	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), targetType);
-	if (input.empty()) return false;
+	out.clear();
+	if (in.empty()) return false;
+	const cv::Mat source = cv::imdecode(in, cv::IMREAD_UNCHANGED);
+	if (source.empty()) return false;
+	const ImgType targetType = outputType(source, imgHelper);
+	cv::Mat input = prepareForOutput(source, targetType);
 
 	if (imgHelper == ImgHelper())
 		return cv::imencode(imgTypeToExt(ImgType::JPG), input, out, imgEncodeParams(ImgType::JPG, quality));
@@ -278,7 +383,7 @@ bool OpenCVImageEncoder::encodeToMemory(std::vector<uint8_t>& out,
 	rotate(resized, angle);
 	flip(resized, flipH, flipV);
 
-	return cv::imencode(imgTypeToExt(imgHelper._imgType), resized, out, imgEncodeParams(imgHelper._imgType, quality));
+	return encodeWithProfile(out, resized, quality, imgHelper, targetType);
 }
 #include <fstream>
 
@@ -299,8 +404,9 @@ bool OpenCVImageEncoder::encodeToBitmap(std::vector<uint8_t>& out,
 	const std::vector<uint8_t>& in,
 	const ImgHelper& imgHelper) const
 {
+	out.clear();
+	if (in.empty()) return false;
 	cv::Mat input = prepareForOutput(cv::imdecode(in, cv::IMREAD_UNCHANGED), ImgType::RAW);
-
 	if (input.empty()) return false;
 
 	cv::Mat processed;
