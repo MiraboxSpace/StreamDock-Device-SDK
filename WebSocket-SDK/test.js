@@ -178,17 +178,17 @@ function keyCountForDevice(deviceType) {
   const keyCounts = {
     '293': 15,
     '293V3': 15,
-    '293s': 6,
-    '293sV3': 6,
-    'N3': 9,
-    'N3EN': 9,
+    '293s': 18,
+    '293sV3': 18,
+    'N3': 6,
+    'N3EN': 6,
     'N4': 14,
     'N4EN': 14,
-    'N1': 15,
-    'N1EN': 15,
+    'N1': 18,
+    'N1EN': 18,
     'N4Pro': 14,
     'XL': 32,
-    'M18': 18,
+    'M18': 15,
     'M3': 15,
     'K1Pro': 6,
     'H1Pro': 12,
@@ -198,6 +198,10 @@ function keyCountForDevice(deviceType) {
 }
 
 function imageKeysForDevice(deviceType) {
+  // N4 Pro uses slots 1-4 and 6-15; slot 5 is reserved.
+  if (deviceType === 'N4Pro') {
+    return [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+  }
   const keyCount = keyCountForDevice(deviceType);
   return Array.from({ length: keyCount }, (_, index) => index + 1);
 }
@@ -317,6 +321,13 @@ async function testComprehensive() {
 
     // Device-specific tests
     const deviceType = deviceInfo.Type;
+    const firmware = deviceInfo.FirmwareVersion || '';
+    const keyGifSupported = !(
+      ['293', '293s'].includes(deviceType) ||
+      (['N3', 'N3EN'].includes(deviceType) &&
+        (deviceInfo.VendorID === 0x6602 || firmware.includes('V25.N3'))) ||
+      (deviceType === 'M18' && firmware.includes('V2.M18'))
+    );
 
     // N4Pro special functions
     if (deviceType === 'N4Pro') {
@@ -463,11 +474,10 @@ async function testComprehensive() {
     }
 
     // Set key GIFs/images for all image keys
-    // Matches Python SDK main.py:
     // i % 3 == 0 -> GIF, i % 3 == 1 -> button_test.jpg, i % 3 == 2 -> mark.png.
     console.log('\n--- Setting key GIFs/images ---');
     for (const i of imageKeysForDevice(deviceType)) {
-      if (i % 3 === 0) {
+      if (keyGifSupported && i % 3 === 0) {
         sendCommand(ws, 'setKeyGif', devicePath, {
           keyIndex: i,
           imagePath: TEST_KEY_GIF_PATH
@@ -492,7 +502,9 @@ async function testComprehensive() {
     if (deviceType === 'H1Pro') {
       console.log('[H1Pro] Stage 8: start key GIF playback loop (independent of device GIF mode)');
     }
-    sendCommand(ws, 'startGifLoop', devicePath, {});
+    if (keyGifSupported) {
+      sendCommand(ws, 'startGifLoop', devicePath, {});
+    }
 
     // Start input event listener
     console.log(deviceType === 'H1Pro' ? '\n[H1Pro] Stage 9: listen for key events' : '\n--- Starting input event listener ---');

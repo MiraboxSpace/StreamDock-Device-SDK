@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n>StreamDock WebSocket 测试工具</title>
+  <style>
+    :root { color-scheme:light; --ink:#24292f; --muted:#57606a; --line:#d0d7de; --bg:#f6f8fa; --accent:#0969da; --error:#cf222e; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; color:var(--ink); background:var(--bg); font:13px/1.5 "Segoe UI","Microsoft YaHei",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    button,.file-label { display:inline-flex; align-items:center; justify-content:center; min-height:32px; padding:5px 11px; border:1px solid var(--line); border-radius:4px; background:#f6f8fa; color:var(--ink); cursor:pointer; white-space:nowrap; }
+    button:hover:not(:disabled),.file-label:hover { background:#eaeef2; border-color:#8c959f; }
+    button:disabled { color:#6e7781; background:#f6f8fa; opacity:.6; cursor:not-allowed; }
+    button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    button.primary:hover:not(:disabled) { background:#0550ae; }
+    button.logo { background:#9a6700; border-color:#9a6700; }
+    input,select,textarea { width:100%; min-width:0; padding:5px 8px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--ink); }
+    input,select { min-height:32px; }
+    input:disabled,select:disabled { background:#f6f8fa; color:#6e7781; }
+    input[type=checkbox] { width:14px; min-height:0; height:14px; margin:0; accent-color:var(--accent); }
+    input[type=range] { padding:0; accent-color:var(--accent); }
+    input[type=color] { width:48px; padding:3px; flex:none; }
+    :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    h1,h2,p,dl { margin:0; }
+    h1 { font-size:17px; font-weight:600; }
+    h2 { font-size:14px; font-weight:600; }
+    label { display:block; font-size:12px; margin-bottom:4px; }
+    a { color:var(--accent); }
+    code,.mono,textarea,#endpoint { font-family:Consolas,"Microsoft YaHei",monospace; }
+    .app { max-width:1760px; margin:auto; padding:16px 20px; }
+    .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .header-tools { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+    .language-picker { display:flex; align-items:center; gap:6px; margin:0; white-space:nowrap; }
+    #language { width:auto; }
+    .muted { color:var(--muted); font-size:12px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:4px; min-width:0; }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:9px 12px; border-bottom:1px solid var(--line); background:#f6f8fa; }
+    .panel-body { padding:12px; }
+    .connection { padding:12px; }
+    .connection-fields { display:grid; grid-template-columns:minmax(220px,1fr) auto minmax(200px,1fr); gap:12px; align-items:end; }
+    .row { display:flex; align-items:center; gap:8px; }
+    .row > * { min-width:0; }
+    .field { min-width:0; }
+    .connection-status { display:flex; align-items:center; gap:7px; font-size:12px; white-space:nowrap; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#8c959f; }
+    .dot.online { background:#1a7f37; }
+    .device-details { margin-top:9px; }
+    summary { cursor:pointer; font-size:12px; color:var(--muted); }
+    .device-info { display:flex; flex-wrap:wrap; gap:6px 20px; margin:10px 0 6px; }
+    .device-info div { display:flex; gap:6px; min-width:0; }
+    dt { color:var(--muted); }
+    dd { margin:0; overflow-wrap:anywhere; }
+    .connection-note { border-top:1px solid var(--line); padding-top:8px; margin-top:8px; }
+    .status-bar { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:9px 1px; }
+    .status-line { font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+    .status-line.error { color:var(--error); }
+    #commandState { flex:none; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(360px,1fr); gap:12px; align-items:start; }
+    .operations { display:grid; gap:12px; min-width:0; }
+    .image-layout { display:grid; grid-template-columns:180px minmax(0,1fr); gap:12px; }
+    .preview { height:150px; border:1px dashed #afb8c1; border-radius:3px; background:#f6f8fa; display:flex; align-items:center; justify-content:center; padding:8px; }
+    .preview.drag { border-color:var(--accent); background:#ddf4ff; }
+    .preview img { display:none; max-width:100%; max-height:100%; object-fit:contain; }
+    .empty { text-align:center; color:var(--muted); font-size:12px; }
+    .empty strong { display:block; color:var(--ink); margin-bottom:5px; font-weight:500; }
+    .image-form { display:grid; gap:9px; align-content:start; }
+    .file-tools { flex-wrap:wrap; }
+    .file-label { margin:0; font-size:13px; }
+    .file-meta { margin-top:8px; overflow-wrap:anywhere; }
+    .send-fields { display:flex; gap:8px; }
+    .send-fields > :first-child { flex:1; min-width:0; }
+    #keyField { width:100px; flex:none; }
+    .send-row { display:flex; align-items:center; gap:10px; }
+    .send-row button { flex:none; }
+    .send-row { flex-wrap:wrap; }
+    .control-group button { white-space:normal; text-align:center; }
+    .notice { margin-top:9px; font-size:12px; color:var(--muted); }
+    .notice.warning { padding:7px 9px; color:#7d4e00; background:#fff8c5; border:1px solid #d4a72c; border-radius:3px; }
+    .transform-details { margin-top:10px; padding-top:9px; border-top:1px solid var(--line); }
+    .image-options { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; padding-top:10px; }
+    .check { display:inline-flex; align-items:center; gap:5px; margin:0; font-size:12px; }
+    .size-row { display:flex; align-items:center; gap:6px; margin-top:6px; }
+    .size-row input { width:80px; }
+    .inline-checks { min-height:32px; }
+    .control-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+    .control-group { min-width:0; }
+    .control-group h3 { margin:0 0 6px; font-size:12px; font-weight:600; }
+    .control-group .row { flex-wrap:wrap; }
+    .control-group .muted { margin-top:5px; }
+    .brightness { display:flex; align-items:center; gap:8px; }
+    .brightness input { flex:1; }
+    .brightness output { width:35px; text-align:right; font-family:Consolas,monospace; }
+    .brightness button { flex:none; }
+    .advanced { display:grid; grid-template-columns:minmax(120px,.8fr) minmax(0,1.2fr) auto; gap:10px; align-items:end; }
+    textarea { display:block; min-height:66px; resize:vertical; font-size:12px; }
+    .command-note { margin-top:8px; }
+    .log-panel { position:sticky; top:12px; display:flex; flex-direction:column; height:calc(100dvh - 24px); max-height:900px; }
+    .log-panel .panel-head { flex:none; }
+    .log-tools { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:8px 12px; border-bottom:1px solid var(--line); }
+    .log-tools button { min-height:27px; padding:2px 8px; font-size:12px; }
+    #logs { flex:1; min-height:240px; overflow:auto; padding:0 12px; background:#fff; font:12px/1.6 Consolas,"Microsoft YaHei",monospace; }
+    .log-entry { display:grid; grid-template-columns:86px 40px minmax(0,1fr); gap:8px; padding:7px 0; border-bottom:1px solid #eaeef2; }
+    .log-time { color:#6e7781; }
+    .log-type { color:#57606a; }
+    .log-entry.send .log-type { color:#0969da; }
+    .log-entry.recv .log-type { color:#1a7f37; }
+    .log-entry.error { color:var(--error); }
+    .log-entry.error .log-type { color:var(--error); }
+    .log-detail { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .log-empty { color:var(--muted); padding:16px 0; }
+    .log-note { flex:none; padding:8px 12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
+    footer { padding-top:12px; font-size:12px; color:var(--muted); }
+    .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media(min-width:1001px) { .log-panel { height:calc(100dvh - 222px); min-height:420px; } }
+    @media(max-width:1150px) { .control-grid { grid-template-columns:1fr; } .advanced { grid-template-columns:1fr auto; } .command-event { grid-column:1 / -1; } .image-layout { grid-template-columns:140px minmax(0,1fr); } }
+    @media(max-width:1000px) { .workspace { grid-template-columns:1fr; } .log-panel { position:static; height:400px; } .control-grid { grid-template-columns:1fr 1fr; } .image-layout { grid-template-columns:180px minmax(0,1fr); } }
+    @media(max-width:620px) { .app { padding:12px; } .page-head { align-items:flex-start; flex-direction:column; gap:5px; } .connection-fields,.image-layout,.control-grid,.image-options,.advanced { grid-template-columns:1fr; } .connection-actions { grid-row:2; } .preview { height:140px; } .status-bar { align-items:flex-start; flex-direction:column; gap:3px; } .log-entry { grid-template-columns:86px 40px minmax(0,1fr); gap:6px; } .command-event { grid-column:auto; } .advanced button { justify-self:start; } .send-row { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="page-head"><h1 data-i18n>StreamDock WebSocket 测试工具</h1><div class="header-tools"><div class="connection-status" role="status"><span id="connectionDot" class="dot"></span><span id="connectionStatus" data-i18n>未连接服务</span></div><label class="language-picker" for="language"><span>语言 / Language</span><select id="language"><option value="auto" data-i18n>自动 / Auto</option><option value="zh">中文</option><option value="en">English</option></select></label></div></header>
+    <section class="panel connection" aria-label="连接与设备" data-i18n-aria-label>
+      <div class="connection-fields">
+        <div class="field"><label for="endpoint" data-i18n>服务地址</label><input id="endpoint" value="ws://127.0.0.1:9002" spellcheck="false" autocomplete="off"></div>
+        <div class="row connection-actions"><button id="connect" class="primary" data-i18n>连接</button><button id="disconnect" disabled data-i18n>断开</button></div>
+        <div class="field"><label for="devices"><span data-i18n>目标设备</span> <span id="deviceCount">· 0</span></label><select id="devices" disabled><option value="" data-i18n>等待设备连接</option></select></div>
+      </div>
+      <details class="device-details"><summary data-i18n>设备信息与连接说明</summary>
+        <dl class="device-info"><div><dt data-i18n>型号</dt><dd id="deviceType">—</dd></div><div><dt>USB ID</dt><dd id="deviceUsb" class="mono">—</dd></div><div><dt data-i18n>固件</dt><dd id="deviceFirmware" class="mono">—</dd></div><div><dt data-i18n>序列号</dt><dd id="deviceSerial" class="mono">—</dd></div></dl>
+        <p id="profile" class="muted" data-i18n>选择设备后显示当前源码的图像配置。</p>
+        <p class="muted connection-note" data-i18n>先运行 SDK 服务，测试时退出其他控制软件。连接后仅接收设备列表，不自动发送命令。OEM 的 VID/PID 别名需在 SDK 启动参数中配置；外观相同不代表固件兼容。</p>
+      </details>
+    </section>
+    <div class="status-bar"><p id="sendStatus" class="status-line" role="status" data-i18n>连接设备后可执行命令；发送图片前请先选图。</p><span id="commandState" class="muted" data-i18n>手动执行</span></div>
+    <div class="workspace">
+      <div class="operations">
+        <section class="panel" aria-labelledby="imageHeading">
+          <div class="panel-head"><h2 id="imageHeading" data-i18n>图片发送</h2><span class="muted" data-i18n>JPEG / PNG / WebP · 最大 20 MiB</span></div>
+          <div class="panel-body">
+            <div class="image-layout">
+              <div id="dropZone" class="preview"><div id="emptyPreview" class="empty"><strong data-i18n>拖放图片到这里</strong><span data-i18n>或点击“选择图片”</span></div><img id="previewImage" alt="发送给 SDK 的输入图预览" data-i18n-alt></div>
+              <div class="image-form">
+                <div class="row file-tools"><input id="file" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"><label for="file" class="file-label" tabindex="0" id="fileLabel" data-i18n>选择图片</label><button id="calibration" data-i18n>生成校准图</button><button id="resetImage" disabled data-i18n>还原变换</button></div>
+                <div class="send-fields"><div><label for="imageTarget" data-i18n>写入目标</label><select id="imageTarget"><option value="key" data-i18n>按键图标</option><option value="logo" data-i18n>开机 Logo / 持久化背景</option><option value="temporary" data-i18n>临时背景（M3 / XL / N4Pro）</option></select></div><div id="keyField"><label for="keyIndex" data-i18n>逻辑键号</label><input id="keyIndex" type="number" min="1" max="32" value="1"></div></div>
+                <div class="send-row"><button id="sendImage" class="primary" disabled data-i18n>发送按键图</button><span class="muted" data-i18n>预览为 SDK 接收的输入图。</span></div>
+              </div>
+            </div>
+            <p id="imageMeta" class="muted file-meta" data-i18n>尚未选择图片</p>
+            <p id="targetHint" class="notice" data-i18n>按键图使用逻辑键号。SDK 会自动处理主屏 / 副屏的映射和尺寸。</p>
+            <details class="transform-details"><summary data-i18n>图片变换：旋转、镜像、缩放</summary>
+              <div class="image-options">
+                <div><label for="rotation" data-i18n>额外旋转（浏览器端）</label><select id="rotation"><option value="0" data-i18n>不旋转</option><option value="90" data-i18n>顺时针 90°</option><option value="180">180°</option><option value="270" data-i18n>逆时针 90°</option></select></div>
+                <div><label data-i18n>额外镜像（旋转后）</label><div class="row inline-checks"><label class="check"><input id="flipH" type="checkbox"><span data-i18n>水平</span></label><label class="check"><input id="flipV" type="checkbox"><span data-i18n>垂直</span></label></div></div>
+                <div><label class="check"><input id="resize" type="checkbox"><span data-i18n>缩放到指定尺寸</span></label><div class="size-row"><input id="width" type="number" min="1" max="4096" value="800" aria-label="缩放宽度" data-i18n-aria-label disabled><span>×</span><input id="height" type="number" min="1" max="4096" value="480" aria-label="缩放高度" data-i18n-aria-label disabled><span class="muted">px</span></div></div>
+                <div><label for="quality" data-i18n>变换后的 JPEG 质量</label><select id="quality"><option value="0.9">90%</option><option value="0.95">95%</option><option value="0.75">75%</option></select></div>
+              </div>
+              <p class="notice" data-i18n>无变换时保留原文件。这里的变换会叠加到 SDK 的缩放、旋转和翻转配置上。</p>
+            </details>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="controlsHeading">
+          <div class="panel-head"><h2 id="controlsHeading" data-i18n>设备控制</h2><button id="firmware" disabled data-i18n>读取固件版本</button></div>
+          <div class="panel-body control-grid">
+            <div class="control-group"><h3 data-i18n>输入与显示</h3><div class="row"><button id="read" disabled data-i18n>开始监听按键 / 旋钮 / 触摸</button><button id="refresh" disabled data-i18n>手动刷新屏幕</button></div><p class="muted" data-i18n>read 会先刷新屏幕；输入事件显示在通信日志。</p></div>
+            <div class="control-group"><h3 data-i18n>屏幕亮度</h3><label for="brightness" class="visually-hidden" data-i18n>屏幕亮度</label><div class="brightness"><input id="brightness" type="range" min="0" max="100" value="70"><output id="brightnessValue" for="brightness">70%</output><button id="setBrightness" disabled data-i18n>应用</button></div></div>
+            <div class="control-group"><h3 data-i18n>图标清除</h3><div class="row"><button id="clearKey" disabled data-i18n>清除所选按键</button><button id="clearAll" disabled data-i18n>清除全部图标</button></div><p class="muted" data-i18n>使用图片发送区的逻辑键号。清除后需手动刷新。</p></div>
+            <div class="control-group"><h3 data-i18n>RGB 灯光</h3><div class="row"><input id="ledColor" type="color" value="#42b99a" aria-label="LED 颜色" data-i18n-aria-label><button id="setLed" disabled data-i18n>应用颜色</button></div><p class="muted" data-i18n>仅适用于支持 RGB 的设备。</p></div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="commandHeading">
+          <div class="panel-head"><h2 id="commandHeading" data-i18n>自定义命令</h2><a id="apiDocs" href="README_CN.md" target="_blank" rel="noopener" data-i18n>接口文档</a></div>
+          <div class="panel-body">
+            <div class="advanced"><div class="command-event"><label for="command" data-i18n>事件名</label><input id="command" value="getFirmVersion" list="events" spellcheck="false"><datalist id="events"><option value="getFirmVersion"><option value="refresh"><option value="read"><option value="setBrightness"><option value="setLEDBrightness"><option value="setLEDColor"><option value="resetLEDColor"><option value="setDeviceConfig"><option value="changeN1Mode"><option value="changeN1Page"><option value="setKeyboardLightingEffects"><option value="setKeyboardLightingSpeed"><option value="setKeyboardRGBBacklight"><option value="setKeyboardOSMode"><option value="gifLoopStatus"><option value="startGifLoop"><option value="stopGifLoop"></datalist></div><div><label for="payload" data-i18n>payload（JSON 对象）</label><textarea id="payload" spellcheck="false">{}</textarea></div><button id="sendCommand" disabled data-i18n>发送命令</button></div>
+            <p class="muted command-note" data-i18n>path 自动使用当前设备；事件名和参数直接交给 SDK。</p>
+          </div>
+        </section>
+      </div>
+      <section class="panel log-panel" aria-labelledby="logHeading">
+        <div class="panel-head"><h2 id="logHeading"><span data-i18n>通信日志</span> <span id="logCount" class="muted" data-i18n>0 条</span></h2><span class="muted" data-i18n>最多保留 500 条</span></div>
+        <div class="log-tools"><label class="check"><input id="errorsOnly" type="checkbox"><span data-i18n>仅错误</span></label><label class="check"><input id="autoScroll" type="checkbox" checked><span data-i18n>自动滚动</span></label><button id="exportLog" data-i18n>导出 JSON</button><button id="clearLog" data-i18n>清空</button></div>
+        <div id="logs" role="log" aria-label="通信日志" data-i18n-aria-label><div class="log-empty" data-i18n>尚无日志。连接服务后显示设备列表与通信事件。</div></div>
+        <p class="log-note" data-i18n>图片仅记录尺寸、格式及字节数，不导出 Base64 内容。</p>
+      </section>
+    </div>
+    <footer data-i18n>写入命令间隔 5 秒。SDK 无统一完成回执，请结合设备显示和日志判断。按键图与开机 Logo 命令已自动刷新。</footer>
+  </main>
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const translations = {
+      "StreamDock WebSocket 测试工具":"StreamDock WebSocket Test Tool",
+      "自动 / Auto":"Auto (browser)",
+      "未连接服务":"Not connected",
+      "正在连接…":"Connecting…",
+      "服务已连接":"Connected",
+      "服务已断开":"Disconnected",
+      "连接与设备":"Connection and device",
+      "服务地址":"Server URL",
+      "连接":"Connect",
+      "断开":"Disconnect",
+      "目标设备":"Target device",
+      "等待设备连接":"Waiting for a device",
+      "设备信息与连接说明":"Device information and connection notes",
+      "型号":"Model",
+      "固件":"Firmware",
+      "序列号":"Serial number",
+      "选择设备后显示当前源码的图像配置。":"Select a device to view its image configuration in this checkout.",
+      "先运行 SDK 服务，测试时退出其他控制软件。连接后仅接收设备列表，不自动发送命令。OEM 的 VID/PID 别名需在 SDK 启动参数中配置；外观相同不代表固件兼容。":"Start the SDK server and close other device control software before testing. Connecting only receives the device list; no commands are sent automatically. Configure OEM VID/PID aliases in the SDK startup arguments. Identical appearance does not guarantee firmware compatibility.",
+      "连接设备后可执行命令；发送图片前请先选图。":"Connect a device to run commands. Select an image before sending.",
+      "手动执行":"Manual commands",
+      "图片发送":"Send image",
+      "JPEG / PNG / WebP · 最大 20 MiB":"JPEG / PNG / WebP · Up to 20 MiB",
+      "拖放图片到这里":"Drop an image here",
+      "或点击“选择图片”":"or click “Choose image”",
+      "发送给 SDK 的输入图预览":"Preview of the image sent to the SDK",
+      "选择图片":"Choose image",
+      "生成校准图":"Calibration image",
+      "还原变换":"Reset transforms",
+      "写入目标":"Write target",
+      "按键图标":"Key icon",
+      "开机 Logo / 持久化背景":"Boot logo / persistent background",
+      "临时背景（M3 / XL / N4Pro）":"Temporary background (M3 / XL / N4Pro)",
+      "逻辑键号":"Key index",
+      "发送按键图":"Send key image",
+      "写入开机 Logo":"Write boot logo",
+      "发送临时背景":"Send temporary background",
+      "预览为 SDK 接收的输入图。":"Preview of the SDK input image.",
+      "尚未选择图片":"No image selected",
+      "按键图使用逻辑键号。SDK 会自动处理主屏 / 副屏的映射和尺寸。":"Key images use logical key indices. The SDK handles main/sub-screen mapping and image size.",
+      "图片变换：旋转、镜像、缩放":"Image transforms: rotate, flip, resize",
+      "额外旋转（浏览器端）":"Extra rotation (browser)",
+      "不旋转":"No rotation",
+      "顺时针 90°":"90° clockwise",
+      "逆时针 90°":"90° counterclockwise",
+      "额外镜像（旋转后）":"Extra flip (after rotation)",
+      "水平":"Horizontal",
+      "垂直":"Vertical",
+      "缩放到指定尺寸":"Resize to specified dimensions",
+      "缩放宽度":"Resize width",
+      "缩放高度":"Resize height",
+      "变换后的 JPEG 质量":"JPEG quality after transforms",
+      "无变换时保留原文件。这里的变换会叠加到 SDK 的缩放、旋转和翻转配置上。":"Without transforms, the original file is preserved. Browser transforms are applied in addition to the SDK resize, rotation, and flip settings.",
+      "设备控制":"Device controls",
+      "读取固件版本":"Read firmware version",
+      "输入与显示":"Input and display",
+      "开始监听按键 / 旋钮 / 触摸":"Listen for keys / dials / touch",
+      "已请求监听输入":"Input listening requested",
+      "手动刷新屏幕":"Refresh screen",
+      "read 会先刷新屏幕；输入事件显示在通信日志。":"read refreshes the screen first. Input events appear in the communication log.",
+      "屏幕亮度":"Screen brightness",
+      "应用":"Apply",
+      "图标清除":"Clear icons",
+      "清除所选按键":"Clear selected key",
+      "清除全部图标":"Clear all icons",
+      "使用图片发送区的逻辑键号。清除后需手动刷新。":"Uses the key index in the image section. Refresh manually after clearing.",
+      "RGB 灯光":"RGB lighting",
+      "LED 颜色":"LED color",
+      "应用颜色":"Apply color",
+      "仅适用于支持 RGB 的设备。":"Only available on devices with RGB support.",
+      "自定义命令":"Custom command",
+      "接口文档":"API documentation",
+      "事件名":"Event name",
+      "payload（JSON 对象）":"payload (JSON object)",
+      "发送命令":"Send command",
+      "path 自动使用当前设备；事件名和参数直接交给 SDK。":"path is set to the selected device. The event name and payload are passed directly to the SDK.",
+      "通信日志":"Communication log",
+      "0 条":"0 entries",
+      "最多保留 500 条":"Up to 500 entries",
+      "仅错误":"Errors only",
+      "自动滚动":"Auto-scroll",
+      "导出 JSON":"Export JSON",
+      "清空":"Clear",
+      "尚无日志。连接服务后显示设备列表与通信事件。":"No logs yet. Connect to see devices and communication events.",
+      "图片仅记录尺寸、格式及字节数，不导出 Base64 内容。":"Images are logged by dimensions, format, and byte size. Base64 data is excluded from exports.",
+      "写入命令间隔 5 秒。SDK 无统一完成回执，请结合设备显示和日志判断。按键图与开机 Logo 命令已自动刷新。":"Commands are spaced 5 seconds apart. The SDK has no universal completion acknowledgment; check the device and logs. Key image and boot logo commands refresh automatically.",
+      "[图片数据已省略]":"[Image data omitted]",
+      "发送":"Send",
+      "接收":"Recv",
+      "错误":"Error",
+      "信息":"Info",
+      "没有符合条件的日志。":"No matching log entries.",
+      "{count} 条":"{count} entries",
+      "操作间隔 · {seconds} 秒":"Cooldown · {seconds} s",
+      "当前源码背景配置：{width}×{height} → 顺时针 {rotation}°{flip} → {size}。运行中的服务可能使用其他版本。":"Background configuration in this checkout: {width}×{height} → {rotation}° clockwise{flip} → {size}. The running server may use a different version.",
+      "＋水平镜像":" + horizontal flip",
+      "K1 Pro 不提供开机 Logo 测试，请使用按键图。":"K1 Pro has no boot logo test. Use key images instead.",
+      "未内置该型号参数，请核对运行中的 SDK 源码。":"No built-in profile for this model. Check the running SDK source.",
+      "未知事件":"Unknown event",
+      "SDK 错误：{message}":"SDK error: {message}",
+      "服务地址必须以 ws:// 或 wss:// 开头":"The server URL must start with ws:// or wss://",
+      "连接服务":"Connecting to server",
+      "连接超时":"Connection timed out",
+      "连接成功":"Connection established",
+      "已连接服务，等待或选择目标设备。":"Connected. Wait for or select a target device.",
+      "预期 JSON 对象":"Expected a JSON object",
+      "无法解析服务消息":"Could not parse server message",
+      "WebSocket 连接错误":"WebSocket connection error",
+      "请检查 SDK 是否运行、地址和端口是否正确。":"Check that the SDK is running and the address and port are correct.",
+      "连接失败，请检查 SDK 服务与端口。":"Connection failed. Check the SDK server and port.",
+      "连接关闭":"Connection closed",
+      "连接失败":"Connection failed",
+      "用户断开":"User disconnected",
+      "请先连接服务并选择设备":"Connect to the server and select a device first",
+      "请等待当前命令的操作间隔结束":"Wait for the command cooldown to end",
+      "已为当前设备请求监听，请勿重复发送 read":"Input listening has already been requested for this device. Do not send read again",
+      "已发送 {event}；操作间隔 5 秒。请观察设备，发送不代表写入完成。":"Sent {event}; 5-second cooldown. Check the device: sending does not confirm completion.",
+      "操作失败":"Operation failed",
+      "逻辑键号必须为 1–{max} 的整数":"Key index must be an integer from 1 to {max}",
+      "请输入事件名":"Enter an event name",
+      "payload 必须是 JSON 对象":"payload must be a JSON object",
+      "此操作会写入持久化背景 / 开机图资源，断电后可能保留。请先确认设备协议和图片限制。SDK 已自动 refresh。":"This writes a persistent background / boot image that may remain after power-off. Verify the device protocol and image limits first. The SDK refreshes automatically.",
+      "仅 M3 / XL / N4Pro 支持 BGPIC 临时背景，不写开机 Logo。该接口不自动 refresh，可等待后手动刷新。":"Only M3 / XL / N4Pro support BGPIC temporary backgrounds. This does not write the boot logo or refresh automatically. Wait, then refresh manually.",
+      "浏览器无法解码这张图片":"The browser could not decode this image",
+      "已载入图片":"Image loaded",
+      "请选择 JPEG、PNG 或 WebP 图片":"Choose a JPEG, PNG, or WebP image",
+      "图片超过 20 MiB，请先缩小文件":"The image exceeds 20 MiB. Reduce the file size first",
+      "读取文件失败":"Could not read the file",
+      "图片读取失败":"Could not load image",
+      "图片尺寸无效或过大，请缩放后重试":"Image dimensions are invalid or too large. Resize and try again",
+      "指定缩放尺寸不得超过 4096":"Resize dimensions must not exceed 4096",
+      "{name} · 原图 {original} → 发送 {output} · {format} · {size} KiB":"{name} · Original {original} → Send {output} · {format} · {size} KiB",
+      "生成校准图失败":"Could not generate calibration image",
+      "请先选择有效图片":"Select a valid image first",
+      "临时背景仅支持 M3 / XL / N4Pro":"Temporary backgrounds are only supported on M3 / XL / N4Pro",
+      "K1 Pro 不提供开机 Logo 测试":"K1 Pro does not support boot logo testing",
+    };
+    const languageStorageKey = 'streamdock-test-language';
+    let languagePreference = 'auto', language = 'zh';
+    try {
+      const saved = localStorage.getItem(languageStorageKey);
+      if (['auto','zh','en'].includes(saved)) languagePreference = saved;
+    } catch (_) { /* The page also works when local storage is unavailable. */ }
+    const localizedText = Array.from(document.querySelectorAll('[data-i18n]'), element => ({element, text:element.textContent}));
+    const localizedAttributes = [];
+    for (const attribute of ['aria-label','alt']) {
+      for (const element of document.querySelectorAll('[data-i18n-' + attribute + ']')) {
+        localizedAttributes.push({element, attribute, text:element.getAttribute(attribute)});
+      }
+    }
+    let connectionMessage = '未连接服务';
+    let statusMessage = '连接设备后可执行命令；发送图片前请先选图。', statusError = false, statusParams = {};
+    function t(text, params = {}) {
+      const translated = language === 'en' ? (translations[text] || text) : text;
+      return translated.replace(/\{(\w+)\}/g, (match,key) => params[key] === undefined ? match : params[key]);
+    }
+    function inputError(message, params = {}) {
+      return Object.assign(new Error(t(message,params)), {messageKey:message, messageParams:params});
+    }
+    function setConnectionStatus(message) {
+      connectionMessage = message;
+      $('connectionStatus').textContent = t(message);
+    }
+    function applyLanguage() {
+      const browserLanguage = navigator.languages && navigator.languages[0] || navigator.language || 'en';
+      language = languagePreference === 'auto' ? (/^zh\b/i.test(browserLanguage) ? 'zh' : 'en') : languagePreference;
+      document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+      $('language').value = languagePreference;
+      for (const {element,text} of localizedText) element.textContent = t(text);
+      for (const {element,attribute,text} of localizedAttributes) element.setAttribute(attribute,t(text));
+      $('apiDocs').href = language === 'zh' ? 'README_CN.md' : 'README.md';
+      setConnectionStatus(connectionMessage);
+      status(statusMessage,statusError,statusParams);
+      renderDeviceProfile();
+      if (!devices.size) $('devices').options[0].textContent = t('等待设备连接');
+      updateTarget();
+      renderImageMetadata();
+      renderLogs();
+    }
+    $('language').onchange = () => {
+      languagePreference = $('language').value;
+      try { localStorage.setItem(languageStorageKey,languagePreference); } catch (_) { /* Keep the in-memory preference. */ }
+      applyLanguage();
+    };
+    window.addEventListener('languagechange', () => { if (languagePreference === 'auto') applyLanguage(); });
+
+    // Configurations describe this checkout, not firmware compatibility or the running server's version.
+    // [width, height, clockwise rotation, horizontal flip, key count]
+    const profiles = {
+      '293':[800,480,180,false,15], '293V3':[800,480,180,false,15],
+      '293s':[854,480,0,true,18], '293sV3':[854,480,90,true,18],
+      N3:[320,240,270,false,9], N4:[800,480,180,true,14], N4Pro:[800,480,180,false,14],
+      N1:[480,854,0,false,18], XL:[1024,600,180,false,32], M18:[480,272,0,false,18],
+      M3:[854,480,90,false,15], Mini:[320,240,270,false,6], H1Pro:[320,240,270,false,12], K1Pro:[0,0,0,false,6]
+    };
+    let socket = null, connecting = false, sourceImage = null, preparedImage = null, imageVersion = 0;
+    let cooldownUntil = 0;
+    const devices = new Map(), listening = new Set(), entries = [];
+    const commandButtons = ['firmware','read','refresh','setBrightness','clearKey','clearAll','setLed','sendCommand'];
+    const field = (obj, name) => {
+      if (!obj || typeof obj !== 'object') return undefined;
+      const key = Object.keys(obj).find(key => key.toLowerCase().replace(/_/g, '') === name.toLowerCase());
+      return key === undefined ? undefined : obj[key];
+    };
+    const selected = () => devices.get($('devices').value);
+    const typeOf = device => String(field(device && device.info, 'type') || '');
+    const connected = () => socket && socket.readyState === WebSocket.OPEN;
+    const paused = () => Date.now() < cooldownUntil;
+    const hex = value => {
+      const number = Number(value);
+      return Number.isInteger(number) ? number.toString(16).toUpperCase().padStart(4,'0') : '—';
+    };
+    function status(message, error = false, params = {}) {
+      statusMessage = message; statusError = error; statusParams = params;
+      $('sendStatus').textContent = t(message,params);
+      $('sendStatus').classList.toggle('error', error);
+    }
+    function summarize(value) {
+      if (typeof value === 'string' && /^data:image\//i.test(value)) return t('[图片数据已省略]');
+      if (Array.isArray(value)) return value.map(summarize);
+      if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key,val]) => [key, /^(imgData|imageData)$/i.test(key) ? t('[图片数据已省略]') : summarize(val)]));
+      return value;
+    }
+    function log(kind, event, detail = {}, path = '') {
+      const entry = {time:new Date().toISOString(), kind, event, path, detail:summarize(detail)};
+      entries.push(entry);
+      if (entries.length > 500) entries.shift();
+      renderLogs();
+    }
+    function renderLogs() {
+      const pane = $('logs'), fragment = document.createDocumentFragment();
+      const visible = entries.filter(entry => !$('errorsOnly').checked || entry.kind === 'error');
+      for (const entry of visible) {
+        const row = document.createElement('div'); row.className = 'log-entry ' + entry.kind;
+        const time = document.createElement('span'); time.className = 'log-time';
+        time.textContent = new Date(entry.time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-GB',{hour12:false}) + '.' + entry.time.slice(20,23);
+        const kind = document.createElement('span'); kind.className = 'log-type';
+        kind.textContent = t({send:'发送',recv:'接收',error:'错误',info:'信息'}[entry.kind]);
+        const text = document.createElement('span'); text.className = 'log-detail';
+        text.textContent = t(entry.event) + (Object.keys(entry.detail || {}).length ? '  ' + JSON.stringify(entry.detail) : '');
+        row.append(time,kind,text); fragment.append(row);
+      }
+      if (!visible.length) { const empty = document.createElement('div'); empty.className = 'log-empty'; empty.textContent = t(entries.length ? '没有符合条件的日志。' : '尚无日志。连接服务后显示设备列表与通信事件。'); fragment.append(empty); }
+      pane.replaceChildren(fragment); $('logCount').textContent = t('{count} 条',{count:entries.length});
+      if ($('autoScroll').checked) pane.scrollTop = pane.scrollHeight;
+    }
+    function updateButtons() {
+      const ready = connected() && !!selected() && !paused();
+      $('commandState').textContent = paused() ? t('操作间隔 · {seconds} 秒',{seconds:Math.ceil((cooldownUntil-Date.now())/1000)}) : t('手动执行');
+      for (const id of commandButtons) $(id).disabled = !ready;
+      $('read').disabled = !ready || listening.has($('devices').value);
+      $('read').textContent = t(listening.has($('devices').value) ? '已请求监听输入' : '开始监听按键 / 旋钮 / 触摸');
+      const type = typeOf(selected()), target = $('imageTarget').value;
+      const supported = target === 'temporary' ? ['M3','XL','N4Pro'].includes(type) : !(target === 'logo' && type === 'K1Pro');
+      $('sendImage').disabled = !ready || !preparedImage || !supported;
+      $('connect').disabled = connecting || !!connected(); $('disconnect').disabled = !socket;
+      $('devices').disabled = !devices.size;
+      $('endpoint').disabled = connecting || !!connected();
+    }
+    function showDevice() {
+      const device = selected(), info = device ? device.info : {}, type = typeOf(device), profile = profiles[type];
+      $('deviceType').textContent = type || '—';
+      $('deviceUsb').textContent = device ? hex(field(info,'vendorID')) + ':' + hex(field(info,'productID')) : '—';
+      $('deviceFirmware').textContent = field(info,'firmwareVersion') || '—';
+      $('deviceSerial').textContent = field(info,'serialNumber') || '—';
+      $('keyIndex').max = profile ? profile[4] : 32;
+      if (Number($('keyIndex').value) > Number($('keyIndex').max)) $('keyIndex').value = 1;
+      renderDeviceProfile();
+      updateTarget(); updateButtons();
+    }
+    function renderDeviceProfile() {
+      const type = typeOf(selected()), profile = profiles[type];
+      if (profile && profile[0]) {
+        const [w,h,rotation,flip] = profile, swap = rotation % 180 !== 0;
+        $('profile').textContent = t('当前源码背景配置：{width}×{height} → 顺时针 {rotation}°{flip} → {size}。运行中的服务可能使用其他版本。',{width:w,height:h,rotation,flip:flip ? t('＋水平镜像') : '',size:swap ? h+'×'+w : w+'×'+h});
+      } else $('profile').textContent = t(type === 'K1Pro' ? 'K1 Pro 不提供开机 Logo 测试，请使用按键图。' : '未内置该型号参数，请核对运行中的 SDK 源码。');
+    }
+    function renderDevices() {
+      const old = $('devices').value;
+      $('devices').replaceChildren();
+      if (!devices.size) $('devices').add(new Option(t('等待设备连接'),''));
+      for (const [path,device] of devices) {
+        const info = device.info;
+        $('devices').add(new Option((field(info,'product') || typeOf(device) || 'StreamDock') + ' · ' + hex(field(info,'vendorID')) + ':' + hex(field(info,'productID')) + (field(info,'serialNumber') ? ' · '+field(info,'serialNumber') : ''),path));
+      }
+      if (devices.has(old)) $('devices').value = old;
+      $('deviceCount').textContent = '· ' + devices.size;
+      showDevice();
+    }
+    function devicePath(message, info) {
+      const path = field(message,'path') || field(info,'path');
+      if (typeof path !== 'string' || !path) return '';
+      return /vid_[0-9a-f]{4}/i.test(path) ? btoa(path) : path;
+    }
+    function handleMessage(message) {
+      const event = field(message,'event'), payload = field(message,'payload') || {};
+      const path = devicePath(message,payload);
+      log(event === 'error' ? 'error' : 'recv', event || '未知事件', payload, path);
+      if (event === 'deviceDidConnect' && path) {
+        const info = field(payload,'deviceInfo') || payload;
+        devices.set(path,{info}); renderDevices();
+      } else if (event === 'deviceDidDisconnect') {
+        devices.delete(path); listening.delete(path); renderDevices();
+      } else if (event === 'getFirmVersion' && devices.has(path)) {
+        const version = field(payload,'firmVersion');
+        const info = devices.get(path).info;
+        const versionKey = Object.keys(info).find(key => key.toLowerCase().replace(/_/g,'') === 'firmwareversion') || 'FirmwareVersion';
+        if (version !== undefined) info[versionKey] = version;
+        showDevice();
+      } else if (event === 'error') {
+        const message = String(field(payload,'message') || JSON.stringify(payload));
+        status('SDK 错误：{message}', true, {message});
+        if (/^read:/.test(message)) listening.delete(path);
+      }
+      updateButtons();
+    }
+    $('connect').onclick = () => {
+      if (socket) return;
+      try {
+        const url = new URL($('endpoint').value.trim());
+        if (!['ws:','wss:'].includes(url.protocol)) throw inputError('服务地址必须以 ws:// 或 wss:// 开头');
+        connecting = true; devices.clear(); listening.clear(); renderDevices();
+        const current = socket = new WebSocket(url.href);
+        setConnectionStatus('正在连接…'); updateButtons();
+        log('info','连接服务',{url:url.href});
+        const timer = setTimeout(() => { if (socket === current && current.readyState === WebSocket.CONNECTING) { log('error','连接超时'); current.close(); } },7000);
+        current.onopen = () => {
+          if (socket !== current) return;
+          clearTimeout(timer); connecting = false;
+          setConnectionStatus('服务已连接'); $('connectionDot').classList.add('online');
+          log('info','连接成功'); status('已连接服务，等待或选择目标设备。'); updateButtons();
+        };
+        current.onmessage = event => {
+          if (socket !== current) return;
+          try { const message = JSON.parse(event.data); if (!message || typeof message !== 'object' || Array.isArray(message)) throw inputError('预期 JSON 对象'); handleMessage(message); }
+          catch (error) { log('error','无法解析服务消息',{message:error.message}); }
+        };
+        current.onerror = () => { if (socket === current) { log('error','WebSocket 连接错误',{hint:t('请检查 SDK 是否运行、地址和端口是否正确。')}); status('连接失败，请检查 SDK 服务与端口。',true); } };
+        current.onclose = event => {
+          clearTimeout(timer); if (socket !== current) return;
+          socket = null; connecting = false; cooldownUntil = 0; devices.clear(); listening.clear();
+          setConnectionStatus('服务已断开'); $('connectionDot').classList.remove('online');
+          log('info','连接关闭',{code:event.code,reason:event.reason}); renderDevices();
+        };
+      } catch (error) { connecting = false; log('error','连接失败',{message:error.message}); status(error.messageKey || error.message,true,error.messageParams); updateButtons(); }
+    };
+    $('disconnect').onclick = () => { if (socket) socket.close(1000,t('用户断开')); };
+    $('devices').onchange = showDevice;
+    function send(event, payload = {}, metadata = {}) {
+      if (!connected() || !selected()) throw inputError('请先连接服务并选择设备');
+      if (paused()) throw inputError('请等待当前命令的操作间隔结束');
+      if (event === 'read' && listening.has($('devices').value)) throw inputError('已为当前设备请求监听，请勿重复发送 read');
+      const path = $('devices').value;
+      socket.send(JSON.stringify({event,path,payload}));
+      if (event === 'read') listening.add(path);
+      log('send',event,{...summarize(payload),...metadata},path);
+      cooldownUntil = Date.now() + 5000;
+      status('已发送 {event}；操作间隔 5 秒。请观察设备，发送不代表写入完成。',false,{event});
+      updateButtons();
+    }
+    function action(callback) { try { callback(); } catch (error) { log('error','操作失败',{message:error.message}); status(error.messageKey || error.message,true,error.messageParams); } }
+    function keyIndex() {
+      const key = Number($('keyIndex').value), max = Number($('keyIndex').max);
+      if (!Number.isInteger(key) || key < 1 || key > max) throw inputError('逻辑键号必须为 1–{max} 的整数',{max});
+      return key;
+    }
+    $('firmware').onclick = () => action(() => send('getFirmVersion'));
+    $('read').onclick = () => action(() => send('read'));
+    $('refresh').onclick = () => action(() => send('refresh'));
+    $('brightness').oninput = () => $('brightnessValue').textContent = $('brightness').value + '%';
+    $('setBrightness').onclick = () => action(() => send('setBrightness',{brightness:Number($('brightness').value)}));
+    $('clearKey').onclick = () => action(() => send('clearIcon',{keyIndex:keyIndex()}));
+    $('clearAll').onclick = () => action(() => send('clearAllIcon'));
+    $('setLed').onclick = () => action(() => { const value = $('ledColor').value; send('setLEDColor',{r:parseInt(value.slice(1,3),16),g:parseInt(value.slice(3,5),16),b:parseInt(value.slice(5,7),16)}); });
+    $('sendCommand').onclick = () => action(() => {
+      const event = $('command').value.trim(), payload = JSON.parse($('payload').value);
+      if (!event) throw inputError('请输入事件名');
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw inputError('payload 必须是 JSON 对象');
+      send(event,payload);
+    });
+    function updateTarget() {
+      const target = $('imageTarget').value;
+      $('keyField').hidden = target !== 'key';
+      $('sendImage').textContent = t({key:'发送按键图',logo:'写入开机 Logo',temporary:'发送临时背景'}[target]);
+      $('sendImage').classList.toggle('logo', target === 'logo');
+      $('targetHint').classList.toggle('warning', target === 'logo');
+      $('targetHint').textContent = t({
+        key:'按键图使用逻辑键号。SDK 会自动处理主屏 / 副屏的映射和尺寸。',
+        logo:'此操作会写入持久化背景 / 开机图资源，断电后可能保留。请先确认设备协议和图片限制。SDK 已自动 refresh。',
+        temporary:'仅 M3 / XL / N4Pro 支持 BGPIC 临时背景，不写开机 Logo。该接口不自动 refresh，可等待后手动刷新。'
+      }[target]);
+      updateButtons();
+    }
+    $('imageTarget').onchange = updateTarget;
+    function resetTransforms() { $('rotation').value = '0'; $('flipH').checked = false; $('flipV').checked = false; $('resize').checked = false; $('width').disabled = true; $('height').disabled = true; }
+    function decodeImage(dataURL) { return new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(inputError('浏览器无法解码这张图片')); img.src = dataURL; }); }
+    async function loadImage(dataURL, name, bytes, version) {
+      const image = await decodeImage(dataURL);
+      if (version !== imageVersion) return;
+      sourceImage = {image,dataURL,name,bytes}; resetTransforms(); renderImage();
+      log('info','已载入图片',{name,width:image.naturalWidth,height:image.naturalHeight,bytes});
+    }
+    async function loadFile(file) {
+      if (!file) return;
+      const version = ++imageVersion;
+      try {
+        if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw inputError('请选择 JPEG、PNG 或 WebP 图片');
+        if (file.size > 20 * 1024 * 1024) throw inputError('图片超过 20 MiB，请先缩小文件');
+        const dataURL = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(inputError('读取文件失败')); reader.readAsDataURL(file); });
+        await loadImage(dataURL,file.name,file.size,version);
+      } catch (error) { if (version === imageVersion) { log('error','图片读取失败',{message:error.message}); status(error.messageKey || error.message,true,error.messageParams); } }
+    }
+    let imageError = null;
+    function renderImageMetadata() {
+      if (imageError) { $('imageMeta').textContent = t(imageError.message,imageError.params); return; }
+      if (!preparedImage) { $('imageMeta').textContent = t('尚未选择图片'); return; }
+      $('imageMeta').textContent = t('{name} · 原图 {original} → 发送 {output} · {format} · {size} KiB',{name:sourceImage.name,original:sourceImage.image.naturalWidth+'×'+sourceImage.image.naturalHeight,output:preparedImage.width+'×'+preparedImage.height,format:preparedImage.format,size:(preparedImage.bytes/1024).toFixed(1)});
+    }
+    function renderImage() {
+      preparedImage = null; imageError = null;
+      if (!sourceImage) { updateButtons(); return; }
+      try {
+        const angle = Number($('rotation').value), flipH = $('flipH').checked, flipV = $('flipV').checked;
+        const width = $('resize').checked ? Number($('width').value) : sourceImage.image.naturalWidth;
+        const height = $('resize').checked ? Number($('height').value) : sourceImage.image.naturalHeight;
+        if (![width,height].every(value => Number.isInteger(value) && value > 0 && value <= 16384) || width * height > 32 * 1024 * 1024) throw inputError('图片尺寸无效或过大，请缩放后重试');
+        if ($('resize').checked && (width > 4096 || height > 4096)) throw inputError('指定缩放尺寸不得超过 4096');
+        let dataURL = sourceImage.dataURL, outWidth = width, outHeight = height;
+        const transformed = angle || flipH || flipV || $('resize').checked;
+        if (transformed) {
+          const swap = angle % 180 !== 0, canvas = document.createElement('canvas');
+          canvas.width = outWidth = swap ? height : width; canvas.height = outHeight = swap ? width : height;
+          const ctx = canvas.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0,0,outWidth,outHeight);
+          ctx.translate(outWidth/2,outHeight/2); ctx.scale(flipH ? -1 : 1,flipV ? -1 : 1); ctx.rotate(angle*Math.PI/180);
+          ctx.drawImage(sourceImage.image,-width/2,-height/2,width,height); dataURL = canvas.toDataURL('image/jpeg',Number($('quality').value));
+        }
+        const base64 = dataURL.slice(dataURL.indexOf(',')+1), padding = (base64.match(/=*$/) || [''])[0].length;
+        preparedImage = {dataURL,width:outWidth,height:outHeight,bytes:base64.length*3/4-padding,format:dataURL.slice(5,dataURL.indexOf(';'))};
+        $('previewImage').src = dataURL; $('previewImage').style.display = 'block'; $('emptyPreview').hidden = true;
+        renderImageMetadata();
+        $('resetImage').disabled = false;
+      } catch (error) {
+        imageError = {message:error.messageKey || error.message, params:error.messageParams};
+        renderImageMetadata();
+      }
+      updateButtons();
+    }
+    $('file').onchange = event => { loadFile(event.target.files[0]); event.target.value = ''; };
+    $('fileLabel').onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); $('file').click(); } };
+    const dropZone = $('dropZone');
+    for (const event of ['dragenter','dragover']) dropZone.addEventListener(event,e => { e.preventDefault(); dropZone.classList.add('drag'); });
+    dropZone.addEventListener('dragleave',() => dropZone.classList.remove('drag'));
+    dropZone.addEventListener('drop',event => { event.preventDefault(); dropZone.classList.remove('drag'); loadFile(event.dataTransfer.files[0]); });
+    $('resetImage').onclick = () => { resetTransforms(); renderImage(); };
+    for (const id of ['rotation','flipH','flipV','width','height','quality']) $(id).addEventListener('change',renderImage);
+    $('resize').onchange = () => { $('width').disabled = !$('resize').checked; $('height').disabled = !$('resize').checked; renderImage(); };
+    $('calibration').onclick = () => action(() => {
+      const profile = profiles[typeOf(selected())], width = profile && profile[0] || 800, height = profile && profile[1] || 480;
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d'), colors = ['#126c67','#246f9b','#704b9b','#b35d3c'];
+      for (let row=0;row<3;row++) for (let col=0;col<4;col++) {
+        const x=col*width/4,y=row*height/3; ctx.fillStyle=colors[(col+row)%colors.length]; ctx.fillRect(x,y,width/4,height/3);
+        ctx.strokeStyle='#ffffff70'; ctx.strokeRect(x+1,y+1,width/4-2,height/3-2);
+        ctx.fillStyle='white'; ctx.font='bold '+Math.max(13,Math.round(height/14))+'px sans-serif'; ctx.textAlign='left';
+        ctx.fillText(String.fromCharCode(65+row)+(col+1),x+width/45,y+height/9);
+      }
+      ctx.fillStyle='#102629'; ctx.fillRect(0,0,width,height/12); ctx.fillStyle='#b6f5df'; ctx.font='bold '+Math.max(11,Math.round(height/28))+'px sans-serif';
+      ctx.fillText('TOP / UP →  '+width+' × '+height,width/45,height/18);
+      const dataURL=canvas.toDataURL('image/jpeg',.9),version=++imageVersion;
+      loadImage(dataURL,'calibration-'+width+'x'+height+'.jpg',Math.floor(dataURL.split(',')[1].length*3/4),version).catch(error => { log('error','生成校准图失败',{message:error.message}); });
+    });
+    $('sendImage').onclick = () => action(() => {
+      if (!preparedImage) throw inputError('请先选择有效图片');
+      const target = $('imageTarget').value, type = typeOf(selected());
+      if (target === 'temporary' && !['M3','XL','N4Pro'].includes(type)) throw inputError('临时背景仅支持 M3 / XL / N4Pro');
+      if (target === 'logo' && type === 'K1Pro') throw inputError('K1 Pro 不提供开机 Logo 测试');
+      const event = {key:'setKeyImgData',logo:'setBackgroundImgData',temporary:'setTemporaryBackgroundImgData'}[target];
+      const payload = {imgData:preparedImage.dataURL}; if (target === 'key') payload.keyIndex = keyIndex();
+      send(event,payload,{image:{name:sourceImage.name,width:preparedImage.width,height:preparedImage.height,bytes:preparedImage.bytes,format:preparedImage.format}});
+    });
+    $('errorsOnly').onchange = renderLogs;
+    $('clearLog').onclick = () => { entries.length = 0; renderLogs(); };
+    $('exportLog').onclick = () => {
+      const report = {tool:'StreamDock WebSocket HTML test',version:1,exportedAt:new Date().toISOString(),endpoint:$('endpoint').value,devices:Array.from(devices.values(),device => summarize(device.info)),image:preparedImage ? {name:sourceImage.name,width:preparedImage.width,height:preparedImage.height,bytes:preparedImage.bytes,format:preparedImage.format} : null,events:entries.map(entry => ({...entry,event:t(entry.event)}))};
+      const url = URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
+      const link = document.createElement('a'); link.href = url; link.download = 'streamdock-test-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+    };
+    setInterval(updateButtons,250);
+    window.addEventListener('beforeunload',() => { if (socket) socket.close(); });
+    applyLanguage();
+  </script>
+</body>
+</html>

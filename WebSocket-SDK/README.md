@@ -42,7 +42,7 @@ Modes are `screensaver`, `keys`, and `gif`. The `gif` mode plays the uploaded fu
 
 For `uploadH1ProGif`, install ffmpeg and add its executable directory to the **WebSocket server process's `PATH`**. Run `ffmpeg -version` in the same terminal before starting the server to check. The SDK converts the GIF to MJPEG MP4 and retries at lower frame rates or quality to meet the 5 MiB limit.
 
-`uploadH1ProMp4` **does not transcode or validate the codec**. Supply an **MP4 container with MJPEG video, 240 × 320 portrait frames, no audio track, and a file size of at most 5 MiB**. The logical background is 320 × 240; this command follows the reference SDK's 90° counterclockwise rotation onto the portrait canvas. Start at 30 fps and quality 6; lower the frame rate or increase `-q:v` if the result exceeds 5 MiB.
+`uploadH1ProMp4` **does not transcode or validate the codec**. Supply an **MP4 container with MJPEG video, 240 × 320 portrait frames, no audio track, and a file size of at most 5 MiB**. The logical background is 320 × 240; this command rotates the source image 90° counterclockwise and places it on the 240 × 320 portrait canvas. Start at 30 fps and quality 6; lower the frame rate or increase `-q:v` if the result exceeds 5 MiB.
 
 ```bash
 ffmpeg -i input.gif -an -vf "fps=30,transpose=2,scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2,format=yuvj420p" -c:v mjpeg -q:v 6 animation.mp4
@@ -50,7 +50,7 @@ ffmpeg -i input.gif -an -vf "fps=30,transpose=2,scale=240:320:force_original_asp
 
 After a GIF or MP4 upload, the firmware restarts and **USB re-enumerates**; the old device handle is invalid. Wait for a new `deviceDidConnect` event, then use that event's path with `switchH1ProMode` set to `gif`. `docs/test.js` demonstrates reconnection, mode changes, and animated key icons. Set `H1PRO_TEST_MP4_PATH` to also test direct upload of a prepared MP4.
 
-When opening or reconnecting H1Pro, the SDK clears the keys, refreshes, and sends the first `CONNECT` heartbeat before publishing the connection event. The test refreshes again and waits about two seconds before selecting `gif`, following the reference SDK test sequence. A successful `switchH1ProMode` write returns an event of the same name with `{ "mode": "gif" }`. This acknowledges the command write, not visible playback.
+When opening or reconnecting H1Pro, the SDK clears the keys, refreshes, and sends the first `CONNECT` heartbeat before publishing the connection event. The test refreshes again and waits about two seconds before selecting `gif`. A successful `switchH1ProMode` write returns an event of the same name with `{ "mode": "gif" }`. This acknowledges the command write, not visible playback.
 
 ## OEM Device Aliases
 
@@ -529,7 +529,7 @@ Sets the background image using Base64-encoded image data.
 
 #### setTemporaryBackgroundImg - Set Temporary Background from File
 
-Sets a temporary background using a BGPIC frame stream. Supported only on M18 and N4Pro.
+Sets a temporary background using a BGPIC frame stream. Supported only on M3, XL and N4Pro.
 
 **Payload parameters:**
 
@@ -539,7 +539,7 @@ Sets a temporary background using a BGPIC frame stream. Supported only on M18 an
 
 #### setTemporaryBackgroundImgData - Set Temporary Background from Base64
 
-Sets a temporary background using Base64 image data. Supported only on M18 and N4Pro.
+Sets a temporary background using Base64 image data. Supported only on M3, XL and N4Pro.
 
 **Payload parameters:**
 
