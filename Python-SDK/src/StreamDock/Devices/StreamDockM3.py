@@ -1,12 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
 from ..InputTypes import Direction, InputEvent, ButtonKey, EventType, KnobId
-from PIL import Image
-import ctypes
-import ctypes.util
-import os, io
-from ..ImageHelpers.PILHelper import *
-import random
 
 
 class StreamDockM3(StreamDock):
@@ -17,25 +11,41 @@ class StreamDockM3(StreamDock):
 
     # Image key mapping: logical key -> hardware key (for setting images)
     _IMAGE_KEY_MAP = {
-        ButtonKey.KEY_1: 11,
-        ButtonKey.KEY_2: 12,
-        ButtonKey.KEY_3: 13,
-        ButtonKey.KEY_4: 14,
-        ButtonKey.KEY_5: 15,
+        ButtonKey.KEY_1: 1,
+        ButtonKey.KEY_2: 2,
+        ButtonKey.KEY_3: 3,
+        ButtonKey.KEY_4: 4,
+        ButtonKey.KEY_5: 5,
         ButtonKey.KEY_6: 6,
         ButtonKey.KEY_7: 7,
         ButtonKey.KEY_8: 8,
         ButtonKey.KEY_9: 9,
         ButtonKey.KEY_10: 10,
-        ButtonKey.KEY_11: 1,
-        ButtonKey.KEY_12: 2,
-        ButtonKey.KEY_13: 3,
-        ButtonKey.KEY_14: 4,
-        ButtonKey.KEY_15: 5,
+        ButtonKey.KEY_11: 11,
+        ButtonKey.KEY_12: 12,
+        ButtonKey.KEY_13: 13,
+        ButtonKey.KEY_14: 14,
+        ButtonKey.KEY_15: 15,
     }
 
-    # Reverse mapping: hardware key -> logical key (for event decoding)
-    _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
+    # Input codes are separate from image-slot numbers.
+    _HW_TO_LOGICAL_KEY = {
+        0x01: ButtonKey.KEY_11,
+        0x02: ButtonKey.KEY_12,
+        0x03: ButtonKey.KEY_13,
+        0x04: ButtonKey.KEY_14,
+        0x05: ButtonKey.KEY_15,
+        0x06: ButtonKey.KEY_6,
+        0x07: ButtonKey.KEY_7,
+        0x08: ButtonKey.KEY_8,
+        0x09: ButtonKey.KEY_9,
+        0x0A: ButtonKey.KEY_10,
+        0x0B: ButtonKey.KEY_1,
+        0x0C: ButtonKey.KEY_2,
+        0x0D: ButtonKey.KEY_3,
+        0x0E: ButtonKey.KEY_4,
+        0x0F: ButtonKey.KEY_5,
+    }
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
@@ -58,9 +68,11 @@ class StreamDockM3(StreamDock):
         """
         Decode hardware event codes into a unified InputEvent
 
-        M3 supports only regular buttons; hardware code range 1-15
+        M3 exposes 15 input keys and 3 knobs, numbered from bottom to top.
         """
-        # Handle state value: 0x02=release, 0x01=press
+        # State values: 0x00=release, 0x01=press
+        if state not in (0, 1):
+            return InputEvent(event_type=EventType.UNKNOWN)
         normalized_state = 1 if state == 0x01 else 0
 
         # Regular button events (1-15)
@@ -72,14 +84,16 @@ class StreamDockM3(StreamDock):
             )
         # Knob rotation event
         knob_rotate_map = {
-            0x50: (KnobId.KNOB_1, Direction.LEFT),
-            0x51: (KnobId.KNOB_1, Direction.RIGHT),
+            0x50: (KnobId.KNOB_3, Direction.LEFT),
+            0x51: (KnobId.KNOB_3, Direction.RIGHT),
             0x90: (KnobId.KNOB_2, Direction.LEFT),
             0x91: (KnobId.KNOB_2, Direction.RIGHT),
-            0xA0: (KnobId.KNOB_3, Direction.LEFT),
-            0xA1: (KnobId.KNOB_3, Direction.RIGHT),
+            0xA0: (KnobId.KNOB_1, Direction.LEFT),
+            0xA1: (KnobId.KNOB_1, Direction.RIGHT),
         }
         if hardware_code in knob_rotate_map:
+            if state != 0:
+                return InputEvent(event_type=EventType.UNKNOWN)
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
                 event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
@@ -87,9 +101,9 @@ class StreamDockM3(StreamDock):
 
         # Knob press event
         knob_press_map = {
-            0x35: KnobId.KNOB_1,
+            0x35: KnobId.KNOB_3,
             0x33: KnobId.KNOB_2,
-            0x37: KnobId.KNOB_3,
+            0x37: KnobId.KNOB_1,
         }
         if hardware_code in knob_press_map:
             return InputEvent(
@@ -104,99 +118,16 @@ class StreamDockM3(StreamDock):
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # Set device background image 480 * 272
+    # Set the boot logo using the model's input canvas.
     def set_touchscreen_image(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
+        return self._set_boot_logo(path)
 
-            # open formatter
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgDualDevice(c_path)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
-
-    # Set device key icon image 64 * 64. PNG and JPEG input files are supported.
+    # Set an image on a valid display slot.
     def set_key_image(self, key, path):
-        try:
-            if isinstance(key, int):
-                if key not in range(1, 16):
-                    print(f"key '{key}' out of range. you should set (1 ~ 15)")
-                    return -1
-                logical_key = ButtonKey(key)
-            else:
-                logical_key = key
-
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            # Get hardware key value
-            hardware_key = self.get_image_key(logical_key)
-
-            # open formatter
-            image = Image.open(path)
-            image = to_native_key_format(self, image)
-            temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
-            )
-            image.save(temp_image_path, "PNG")
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setKeyImgDualDevice(c_path, hardware_key)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_key_image(key, path)
 
     def set_frame_background(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path, quality=95)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgFrame(
-                c_path,
-                854,
-                480,
-            )
-            os.remove(temp_image_path)
-            return res
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_frame_background(path)
 
     def set_key_imageData(self, key, path):
         pass

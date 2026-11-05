@@ -221,15 +221,15 @@ def setup_device(device):
         device.refresh()
         time.sleep(5)
 
+    animated = device.feature_option.supportKeyGif
     for i in device.image_keys():
-        if 0 == i % 3:
+        if animated and 0 == i % 3:
             device.set_key_gif(i, "img/test.gif")
-        elif 1 == i % 3:
+        elif (i % 3 == 1 if animated else i % 2 == 1):
             device.set_key_image(i, "img/button_test.jpg")
-        elif 2 == i % 3:
-            device.set_key_image(i, "img/test.png")
+        else:
+            device.set_key_image(i, "img/mark.png")
 
-    device.start_gif_loop()
     device.start_animation_loop()
     # Set key event callback
     device.set_key_callback(key_callback)

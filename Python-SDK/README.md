@@ -8,34 +8,36 @@
 | Windows (x64)      | ✅ Supported   | Supports WMI and polling mode                               |
 | macOS (x64, arm64) | ✅ Supported   | Uses polling mode for device monitoring                     |
 
+## Image parameters
+
+Dimensions are width × height **before rotation**. Pillow uses positive angles for counterclockwise rotation: `rotation=90` is counterclockwise, while `rotation=-90` is clockwise. Key images are resized before rotation and flipping.
+
+| Model | Main key / rotation | Secondary image | Boot-logo input / rotation / encoding |
+| --- | --- | --- | --- |
+| 293 V2 | 100×100 / 180° | — | 800×480 / 180° / RAW BGR888 |
+| 293 V3 | 112×112 / 180° | — | 800×480 / 180° / JPEG |
+| 293S V2 | 85×85 / 90° CCW | 80×80 | 854×480 / 90° CCW / RAW BGR888 |
+| 293S V3 | 96×96 / 90° CCW | 96×96 | 854×480 / 90° CCW / JPEG |
+| N3 V2 / V2E | 60×60 / 0° | — | 320×240 / 90° CW / RAW RGB565 |
+| N3 V2.5 / V3 | 64×64 / 90° CW | — | 320×240 / 90° CW / JPEG |
+| N1 / N1E | 96×96 / 0° | 80×80 | 480×854 / 0° / JPEG |
+| N4 / N4E | 112×112 / 180° | 176×112 | 800×480 / 180° / JPEG |
+| N4Pro / N4ProE | 112×112 / 180° | 176×112 | 800×480 / 180° / JPEG |
+| M3 / M3E | 96×96 / 90° CCW | — | 854×480 / 90° CCW / JPEG |
+| XL / XLE | 80×80 / 180° | — | 1024×600 / 180° / JPEG |
+| M18 | 64×64 / 0° | — | 480×272 / 0° / JPEG |
+| Mini / MiniW | 64×64 / 90° CCW | — | 320×240 / 90° CCW / JPEG |
+| K1Pro | 64×64 / 90° CW | — | Unsupported |
+
+Use `device.image_keys()` to enumerate display slots. Secondary images 16–18 on 293S and N1 are display-only; N1's physical buttons and knob use separate input codes. N3 displays slots 1–6 and M18 slots 1–15; their other buttons are input-only. N4 uses slots 1–14, and N4Pro uses 1–4 and 6–15. Secondary images use the main key rotation.
+
+M3, N4Pro and XL encode sources with alpha channels as PNG, otherwise JPEG. Key JPEG quality starts at 100 and decreases by 2, targeting 9000 bytes for static images and 3000 for GIF frames (2040 on XL). PNG targets are 29000 / 20000 bytes. Animated PNG frames and oversized fallback images use ARGB4444 quantization; the final key fallback may still exceed its target.
+
+Static logos are automatically stretched to the model's dimensions before rotation and encoding; images need no manual resizing. JPEG logos start at quality 100 and reject payloads above 522240 bytes. N1 first lowers quality in steps of 10 to target 302080 bytes and requires a firmware suffix version of at least 13. RAW RGB565 uses little-endian byte order. Background animation frames use JPEG quality 60.
+
+`supportKeyGif` indicates key animation availability. 293 V2, 293S V2, N3 V2, `V25.N3` and `V2.M18` firmware use static images. The example cycles JPG, PNG and GIF on supported devices, otherwise alternates JPG and PNG.
+
 ## Installation Guide
-
-### H1 Pro / H1 ProE
-
-Both models have 12 keys in 3 rows and 4 columns, with no knobs. Background images are 320 × 240 and key images are 64 × 64.
-H1 Pro uses `5548:1030`; H1 ProE uses `5548:1033`. Both enumerate as `StreamDockH1Pro`.
-
-```python
-from StreamDock.Devices.StreamDockH1Pro import StreamDockH1Pro
-
-# device is an opened and initialized H1 Pro / H1 ProE instance
-device.switch_mode(StreamDockH1Pro.DeviceMode.SCREENSAVER)  # 1
-device.set_touchscreen_image("background.jpg")
-device.switch_mode(StreamDockH1Pro.DeviceMode.KEY)          # 2
-device.set_key_image(1, "key.png")                         # Keys 1–12
-device.upload_gif("animation.gif")                         # Upload only; keep the current mode
-device.switch_mode(StreamDockH1Pro.DeviceMode.GIF)          # 3: play the uploaded animation
-```
-
-`switch_mode()` accepts enum values 0, 1, and 2, corresponding to device modes 1, 2, and 3. `upload_gif()` requires `ffmpeg` on `PATH`; the SDK adjusts size, frame rate, and quality to meet the device's 320 × 240 and 5 MiB limits. H1 Pro has no background GIF stream: upload the file first, then explicitly switch to GIF mode for device-side playback. The updated TransportDLL source must be built before using this API. Key numbers map directly to hardware IDs, arranged as follows (hexadecimal):
-
-```text
-01 02 03 04
-05 06 07 08
-09 0A 0B 0C
-```
-
-The Mini's 90° image rotation remains provisional until verified on hardware.
 
 ### 🔧 Linux Platform
 
