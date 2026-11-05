@@ -311,7 +311,7 @@
       "逻辑键号必须为 1–{max} 的整数":"Key index must be an integer from 1 to {max}",
       "请输入事件名":"Enter an event name",
       "payload 必须是 JSON 对象":"payload must be a JSON object",
-      "此操作会写入持久化背景 / 开机图资源，断电后可能保留。请先确认设备协议和图片限制。SDK 已自动 refresh。":"This writes a persistent background / boot image that may remain after power-off. Verify the device protocol and image limits first. The SDK refreshes automatically.",
+      "警告：setBackgroundImg / setBackgroundImgData 事件将开机 Logo 写入 ROM，仅用于静态开机图，不能当作动态背景或循环写入动画帧。必须保持对应型号规定的分辨率和方向，不得擅自修改尺寸、旋转或翻转配置，否则可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。SDK 已自动 refresh。":"WARNING: setBackgroundImg / setBackgroundImgData events write the boot logo to ROM for a static startup image only. Do not use it as a dynamic background or repeatedly write animation frames. Keep the model-required resolution and orientation. Do not change dimensions, rotation or flip settings; doing so may brick the device. We recommend using the official StreamDock software to set the boot logo. The SDK refreshes automatically.",
       "仅 M3 / XL / N4Pro 支持 BGPIC 临时背景，不写开机 Logo。该接口不自动 refresh，可等待后手动刷新。":"Only M3 / XL / N4Pro support BGPIC temporary backgrounds. This does not write the boot logo or refresh automatically. Wait, then refresh manually.",
       "浏览器无法解码这张图片":"The browser could not decode this image",
       "已载入图片":"Image loaded",
@@ -578,7 +578,7 @@
       $('targetHint').classList.toggle('warning', target === 'logo');
       $('targetHint').textContent = t({
         key:'按键图使用逻辑键号。SDK 会自动处理主屏 / 副屏的映射和尺寸。',
-        logo:'此操作会写入持久化背景 / 开机图资源，断电后可能保留。请先确认设备协议和图片限制。SDK 已自动 refresh。',
+        logo:'警告：setBackgroundImg / setBackgroundImgData 事件将开机 Logo 写入 ROM，仅用于静态开机图，不能当作动态背景或循环写入动画帧。必须保持对应型号规定的分辨率和方向，不得擅自修改尺寸、旋转或翻转配置，否则可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。SDK 已自动 refresh。',
         temporary:'仅 M3 / XL / N4Pro 支持 BGPIC 临时背景，不写开机 Logo。该接口不自动 refresh，可等待后手动刷新。'
       }[target]);
       updateButtons();

@@ -21,6 +21,8 @@ Dimensions below are width × height **before rotation**. Positive 90° means cl
 | Mini / MiniW       | 64×64 / 270°      | —                  | 320×240 / 270° / JPEG               |
 | K1Pro / US / EU    | 64×64 / 90°       | —                  | Not configured                        |
 
+> ⚠️ **Boot logo safety warning:** Applies to `setBackgroundImgFile()` and `setBackgroundImgStream()`. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
+
 ## 1. 📘 Project Overview
 
 This project is a C++17-based SDK that allows users to directly control Stream Dock devices through code.
@@ -352,15 +354,19 @@ This section provides a complete SDK usage example, including the following aspe
 
 ---
 
-### 5.1 Set Background Image
+### 5.1 Set a Static Boot Logo
+
+> ⚠️ **Boot logo safety warning:** Applies to `setBackgroundImgFile()` and `setBackgroundImgStream()`. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
 
 ```cpp
+// WARNING: setBackgroundImgFile() / setBackgroundImgStream() write the boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+// Keep the resolution and orientation required by the model; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
 device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // When calling interfaces related to image operations, the premise must be to set the encoder
 device->setBackgroundImgFile("YiFei.jpg");                   // Set startup logo to a static image at path ./YiFei.jpg
 device->refresh();
 ```
 
-Use local image path to set background image. This method is recommended for simplicity and safety.
+Use a local image path to set the static boot logo. The SDK handles dimensions and orientation for the model. For dynamic backgrounds, use the background frame stream or background GIF interface on supported models.
 
 ### 5.2 Set Key Image
 

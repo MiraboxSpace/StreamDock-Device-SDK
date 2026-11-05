@@ -222,9 +222,13 @@ const setKeyImage = {
 ws.send(JSON.stringify(setKeyImage));
 ```
 
-### 设置背景图像
+### 设置静态开机 Logo
+
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`setBackgroundImg`、`setBackgroundImgData`（WebSocket 事件）。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 
 ```javascript
+// 警告：setBackgroundImg / setBackgroundImgData 事件将开机 Logo 写入 ROM，不能用作动态背景或循环写入播放动画。
+// 必须保持对应型号规定的分辨率和方向；擅自更改可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 const setBackgroundImage = {
     event: "setBackgroundImg",
     path: devicePath,
@@ -483,9 +487,11 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### setBackgroundImg - 从文件设置背景图
+#### setBackgroundImg - 从文件设置静态开机 Logo
 
-从本地文件路径加载并设置背景图像。
+从本地文件路径加载并设置静态开机 Logo。
+
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`setBackgroundImg`、`setBackgroundImgData`（WebSocket 事件）。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 
 **Payload 参数：**
 
@@ -505,9 +511,11 @@ ws.send(JSON.stringify(refresh));
 }
 ```
 
-#### setBackgroundImgData - 从 Base64 数据设置背景图
+#### setBackgroundImgData - 从 Base64 数据设置静态开机 Logo
 
-使用 Base64 编码的图像数据设置背景图。
+使用 Base64 编码的图像数据设置静态开机 Logo。
+
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`setBackgroundImg`、`setBackgroundImgData`（WebSocket 事件）。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 
 **Payload 参数：**
 

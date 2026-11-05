@@ -126,7 +126,10 @@ public:
 	virtual void setKeyImgFileStream(const std::string& stream, uint8_t keyValue);
 
 	/**
-	 * @brief Set the full background image from a file.
+	 * @brief Set the static boot logo from a file.
+	 * @warning setBackgroundImgFile() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	 *          Keep the model-required resolution and orientation; changing dimensions, rotation or flips
+	 *          or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	 * @note Boot logos are resized to the device's width/height before rotation.
 	 *       JPEG logos use quality 100 and a 522240-byte limit; N1 first targets 302080 bytes.
 	 *       K1Pro has no boot-logo dimensions configured.
@@ -136,7 +139,10 @@ public:
 	virtual void setBackgroundImgFile(const std::string& filePath, uint32_t timeoutMs = 3000);
 
 	/**
-	 * @brief Set the full background image from jpeg_data(on new firmware) or bitmap_data(on V2 firmware).
+	 * @brief Set the static boot logo from jpeg_data(on new firmware) or bitmap_data(on V2 firmware).
+	 * @warning setBackgroundImgStream() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	 *          Keep the model-required resolution and orientation; changing dimensions, rotation or flips
+	 *          or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	 * @param stream Image data stream.
 	 * @param timeoutMs Timeout in milliseconds.
 	 */

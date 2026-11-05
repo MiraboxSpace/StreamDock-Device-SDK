@@ -33,6 +33,8 @@ Use `device.image_keys()` to enumerate display slots. Secondary images 16–18 o
 
 M3, N4Pro and XL encode sources with alpha channels as PNG, otherwise JPEG. Key JPEG quality starts at 100 and decreases by 2, targeting 9000 bytes for static images and 3000 for GIF frames (2040 on XL). PNG targets are 29000 / 20000 bytes. Animated PNG frames and oversized fallback images use ARGB4444 quantization; the final key fallback may still exceed its target.
 
+> ⚠️ **Boot logo safety warning:** Applies to `set_touchscreen_image()` and `set_background_image()`. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
+
 Static logos are automatically stretched to the model's dimensions before rotation and encoding; images need no manual resizing. JPEG logos start at quality 100 and reject payloads above 522240 bytes. N1 first lowers quality in steps of 10 to target 302080 bytes and requires a firmware suffix version of at least 13. RAW RGB565 uses little-endian byte order. Background animation frames use JPEG quality 60.
 
 `supportKeyGif` indicates key animation availability. 293 V2, 293S V2, N3 V2, `V25.N3` and `V2.M18` firmware use static images. The example cycles JPG, PNG and GIF on supported devices, otherwise alternates JPG and PNG.
@@ -159,7 +161,8 @@ def main():
             traceback.print_exc()
             raise
         print(f"path: {device.path}, firmware_version: {device.firmware_version} serial_number: {device.serial_number}")
-        # Set background image
+        # WARNING: set_touchscreen_image() / set_background_image() write the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+        # Keep the model-required resolution and orientation; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
         res = device.set_touchscreen_image("img/backgroud_test.png")
         device.refresh()
         time.sleep(2)
@@ -226,7 +229,8 @@ if __name__ == "__main__":
 4. **Set images**
 
    ```python
-   # Set touchscreen background
+   # set_touchscreen_image() / set_background_image() set the static boot logo (ROM). Do not use it as a dynamic background or write animation frames.
+   # Keep the model-required resolution and orientation; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
    device.set_touchscreen_image("path/to/image.png")
 
    # Set key icon

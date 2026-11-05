@@ -311,8 +311,9 @@ async function testComprehensive() {
     console.log(`  Firmware: ${deviceInfo.FirmwareVersion}`);
     console.log(`  Serial: ${deviceInfo.SerialNumber}`);
 
-    // Set background image
-    // The image will be written to ROM. Keep this disabled to match Python SDK main.py.
+    // setBackgroundImg / setBackgroundImgData events set the static boot logo in ROM. Keep this disabled to match Python SDK main.py.
+    // Do not use it as a dynamic background or repeatedly write animation frames.
+    // Keep the model-required resolution and orientation; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
     // sendCommand(ws, 'setBackgroundImg', devicePath, {
     //   imagePath: TEST_BACKGROUND_PATH
     // });

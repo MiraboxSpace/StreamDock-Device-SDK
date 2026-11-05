@@ -504,9 +504,21 @@ class StreamDock(ABC):
 
     @abstractmethod
     def set_touchscreen_image(self, path) -> int | None:
+        """set_touchscreen_image() writes the static boot logo to ROM.
+
+        Do not use this for dynamic backgrounds or repeatedly write animation frames.
+        Keep the model-required resolution and orientation; changing dimensions,
+        rotation or flips, or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
+        """
         pass
 
     def set_background_image(self, path) -> int | None:
+        """set_background_image() writes the static boot logo to ROM.
+
+        Do not use this for dynamic backgrounds or repeatedly write animation frames.
+        Keep the model-required resolution and orientation; changing dimensions,
+        rotation or flips, or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
+        """
         return self.set_touchscreen_image(path)
 
     @abstractmethod
