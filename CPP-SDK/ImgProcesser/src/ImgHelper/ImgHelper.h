@@ -12,6 +12,15 @@ enum class ResizeOption : uint8_t {
 	Pad,// Pad
 };
 
+// Device image encoding profiles.
+enum class ImgEncodingProfile : uint8_t {
+	Default,
+	Key,
+	XLKey,
+	BootLogo,
+	N1BootLogo,
+};
+
 class ImgHelper
 {
 public:
@@ -37,7 +46,10 @@ public:
 			_flipVertical == other._flipVertical &&
 			_flipHorizonal == other._flipHorizonal &&
 			_imgType == other._imgType &&
-			_imgFormat == other._imgFormat;
+			_imgFormat == other._imgFormat &&
+			_encodingProfile == other._encodingProfile &&
+			_autoJpegPng == other._autoJpegPng &&
+			_animated == other._animated;
 	}
 
 	bool operator!=(const ImgHelper& other) const {
@@ -56,4 +68,7 @@ public:
 	ImgType _imgType = ImgType::JPG;
 	ImgFormat _imgFormat = ImgFormat::BGR888;
 	ImgProcess _processer = ImgProcess::Resize;
+	ImgEncodingProfile _encodingProfile = ImgEncodingProfile::Default;
+	bool _autoJpegPng = false; // PNG when the source has an alpha channel, otherwise JPEG.
+	bool _animated = false;
 };

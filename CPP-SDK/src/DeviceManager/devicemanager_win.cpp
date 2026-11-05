@@ -11,7 +11,7 @@ struct WindowContext
 	// auto xxx = ctx->xxx;
 };
 
-LRESULT DeviceManager::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK DeviceManager::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == WM_DEVICECHANGE)
 	{

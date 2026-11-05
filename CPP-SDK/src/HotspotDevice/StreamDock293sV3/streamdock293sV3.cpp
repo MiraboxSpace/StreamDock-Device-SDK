@@ -38,8 +38,8 @@ StreamDock293sV3::StreamDock293sV3(const hid_device_info& device_info)
 	_feature->hasSecondScreen = true;
 	_feature->min2rdScreenKey = 16;
 	_feature->max2rdScreenKey = 18;
-	_feature->_2rdScreenWidth = 80;
-	_feature->_2rdScreenHeights = 80;
+	_feature->_2rdScreenWidth = 96;
+	_feature->_2rdScreenHeights = 96;
 	_readValueMap = {
 		/// Normal keys, starting from the top-right corner, counted top to bottom and right to left, correspond to keys 1 to 15
 		/// The secondary screen of the 293sV3 has no press or release actions; it only supports display functionality

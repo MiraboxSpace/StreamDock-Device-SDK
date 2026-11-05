@@ -1,12 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
 from ..InputTypes import InputEvent, ButtonKey, EventType, KnobId, Direction
-from PIL import Image
-import ctypes
-import ctypes.util
-import os, io
-from ..ImageHelpers.PILHelper import *
-import random
 
 
 class K1Pro(StreamDock):
@@ -17,16 +11,23 @@ class K1Pro(StreamDock):
 
     # Image key mapping: logical key -> hardware key (for setting images)
     _IMAGE_KEY_MAP = {
-        ButtonKey.KEY_1: 0x05,
-        ButtonKey.KEY_2: 0x03,
-        ButtonKey.KEY_3: 0x01,
-        ButtonKey.KEY_4: 0x06,
-        ButtonKey.KEY_5: 0x04,
-        ButtonKey.KEY_6: 0x02,
+        ButtonKey.KEY_1: 1,
+        ButtonKey.KEY_2: 2,
+        ButtonKey.KEY_3: 3,
+        ButtonKey.KEY_4: 4,
+        ButtonKey.KEY_5: 5,
+        ButtonKey.KEY_6: 6,
     }
 
-    # Reverse mapping: hardware key -> logical key (for event decoding)
-    _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
+    # Input codes are separate from image-slot numbers.
+    _HW_TO_LOGICAL_KEY = {
+        0x01: ButtonKey.KEY_3,
+        0x02: ButtonKey.KEY_6,
+        0x03: ButtonKey.KEY_2,
+        0x04: ButtonKey.KEY_5,
+        0x05: ButtonKey.KEY_1,
+        0x06: ButtonKey.KEY_4,
+    }
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
@@ -58,7 +59,9 @@ class K1Pro(StreamDock):
         - Knob 2 rotation: 0x60 (left), 0x61 (right)
         - Knob 3 rotation: 0x90 (left), 0x91 (right)
         """
-        # Handle state value: 0x02=release, 0x01=press
+        # State values: 0x00=release, 0x01=press
+        if state not in (0, 1):
+            return InputEvent(event_type=EventType.UNKNOWN)
         normalized_state = 1 if state == 0x01 else 0
 
         # Regular button events
@@ -92,6 +95,8 @@ class K1Pro(StreamDock):
             0x91: (KnobId.KNOB_3, Direction.RIGHT),
         }
         if hardware_code in knob_rotate_map:
+            if state != 0:
+                return InputEvent(event_type=EventType.UNKNOWN)
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
                 event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
@@ -108,42 +113,9 @@ class K1Pro(StreamDock):
         """Background setting not supported"""
         return 0
 
-    # Set device key icon image 64 * 64
+    # Set an image on a valid display slot.
     def set_key_image(self, key, path):
-        try:
-            if isinstance(key, int):
-                if key not in range(1, 7):
-                    print(f"key '{key}' out of range. you should set (1 ~ 6)")
-                    return -1
-                logical_key = ButtonKey(key)
-            else:
-                logical_key = key
-
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            # Get hardware key value
-            hardware_key = self.get_image_key(logical_key)
-
-            # open formatter
-            image = Image.open(path)
-            image = to_native_key_format(self, image)
-            temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".jpg"
-            )
-            image.save(temp_image_path, quality=95)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setKeyImgDualDevice(c_path, hardware_key)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_key_image(key, path)
 
     # TODO
     def set_key_imageData(self, key, path):

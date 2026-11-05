@@ -8,33 +8,36 @@
 | Windows (x64)      | ✅ 支持  | 支持 WMI 和轮询模式                    |
 | macOS (x64,arm64)  | ✅ 支持  | 使用轮询模式监听设备                   |
 
+## 图片参数
+
+尺寸均为旋转前的宽 × 高。Pillow 的正角度表示逆时针旋转；例如 `rotation=90` 为逆时针 90°，`rotation=-90` 为顺时针 90°。按键图先缩放，再旋转和翻转。
+
+| 型号 | 普通按键 / 方向 | 辅屏 | 开机 Logo 输入 / 方向 / 编码 |
+| --- | --- | --- | --- |
+| 293 V2 | 100×100 / 180° | — | 800×480 / 180° / RAW BGR888 |
+| 293 V3 | 112×112 / 180° | — | 800×480 / 180° / JPEG |
+| 293S V2 | 85×85 / 逆时针90° | 80×80 | 854×480 / 逆时针90° / RAW BGR888 |
+| 293S V3 | 96×96 / 逆时针90° | 96×96 | 854×480 / 逆时针90° / JPEG |
+| N3 V2 / V2E | 60×60 / 0° | — | 320×240 / 顺时针90° / RAW RGB565 |
+| N3 V2.5 / V3 | 64×64 / 顺时针90° | — | 320×240 / 顺时针90° / JPEG |
+| N1 / N1E | 96×96 / 0° | 80×80 | 480×854 / 0° / JPEG |
+| N4 / N4E | 112×112 / 180° | 176×112 | 800×480 / 180° / JPEG |
+| N4Pro / N4ProE | 112×112 / 180° | 176×112 | 800×480 / 180° / JPEG |
+| M3 / M3E | 96×96 / 逆时针90° | — | 854×480 / 逆时针90° / JPEG |
+| XL / XLE | 80×80 / 180° | — | 1024×600 / 180° / JPEG |
+| M18 | 64×64 / 0° | — | 480×272 / 0° / JPEG |
+| Mini / MiniW | 64×64 / 逆时针90° | — | 320×240 / 逆时针90° / JPEG |
+| K1Pro | 64×64 / 顺时针90° | — | 不支持 |
+
+使用 `device.image_keys()` 枚举可显示的位置。293S、N1 的 16～18 号辅屏只显示图片；N1 的实体按钮和旋钮按独立输入代码解码。N3 只显示 1～6 号，M18 只显示 1～15 号；其余按钮只产生输入事件。N4 使用 1～14 号，N4Pro 使用 1～4、6～15 号。辅屏沿用普通按键的旋转方向。
+
+M3、N4Pro、XL 的源图含透明通道时编码 PNG，否则编码 JPEG。按键 JPEG 从质量 100 开始，每次降低 2，静态图目标 9000 字节、GIF 帧目标 3000 字节（XL 为 2040）；PNG 对应目标为 29000 / 20000 字节。PNG 动图帧及超限回退使用 ARGB4444 量化，最终按键回退结果可能仍超过目标大小。
+
+静态 Logo 会自动拉伸到表中的型号尺寸，再旋转和编码，无需预先调整图片大小。JPEG 从质量 100 编码，超过 522240 字节拒绝发送；N1 先每次降低质量 10，目标 302080 字节，且要求固件尾版本至少为 13。RAW RGB565 使用小端字节序。背景动画帧使用 JPEG 质量 60。
+
+`supportKeyGif` 表示按键动图是否可用。293 V2、293S V2、N3 V2、`V25.N3` 和 `V2.M18` 固件使用静态图；示例在支持动图时循环显示 JPG、PNG、GIF，否则交替显示 JPG、PNG。
+
 ## 安装指南
-### H1 Pro / H1 ProE
-
-两款设备均为 3 行 × 4 列、12 个按键，无旋钮。背景尺寸为 320 × 240，按键图像尺寸为 64 × 64。
-H1 Pro 使用 `5548:1030`，H1 ProE 使用 `5548:1033`，枚举后均为 `StreamDockH1Pro`。
-
-```python
-from StreamDock.Devices.StreamDockH1Pro import StreamDockH1Pro
-
-# device 为已打开并初始化的 H1 Pro / H1 ProE 实例
-device.switch_mode(StreamDockH1Pro.DeviceMode.SCREENSAVER)  # 1：屏保模式
-device.set_touchscreen_image("background.jpg")
-device.switch_mode(StreamDockH1Pro.DeviceMode.KEY)          # 2：按键模式
-device.set_key_image(1, "key.png")                         # 按键 1–12
-device.upload_gif("animation.gif")                         # 仅上传，不切换模式
-device.switch_mode(StreamDockH1Pro.DeviceMode.GIF)          # 3：播放已上传的动图
-```
-
-`switch_mode()` 的枚举值为 0、1、2，分别对应设备模式 1、2、3。`upload_gif()` 需要 `PATH` 中有 `ffmpeg`；SDK 会调整尺寸、帧率和画质以符合设备 320 × 240、5 MiB 的限制。H1 Pro 不支持背景 GIF 推帧；`upload_gif()` 只上传文件，随后须显式切换到 GIF 模式播放。使用新接口前需要构建更新后的 TransportDLL。按键编号与硬件 ID 直接映射，布局如下（十六进制）：
-
-```text
-01 02 03 04
-05 06 07 08
-09 0A 0B 0C
-```
-
-图像旋转沿用 Mini 的 90° 约定，需实机验证。
 
 ### 🔧 Linux 平台
 

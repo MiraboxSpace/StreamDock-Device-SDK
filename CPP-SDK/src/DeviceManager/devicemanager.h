@@ -71,7 +71,7 @@ private:
 	std::atomic_bool isListening_ = false;                                     ///< Flag indicating whether the device listener is active.
 	std::mutex streamdocksMutex_;                                              ///< Mutex to protect access to streamdocks_ and ensure thread safety.
 #ifdef _WIN32
-	static LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); ///< Windows message handler for receiving device change notifications (e.g., WM_DEVICECHANGE).
+	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); ///< Windows message handler for receiving device change notifications (e.g., WM_DEVICECHANGE).
 	HWND hwnd_ = nullptr;                                                          ///< Handle to the hidden window used to receive Windows device events.
 #endif
 

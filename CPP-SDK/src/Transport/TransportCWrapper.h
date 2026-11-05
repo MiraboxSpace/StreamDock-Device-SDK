@@ -81,6 +81,7 @@ public:
 	 * @brief Read data from the device.
 	 * @param response Output buffer to store data.
 	 * @param length In: buffer size; Out: actual number of bytes read.
+	 *               Set to zero on timeout or transport failure.
 	 * @param timeoutMs Timeout in milliseconds. -1 means blocking read.
 	 */
 	void read(uint8_t *response, size_t *length, int32_t timeoutMs = -1) const;

@@ -21,11 +21,19 @@ struct Gif2ImgFrame::Impl
 	{
 		int error = 0;
 		gif = DGifOpenFileName(gifPath.c_str(), &error);
-		if (!gif || DGifSlurp(gif) != GIF_OK)
+		if (!gif)
 		{
-			std::cerr << "Failed to read GIF: " << gifPath << std::endl;
-			if (gif)
-				DGifCloseFile(gif, &error);
+			const char *reason = GifErrorString(error);
+			std::cerr << "Failed to open GIF: " << gifPath << " (giflib error " << error
+				<< ": " << (reason ? reason : "unknown") << ")" << std::endl;
+			return;
+		}
+		if (DGifSlurp(gif) != GIF_OK)
+		{
+			const char *reason = GifErrorString(gif->Error);
+			std::cerr << "Failed to decode GIF: " << gifPath << " (giflib error " << gif->Error
+				<< ": " << (reason ? reason : "unknown") << ")" << std::endl;
+			DGifCloseFile(gif, &error);
 			gif = nullptr;
 			return;
 		}
@@ -41,6 +49,17 @@ struct Gif2ImgFrame::Impl
 			int error = 0;
 			DGifCloseFile(gif, &error);
 		}
+	}
+
+	bool hasAlphaChannel() const
+	{
+		for (int i = 0; i < gif->ImageCount; ++i)
+		{
+			GraphicsControlBlock gcb{};
+			if (DGifSavedExtensionToGCB(gif, i, &gcb) == GIF_OK && gcb.TransparentColor != NO_TRANSPARENT_COLOR)
+				return true;
+		}
+		return false;
 	}
 
 	void renderFrameRaw(int i, RawCanvas &canvas, int frameDisposalMode)
@@ -137,7 +156,7 @@ bool Gif2ImgFrame::saveFramesToFiles(const std::string &outputDir, int quality, 
 
 	std::filesystem::create_directories(outputDir);
 
-	bool alpha = IImageEncoder::supportsAlpha(imgHelper._imgType);
+	bool alpha = (IImageEncoder::supportsAlpha(imgHelper._imgType) || imgHelper._autoJpegPng) && impl_->hasAlphaChannel();
 	auto ext = IImageEncoder::imgTypeToExt(imgHelper._imgType);
 
 	RawCanvas canvas(impl_->width, impl_->height, alpha);
@@ -171,7 +190,7 @@ std::vector<std::vector<uint8_t>> Gif2ImgFrame::encodeFramesToMemory(int quality
 	if (!isValid())
 		return result;
 
-	bool alpha = IImageEncoder::supportsAlpha(imgHelper._imgType);
+	bool alpha = (IImageEncoder::supportsAlpha(imgHelper._imgType) || imgHelper._autoJpegPng) && impl_->hasAlphaChannel();
 	auto ext = IImageEncoder::imgTypeToExt(imgHelper._imgType);
 	int width = impl_->width;
 	int height = impl_->height;
@@ -248,7 +267,7 @@ std::vector<GifFrameData> Gif2ImgFrame::encodeFramesWithDelay(int quality, const
 	if (!isValid())
 		return result;
 
-	bool alpha = IImageEncoder::supportsAlpha(imgHelper._imgType);
+	bool alpha = (IImageEncoder::supportsAlpha(imgHelper._imgType) || imgHelper._autoJpegPng) && impl_->hasAlphaChannel();
 	int width = impl_->width;
 	int height = impl_->height;
 

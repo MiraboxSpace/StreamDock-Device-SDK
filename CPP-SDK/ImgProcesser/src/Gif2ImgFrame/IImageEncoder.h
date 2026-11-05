@@ -12,6 +12,9 @@
 class IImageEncoder
 {
 public:
+	// Encoders should honor ImgHelper's encoding profile, alpha selection and animation flag.
+	// Boot-logo profiles resize to the model canvas; key profiles select format/quality
+	// using device byte targets. OpenCVImageEncoder implements these rules.
 	virtual ~IImageEncoder() = default;
 
 	virtual bool encodeToFile(const std::string& filename,

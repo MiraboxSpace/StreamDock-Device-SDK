@@ -55,8 +55,8 @@ StreamDockN1::StreamDockN1(const hid_device_info &device_info)
 	_feature->hasSecondScreen = true;
 	_feature->min2rdScreenKey = 16;
 	_feature->max2rdScreenKey = 18;
-	_feature->_2rdScreenWidth = 64;
-	_feature->_2rdScreenHeights = 64;
+	_feature->_2rdScreenWidth = 80;
+	_feature->_2rdScreenHeights = 80;
 	// clang-format off
 	_readValueMap = {
 		/// Normal keys, starting from the top-left corner, counted left to right and top to bottom, correspond to keys 1 to 15

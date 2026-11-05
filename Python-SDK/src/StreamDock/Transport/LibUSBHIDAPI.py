@@ -1336,7 +1336,8 @@ class LibUSBHIDAPI:
             buffer: Image data buffer
             size: Size of the buffer
         """
-        self.set_background_bitmap(buffer[:size])
+        data = buffer[:size] if isinstance(buffer, (bytes, bytearray)) else ctypes.string_at(buffer, size)
+        return self.set_background_bitmap(bytes(data))
 
     def setBackgroundImgDualDevice(self, path) -> None:
         """

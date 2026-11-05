@@ -65,7 +65,8 @@ void TransportCWrapper::read(uint8_t *response, size_t *length, int32_t timeoutM
 {
 	if (!_handle || !response || !length)
 		throw std::invalid_argument("Invalid arguments for read operation.");
-	transport_read(_handle, response, length, timeoutMs);
+	if (transport_read(_handle, response, length, timeoutMs) != TRANSPORT_SUCCESS)
+		*length = 0;
 }
 
 void TransportCWrapper::wakeupScreen() const

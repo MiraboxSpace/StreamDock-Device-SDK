@@ -2,43 +2,49 @@ from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
 from ..DeviceConfig import StreamDockN4ProConfig
 from ..InputTypes import InputEvent, ButtonKey, EventType, KnobId, Direction
-from PIL import Image
-import ctypes
-import ctypes.util
-import os, io
-from ..ImageHelpers.PILHelper import *
-import random
 
 
 class StreamDockN4Pro(StreamDock):
-    """StreamDockN4Pro device class - supports 15 keys, 4 knobs, and swipe gestures"""
+    """StreamDockN4Pro device class - supports 14 image slots, 4 knobs, and swipe gestures"""
 
     KEY_COUNT = 15
     KEY_MAP = False
 
     # Image key mapping: logical key -> hardware key (for setting images)
     _IMAGE_KEY_MAP = {
-        # Main keys 1-10
-        ButtonKey.KEY_1: 11,
-        ButtonKey.KEY_2: 12,
-        ButtonKey.KEY_3: 13,
-        ButtonKey.KEY_4: 14,
-        ButtonKey.KEY_5: 15,
+        ButtonKey.KEY_1: 1,
+        ButtonKey.KEY_2: 2,
+        ButtonKey.KEY_3: 3,
+        ButtonKey.KEY_4: 4,
         ButtonKey.KEY_6: 6,
         ButtonKey.KEY_7: 7,
         ButtonKey.KEY_8: 8,
         ButtonKey.KEY_9: 9,
         ButtonKey.KEY_10: 10,
-        # Secondary screen keys 11-14 (176x112)
-        ButtonKey.KEY_11: 1,
-        ButtonKey.KEY_12: 2,
-        ButtonKey.KEY_13: 3,
-        ButtonKey.KEY_14: 4,
-        ButtonKey.KEY_15: 5,
+        ButtonKey.KEY_11: 11,
+        ButtonKey.KEY_12: 12,
+        ButtonKey.KEY_13: 13,
+        ButtonKey.KEY_14: 14,
+        ButtonKey.KEY_15: 15,
     }
 
-    # Reverse mapping: hardware key -> logical key (for event decoding)
-    _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
+    # Input codes are separate from image-slot numbers.
+    _HW_TO_LOGICAL_KEY = {
+        0x01: ButtonKey.KEY_11,
+        0x02: ButtonKey.KEY_12,
+        0x03: ButtonKey.KEY_13,
+        0x04: ButtonKey.KEY_14,
+        0x05: ButtonKey.KEY_15,
+        0x06: ButtonKey.KEY_6,
+        0x07: ButtonKey.KEY_7,
+        0x08: ButtonKey.KEY_8,
+        0x09: ButtonKey.KEY_9,
+        0x0A: ButtonKey.KEY_10,
+        0x40: ButtonKey.KEY_1,
+        0x41: ButtonKey.KEY_2,
+        0x42: ButtonKey.KEY_3,
+        0x43: ButtonKey.KEY_4,
+    }
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
@@ -131,16 +137,21 @@ class StreamDockN4Pro(StreamDock):
         Decode hardware event codes into a unified InputEvent
 
         Hardware code mapping:
-        - Keys: 1-15
+        - Main input keys: 6-15; secondary input keys: 1-4
         - Secondary screen keys: 0x40-0x43
         - Knob rotation: 0xA0, 0xA1(Knob1), 0x50, 0x51(Knob2), 0x90, 0x91(Knob3), 0x70, 0x71(Knob4)
         - Knob press: 0x37(Knob1), 0x35(Knob2), 0x33(Knob3), 0x36(Knob4)
         - Swipe: 0x38 (left), 0x39 (right)
         """
-        # Handle state value: 0x02=release, 0x01=press
+        # State values: 0x00=release, 0x01=press
+        if state not in (0, 1):
+            return InputEvent(event_type=EventType.UNKNOWN)
         normalized_state = 1 if state == 0x01 else 0
 
-        # Regular button events (1-15)
+        if hardware_code in range(0x40, 0x44) and state != 0:
+            return InputEvent(event_type=EventType.UNKNOWN)
+
+        # Main and secondary input buttons.
         if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -148,19 +159,6 @@ class StreamDockN4Pro(StreamDock):
                 state=normalized_state,
             )
 
-        # Secondary screen key events
-        secondary_key_map = {
-            0x40: ButtonKey.KEY_11,
-            0x41: ButtonKey.KEY_12,
-            0x42: ButtonKey.KEY_13,
-            0x43: ButtonKey.KEY_14,
-        }
-        if hardware_code in secondary_key_map:
-            return InputEvent(
-                event_type=EventType.BUTTON,
-                key=secondary_key_map[hardware_code],
-                state=normalized_state,
-            )
 
         # Knob rotation event
         knob_rotate_map = {
@@ -174,6 +172,8 @@ class StreamDockN4Pro(StreamDock):
             0x71: (KnobId.KNOB_4, Direction.RIGHT),
         }
         if hardware_code in knob_rotate_map:
+            if state != 0:
+                return InputEvent(event_type=EventType.UNKNOWN)
             knob_id, direction = knob_rotate_map[hardware_code]
             return InputEvent(
                 event_type=EventType.KNOB_ROTATE, knob_id=knob_id, direction=direction
@@ -194,9 +194,9 @@ class StreamDockN4Pro(StreamDock):
             )
 
         # Swipe gesture
-        if hardware_code == 0x38:
+        if hardware_code == 0x38 and state == 0:
             return InputEvent(event_type=EventType.SWIPE, direction=Direction.LEFT)
-        if hardware_code == 0x39:
+        if hardware_code == 0x39 and state == 0:
             return InputEvent(event_type=EventType.SWIPE, direction=Direction.RIGHT)
 
         # Unknown event
@@ -206,134 +206,21 @@ class StreamDockN4Pro(StreamDock):
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # Set device background image 800 * 480
+    # Set the boot logo using the model's input canvas.
     def set_touchscreen_image(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgDualDevice(c_path)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_boot_logo(path)
     def set_frame_background(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
+        return self._set_frame_background(path)
 
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path, quality=95)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgFrame(
-                c_path,
-                800,
-                480,
-            )
-            os.remove(temp_image_path)
-            return res
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
-
-    # Set device key icon image 112 * 112. PNG and JPEG input files are supported.
+    # Set an image on a valid display slot.
     def set_key_image(self, key, path):
-        try:
-            if isinstance(key, int):
-                if key not in range(1, 16):
-                    print(f"key '{key}' out of range. you should set (1 ~ 15)")
-                    return -1
-                logical_key = ButtonKey(key)
-            else:
-                logical_key = key
+        return self._set_key_image(key, path)
 
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            # Secondary screen keys use a different image format
-            if logical_key.value in range(11, 15):
-                return self.set_seondscreen_image(logical_key.value, path)
-
-            # Get hardware key value
-            hardware_key = self.get_image_key(logical_key)
-
-            # open formatter
-            image = Image.open(path)
-            image = to_native_key_format(self, image, logical_key)
-            temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
-            )
-            image.save(temp_image_path, "PNG")
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setKeyImgDualDevice(c_path, hardware_key)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
-
-    # Set device secondary screen key icon image 176 * 112. PNG and JPEG input files are supported.
+    # Set an image on secondary display slots 1-4.
     def set_seondscreen_image(self, key, path):
-        try:
-            if key not in range(11, 15):
-                print(f"key '{key}' out of range. you should set (11 ~ 14)")
-                return -1
-
-            logical_key = ButtonKey(key)
-            hardware_key = self.get_image_key(logical_key)
-
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            # open formatter
-            image = Image.open(path)
-            image = to_native_key_format(self, image, logical_key)
-            temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".png"
-            )
-            image.save(temp_image_path, "PNG")
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setKeyImgDualDevice(c_path, hardware_key)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
+        if key not in range(1, 5):
             return -1
+        return self._set_key_image(key, path)
 
     # TODO
     def set_key_imageData(self, key, path):
@@ -344,7 +231,7 @@ class StreamDockN4Pro(StreamDock):
         return self.serial_number
 
     def key_image_format(self, key=None):
-        if key is not None and key in range(11, 15):
+        if key is not None and key in range(1, 5):
             return self.secondscreen_image_format()
         return {
             "size": (112, 112),

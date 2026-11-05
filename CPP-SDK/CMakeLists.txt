@@ -37,6 +37,9 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_
     
     # Check whether the prebuilt library exists
     if(WIN32)
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            message(FATAL_ERROR "Bundled Windows transport and OpenCV libraries are x64 only. Win32 requires matching 32-bit dependencies; use an x64 toolchain with the bundled libraries.")
+        endif()
         if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport.dll" AND
            NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transportd.dll")
             message(FATAL_ERROR "Prebuilt transport DLL not found in ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/")
@@ -56,15 +59,17 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/transport_
         endif()
     elseif(UNIX AND NOT APPLE)
         # Check Linux architecture
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(armv[78].*|arm|armhf|arm64|aarch64)$")
+                message(FATAL_ERROR "No bundled 32-bit transport library for ${CMAKE_SYSTEM_PROCESSOR}. The bundled libtransport_arm32.so requires ARMv7 or newer with the hard-float ABI.")
+            endif()
+            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
+                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
+            endif()
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
             # ARM Linux
             if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
                 message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm64.so")
-            endif()
-        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^armv7")
-            # ARMv7 Linux
-            if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
-                message(FATAL_ERROR "Prebuilt transport library not found: ${CMAKE_CURRENT_SOURCE_DIR}/src/Transport/TransportDLL/libtransport_arm32.so")
             endif()
         else()
             # x86_64 Linux

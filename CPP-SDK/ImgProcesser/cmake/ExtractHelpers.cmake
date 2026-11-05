@@ -16,10 +16,22 @@ function(extract_archive_flat archive_path dest_dir)
     set(extract_temp "${CMAKE_CURRENT_BINARY_DIR}/_extract_temp_${archive_hash}")
 
     # Extract to the temp directory
-    file(ARCHIVE_EXTRACT
-        INPUT "${archive_path}"
-        DESTINATION "${extract_temp}"
-    )
+    if(CMAKE_VERSION VERSION_LESS "3.18")
+        file(MAKE_DIRECTORY "${extract_temp}")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -E tar xf "${archive_path}"
+            WORKING_DIRECTORY "${extract_temp}"
+            RESULT_VARIABLE extract_result
+        )
+        if(NOT extract_result EQUAL 0)
+            message(FATAL_ERROR "Failed to extract ${archive_path}")
+        endif()
+    else()
+        file(ARCHIVE_EXTRACT
+            INPUT "${archive_path}"
+            DESTINATION "${extract_temp}"
+        )
+    endif()
 
     # Check if there is only one subdirectory
     file(GLOB top_entries RELATIVE "${extract_temp}" "${extract_temp}/*")

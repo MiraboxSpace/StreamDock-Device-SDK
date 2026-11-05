@@ -14,6 +14,8 @@ from ..FeatrueOption import FeatrueOption, device_type
 from ..Transport.LibUSBHIDAPI import LibUSBHIDAPI
 from ..InputTypes import InputEvent, ButtonKey, EventType
 from .GifController import GifController
+from PIL import Image
+from ..ImageHelpers.PILHelper import encode_key_image, encode_boot_logo, encode_background_frame
 
 
 class TransportError(Exception):
@@ -172,7 +174,11 @@ class StreamDock(ABC):
         self.clearAllIcon()
         if platform.system() != "Darwin":
             self.firmware_version = self.transport.get_firmware_version()
+        self._configure_firmware()
         self.refresh()
+
+    def _configure_firmware(self):
+        pass
 
     # Set device parameters
     @abstractmethod
@@ -289,8 +295,8 @@ class StreamDock(ABC):
     # Clear a specific key icon
     def clearIcon(self, index):
         origin = index
-        if origin not in range(1, self.KEY_COUNT + 1):
-            print(f"key '{origin}' out of range. you should set (1 ~ {self.KEY_COUNT})")
+        if origin not in self.image_keys():
+            print(f"Image key '{origin}' is not supported")
             return -1
         logical_key = ButtonKey(origin) if isinstance(origin, int) else origin
         hardware_key = self.get_image_key(logical_key)
@@ -314,6 +320,50 @@ class StreamDock(ABC):
         if image_key_map:
             return sorted(key.value for key in image_key_map)
         return list(range(1, self.KEY_COUNT + 1))
+
+    def _set_key_image(self, key, path):
+        try:
+            logical_key = ButtonKey(key)
+            if logical_key.value not in self.image_keys():
+                raise ValueError(f"Image key '{key}' is not supported")
+            hardware_key = self.get_image_key(logical_key)
+            with Image.open(path) as image:
+                data = encode_key_image(
+                    image, self.key_image_format(logical_key),
+                    xl=self.feature_option.deviceType == device_type.dock_xl,
+                )
+            return self.transport.set_key_image_stream(data, hardware_key)
+        except (OSError, ValueError, TypeError) as error:
+            print(f"Error: {error}")
+            return -1
+
+    def _set_boot_logo(self, path):
+        try:
+            image_format = self.touchscreen_image_format()
+            with Image.open(path) as image:
+                data = encode_boot_logo(
+                    image, image_format,
+                    n1=self.feature_option.deviceType == device_type.dock_n1,
+                )
+            if image_format["format"].upper() == "RAW":
+                return self.transport.set_background_bitmap(data)
+            return self.transport.set_background_image_stream(data)
+        except (OSError, ValueError, TypeError) as error:
+            print(f"Error: {error}")
+            return -1
+
+    def _set_frame_background(self, path):
+        if not self.feature_option.supportBackgroundGif:
+            return -1
+        try:
+            image_format = self.touchscreen_image_format()
+            with Image.open(path) as image:
+                data = encode_background_frame(image, image_format)
+            width, height = image_format["size"]
+            return self.transport.set_background_frame_stream(data, width, height)
+        except (OSError, ValueError, TypeError) as error:
+            print(f"Error: {error}")
+            return -1
 
     def gifer(self):
         """Return the GIF controller for this device."""
@@ -457,7 +507,7 @@ class StreamDock(ABC):
         pass
 
     def set_background_image(self, path) -> int | None:
-        self.set_touchscreen_image(path)
+        return self.set_touchscreen_image(path)
 
     @abstractmethod
     def get_image_key(self, logical_key: ButtonKey) -> int:

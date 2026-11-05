@@ -127,6 +127,9 @@ public:
 
 	/**
 	 * @brief Set the full background image from a file.
+	 * @note Boot logos are resized to the device's width/height before rotation.
+	 *       JPEG logos use quality 100 and a 522240-byte limit; N1 first targets 302080 bytes.
+	 *       K1Pro has no boot-logo dimensions configured.
 	 * @param filePath Image file path.
 	 * @param timeoutMs Timeout in milliseconds.
 	 */

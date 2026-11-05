@@ -19,8 +19,8 @@ endif()
 
 include(cmake/Fetch_giflib.cmake)
 # Import giflib and opencv
-if(WIN32)
-    # On Windows, build from source only; sources are already extracted in Fetch_giflib.cmake
+if(WIN32 OR (UNIX AND NOT APPLE))
+    # Build the bundled version; sources are already extracted in Fetch_giflib.cmake.
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/giflib)
 endif()
 include(cmake/Fetch_OpenCV.cmake)
@@ -59,7 +59,7 @@ elseif(APPLE)
     target_link_libraries(ImgProcesser PUBLIC gif_lib OpenCV)
 elseif(UNIX AND NOT APPLE)
     message(STATUS "OpenCV include dirs: ${OpenCV_INCLUDE_DIRS}")
-    target_link_libraries(ImgProcesser PUBLIC gif ${OpenCV_LIBS})
+    target_link_libraries(ImgProcesser PUBLIC gif_lib ${OpenCV_LIBS})
     target_include_directories(ImgProcesser PUBLIC ${OpenCV_INCLUDE_DIRS})
     message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")
 endif()

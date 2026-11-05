@@ -1,12 +1,6 @@
 from StreamDock.FeatrueOption import device_type
 from .StreamDock import StreamDock
 from ..InputTypes import InputEvent, ButtonKey, EventType, DIPSwitchId, Direction
-from PIL import Image
-import ctypes
-import ctypes.util
-import os, io
-from ..ImageHelpers.PILHelper import *
-import random
 
 
 class StreamDockMini(StreamDock):
@@ -23,11 +17,18 @@ class StreamDockMini(StreamDock):
         ButtonKey.KEY_3: 3,
         ButtonKey.KEY_4: 4,
         ButtonKey.KEY_5: 5,
-        ButtonKey.KEY_6: 6
+        ButtonKey.KEY_6: 6,
     }
 
-    # Reverse mapping: hardware key -> logical key (for event decoding)
-    _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
+    # Input codes are separate from image-slot numbers.
+    _HW_TO_LOGICAL_KEY = {
+        0x01: ButtonKey.KEY_1,
+        0x02: ButtonKey.KEY_2,
+        0x03: ButtonKey.KEY_3,
+        0x04: ButtonKey.KEY_4,
+        0x05: ButtonKey.KEY_5,
+        0x06: ButtonKey.KEY_6,
+    }
 
     def __init__(self, transport1, devInfo):
         super().__init__(transport1, devInfo)
@@ -56,6 +57,8 @@ class StreamDockMini(StreamDock):
         - DIP 2: 0x21 (left), 0x23 (right), 0x22 (press)
         State 0x01 means active/press, state 0x00 means end/release.
         """
+        if state not in (0, 1):
+            return InputEvent(event_type=EventType.UNKNOWN)
         normalized_state = 1 if state == 0x01 else 0
 
         dip_switch_map = {
@@ -87,107 +90,18 @@ class StreamDockMini(StreamDock):
         return InputEvent(event_type=EventType.UNKNOWN)
     
     def set_frame_background(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path, quality=95)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgFrame(
-                c_path,
-                1024,
-                600,
-            )
-            os.remove(temp_image_path)
-            return res
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_frame_background(path)
     # Set device screen brightness
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    # Set device background image 1024 * 600
+    # Set the boot logo using the model's input canvas.
     def set_touchscreen_image(self, path):
-        try:
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
+        return self._set_boot_logo(path)
 
-            # open formatter
-            image = Image.open(path)
-            image = to_native_touchscreen_format(self, image)
-            temp_image_path = (
-                "rotated_touchscreen_image_"
-                + str(random.randint(9999, 999999))
-                + ".jpg"
-            )
-            image.save(temp_image_path)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setBackgroundImgDualDevice(c_path)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
-
-    # Set device key icon image 80 * 80. PNG and JPEG input files are supported.
+    # Set an image on a valid display slot.
     def set_key_image(self, key, path):
-        try:
-            if isinstance(key, int):
-                if key not in range(1, self.KEY_COUNT + 1):
-                    print(
-                        f"key '{key}' out of range. you should set (1 ~ {self.KEY_COUNT})"
-                    )
-                    return -1
-                logical_key = ButtonKey(key)
-            else:
-                logical_key = key
-
-            if not os.path.exists(path):
-                print(f"Error: The image file '{path}' does not exist.")
-                return -1
-
-            # Get hardware key value
-            hardware_key = self.get_image_key(logical_key)
-
-            # Mini supports setting icons only for keys 1-6.
-            if hardware_key not in range(1, self.KEY_COUNT + 1):
-                return -1
-
-            # open formatter
-            image = Image.open(path)
-            image = to_native_key_format(self, image)
-            temp_image_path = (
-                "rotated_key_image_" + str(random.randint(9999, 999999)) + ".jpg"
-            )
-            image.save(temp_image_path, "JPEG", quality=95)
-
-            # encode send
-            path_bytes = temp_image_path.encode("utf-8")
-            c_path = ctypes.c_char_p(path_bytes)
-            res = self.transport.setKeyImgDualDevice(c_path, hardware_key)
-            os.remove(temp_image_path)
-            return res
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
+        return self._set_key_image(key, path)
 
     # TODO
     def set_key_imageData(self, key, path):

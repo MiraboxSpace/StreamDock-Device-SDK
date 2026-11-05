@@ -22,7 +22,7 @@ if (APPLE)
         IMPORTED_LOCATION ${GIFLIB_PREFIX}/src/giflib/libgif.a
         INTERFACE_INCLUDE_DIRECTORIES ${GIFLIB_PREFIX}/src/giflib
     )
-elseif(WIN32)
+elseif(WIN32 OR UNIX)
     # Import the extract helper, unpack sources to the target path, and build from source
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ExtractHelpers.cmake)
     extract_archive_flat(

@@ -1,4 +1,3 @@
-import ctypes
 import os
 import shutil
 import subprocess
@@ -9,7 +8,6 @@ from PIL import Image
 
 from .StreamDock import StreamDock
 from ..FeatrueOption import device_type
-from ..ImageHelpers.PILHelper import to_native_key_format, to_native_touchscreen_format
 from ..InputTypes import ButtonKey, EventType, InputEvent
 
 
@@ -29,8 +27,34 @@ class StreamDockH1Pro(StreamDock):
     # 01 02 03 04
     # 05 06 07 08
     # 09 0A 0B 0C
-    _IMAGE_KEY_MAP = {ButtonKey(key): key for key in range(1, 13)}
-    _HW_TO_LOGICAL_KEY = {v: k for k, v in _IMAGE_KEY_MAP.items()}
+    _IMAGE_KEY_MAP = {
+        ButtonKey.KEY_1: 1,
+        ButtonKey.KEY_2: 2,
+        ButtonKey.KEY_3: 3,
+        ButtonKey.KEY_4: 4,
+        ButtonKey.KEY_5: 5,
+        ButtonKey.KEY_6: 6,
+        ButtonKey.KEY_7: 7,
+        ButtonKey.KEY_8: 8,
+        ButtonKey.KEY_9: 9,
+        ButtonKey.KEY_10: 10,
+        ButtonKey.KEY_11: 11,
+        ButtonKey.KEY_12: 12,
+    }
+    _HW_TO_LOGICAL_KEY = {
+        0x01: ButtonKey.KEY_1,
+        0x02: ButtonKey.KEY_2,
+        0x03: ButtonKey.KEY_3,
+        0x04: ButtonKey.KEY_4,
+        0x05: ButtonKey.KEY_5,
+        0x06: ButtonKey.KEY_6,
+        0x07: ButtonKey.KEY_7,
+        0x08: ButtonKey.KEY_8,
+        0x09: ButtonKey.KEY_9,
+        0x0A: ButtonKey.KEY_10,
+        0x0B: ButtonKey.KEY_11,
+        0x0C: ButtonKey.KEY_12,
+    }
 
     def get_image_key(self, logical_key: ButtonKey) -> int:
         if logical_key in self._IMAGE_KEY_MAP:
@@ -38,6 +62,8 @@ class StreamDockH1Pro(StreamDock):
         raise ValueError(f"StreamDockH1Pro: Unsupported key {logical_key}")
 
     def decode_input_event(self, hardware_code: int, state: int) -> InputEvent:
+        if state not in (0, 1):
+            return InputEvent(event_type=EventType.UNKNOWN)
         if hardware_code in self._HW_TO_LOGICAL_KEY:
             return InputEvent(
                 event_type=EventType.BUTTON,
@@ -47,43 +73,21 @@ class StreamDockH1Pro(StreamDock):
         return InputEvent(event_type=EventType.UNKNOWN)
 
     def switch_mode(self, mode: DeviceMode | int):
-        """Select screensaver (1), key (2), or animated image (3) mode."""
+        """Select screensaver (0), key (1), or animated image (2) mode."""
         return self.transport.switchMode(self.DeviceMode(mode).value)
 
     def set_brightness(self, percent):
         return self.transport.setBrightness(percent)
 
-    def _send_image(self, path, formatter, sender, *args):
-        try:
-            with Image.open(path) as source:
-                image = formatter(self, source)
-            with tempfile.TemporaryDirectory(prefix="streamdock_h1pro_") as directory:
-                image_path = os.path.join(directory, "image.jpg")
-                with image:
-                    image.save(image_path, "JPEG", quality=95)
-                return sender(ctypes.c_char_p(image_path.encode("utf-8")), *args)
-        except Exception as e:
-            print(f"Error: {e}")
-            return -1
 
     def set_key_image(self, key, path):
-        try:
-            hardware_key = self.get_image_key(key)
-        except (ValueError, TypeError) as e:
-            print(f"Error: {e}")
-            return -1
-        return self._send_image(
-            path, to_native_key_format, self.transport.setKeyImgDualDevice, hardware_key
-        )
+        return self._set_key_image(key, path)
 
     def set_touchscreen_image(self, path):
-        return self._send_image(
-            path, to_native_touchscreen_format, self.transport.setBackgroundImgDualDevice
-        )
+        return self._set_boot_logo(path)
 
     def set_frame_background(self, path):
-        """Display a static image using the device's upload path."""
-        return self.set_touchscreen_image(path)
+        return self._set_frame_background(path)
 
     def upload_gif(self, path):
         """Upload a GIF file to device storage without changing the current mode."""
@@ -143,15 +147,18 @@ class StreamDockH1Pro(StreamDock):
         return self.serial_number
 
     def key_image_format(self, key=None):
+        new_layout = any(tag in self.firmware_version.upper() for tag in ("V25", "V3"))
         return {
-            "size": (64, 64), "format": "JPEG",
-            "rotation": 90, "flip": (False, False),
+            "size": (64, 64) if new_layout else (70, 70), "format": "JPEG",
+            "rotation": 90 if new_layout else 0, "flip": (False, False),
         }
 
     def touchscreen_image_format(self):
+        new_layout = any(tag in self.firmware_version.upper() for tag in ("V25", "V3"))
         return {
-            "size": (320, 240), "format": "JPEG",
-            "rotation": 90, "flip": (False, False),
+            "size": (320, 240), "format": "JPEG" if new_layout else "RAW",
+            "pixel_format": "RGB565",
+            "rotation": 90 if new_layout else -90, "flip": (False, False),
         }
 
     def set_device(self):

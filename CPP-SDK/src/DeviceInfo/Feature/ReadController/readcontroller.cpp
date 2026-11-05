@@ -24,10 +24,10 @@ std::vector<uint8_t> ReadController::read(int32_t timeoutMs)
 		ToolKit::print("[ERROR] Transport is not running or cannot write.");
 		return {};
 	}
-	int64_t length = -1;
 	std::vector<uint8_t> response(2048); // Max response length is 2048 bytes
-	_instance->_transport->read(response.data(), reinterpret_cast<size_t *>(&length), timeoutMs);
-	if (length > 0)
+	size_t length = response.size();
+	_instance->_transport->read(response.data(), &length, timeoutMs);
+	if (length > 0 && length <= response.size())
 	{
 		response.resize(length);
 		// ToolKit::printHexBuffer(response);

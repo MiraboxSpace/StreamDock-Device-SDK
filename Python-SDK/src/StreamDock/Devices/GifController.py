@@ -1,5 +1,4 @@
 import copy
-import io
 import threading
 import time
 from dataclasses import dataclass
@@ -7,7 +6,8 @@ from typing import Any, Iterable
 
 from PIL import Image, ImageSequence
 
-from ..ImageHelpers.PILHelper import to_native_key_format, to_native_touchscreen_format
+from ..ImageHelpers.PILHelper import encode_key_image, encode_background_frame
+from ..FeatrueOption import device_type
 from ..InputTypes import ButtonKey
 
 
@@ -46,6 +46,8 @@ class GifController:
         self._thread.start()
 
     def set_key_gif(self, path, key):
+        if not self._device.feature_option.supportKeyGif:
+            return -1
         logical_key, hardware_key = self._get_key_values(key)
         if hardware_key is None:
             return -1
@@ -61,6 +63,8 @@ class GifController:
         return 0
 
     def set_key_gif_stream(self, frames: Iterable[bytes], delays: Iterable[int], key):
+        if not self._device.feature_option.supportKeyGif:
+            return -1
         _, hardware_key = self._get_key_values(key)
         if hardware_key is None:
             return -1
@@ -243,6 +247,8 @@ class GifController:
     def _get_key_values(self, key):
         try:
             logical_key = ButtonKey(key) if isinstance(key, int) else key
+            if logical_key.value not in self._device.image_keys():
+                raise ValueError(f"Image key '{key}' is not supported")
             return logical_key, self._device.get_image_key(logical_key)
         except Exception as e:
             print(f"Error: {e}")
@@ -257,8 +263,11 @@ class GifController:
 
         frames = []
         delays = []
+        has_alpha = any("transparency" in frame.info or "A" in frame.getbands()
+                        for frame in ImageSequence.Iterator(image))
+        image.seek(0)
         for frame in ImageSequence.Iterator(image):
-            frame_image = frame.convert("RGBA")
+            frame_image = frame.convert("RGBA" if has_alpha else "RGB")
             delay_ms = int(frame.info.get("duration") or self._DEFAULT_DELAY_MS)
             delay_ms = max(1, delay_ms)
             encoded = self._encode_frame(frame_image, image_format, allow_png)
@@ -266,33 +275,16 @@ class GifController:
             delays.append(delay_ms)
 
         width, height = image_format["size"]
+        image.close()
         return frames, self._normalize_delays(delays, len(frames)), width, height
 
     def _encode_frame(self, frame, image_format, allow_png):
-        native_format = copy.deepcopy(image_format)
-        native_format["format"] = (
-            "PNG"
-            if allow_png and native_format["format"].upper() == "PNG"
-            else "JPEG"
-        )
-
-        if native_format["format"] == "PNG":
-            native_image = to_native_key_format(self._FormatDock(native_format), frame)
-        else:
-            if native_format["size"] == self._device.touchscreen_image_format()["size"]:
-                native_image = to_native_touchscreen_format(
-                    self._FormatDock(native_format), frame
-                )
-            else:
-                native_image = to_native_key_format(self._FormatDock(native_format), frame)
-            native_image = self._to_rgb_with_background(native_image)
-
-        buffer = io.BytesIO()
-        if native_format["format"] == "PNG":
-            native_image.save(buffer, "PNG")
-        else:
-            native_image.save(buffer, "JPEG", quality=95)
-        return buffer.getvalue()
+        if allow_png:
+            return encode_key_image(
+                frame, image_format, animated=True,
+                xl=self._device.feature_option.deviceType == device_type.dock_xl,
+            )
+        return encode_background_frame(frame, image_format)
 
     def _normalize_delays(self, delays, frame_count):
         normalized = [max(1, int(delay or self._DEFAULT_DELAY_MS)) for delay in delays]
@@ -397,12 +389,6 @@ class GifController:
         bg_width, bg_height = self._device.touchscreen_image_format()["size"]
         return x >= 0 and y >= 0 and x + width <= bg_width and y + height <= bg_height
 
-    @staticmethod
-    def _to_rgb_with_background(image, background="black"):
-        rgba_image = image.convert("RGBA")
-        background_image = Image.new("RGBA", rgba_image.size, background)
-        return Image.alpha_composite(background_image, rgba_image).convert("RGB")
-
     def _gif_work_loop(self):
         last_time = time.monotonic()
         while self._running:
@@ -470,13 +456,3 @@ class GifController:
                 self._device.refresh()
 
             time.sleep(0.003)
-
-    class _FormatDock:
-        def __init__(self, image_format):
-            self._image_format = image_format
-
-        def key_image_format(self):
-            return copy.deepcopy(self._image_format)
-
-        def touchscreen_image_format(self):
-            return copy.deepcopy(self._image_format)
