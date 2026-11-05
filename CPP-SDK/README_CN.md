@@ -21,6 +21,8 @@
 | Mini / MiniW       | 64×64 / 270°   | —                | 320×240 / 270° / JPEG       |
 | K1Pro / US / EU    | 64×64 / 90°    | —                | 无配置                        |
 
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`setBackgroundImgFile()`、`setBackgroundImgStream()`。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
+
 ## 1. 📘 本项目介绍
 
 本项目是一个基于 C++17 开发的 SDK，旨在让用户能够通过代码直接控制 Stream Dock 设备。
@@ -348,15 +350,19 @@ sudo ./bin/main
 
 ---
 
-### 6.1 设置背景图片
+### 6.1 设置静态开机 Logo
+
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`setBackgroundImgFile()`、`setBackgroundImgStream()`。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 
 ```cpp
+// 警告：setBackgroundImgFile() / setBackgroundImgStream() 将开机 Logo 写入 ROM，不能用作动态背景或循环写入播放动画。
+// 必须保持对应型号规定的分辨率和方向；擅自更改可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
 device->setEncoder(std::make_shared<OpenCVImageEncoder>());  // 在调用关联图片操作的接口时, 前提必须设置编码器
 device->setBackgroundImgFile("YiFei.jpg");                   // 设置开机 logo 为路径 ./YiFei.jpg 的静态图片
 device->refresh();
 ```
 
-使用本地图片路径设置背景图。推荐使用该方式，简单安全。
+使用本地图片路径设置静态开机 Logo，SDK 会按对应型号处理尺寸和方向。动态背景请在支持的型号上使用背景帧流或背景 GIF 接口。
 
 ### 6.2 设置按键图片
 

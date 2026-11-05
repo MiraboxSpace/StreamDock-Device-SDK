@@ -116,7 +116,10 @@ public:
 	// void setKeyBitmap(const std::string &bitmapStream, uint8_t keyValue) const;
 
 	/**
-	 * @brief Set the full-screen background using raw bitmap data.
+	 * @brief Set the static boot logo using raw bitmap data.
+	 * @warning setBackgroundBitmap() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	 *          Keep the model-required resolution and orientation; changing dimensions, rotation or flips
+	 *          or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	 * @param bitmapStream Raw bitmap bytes.
 	 * @param timeoutMs Transmission timeout (default 3000ms).
 	 */
@@ -133,7 +136,10 @@ public:
 
 	// void setBackgroundImgFile(const std::string &filePath, int32_t timeoutMs = 3000) const;
 	/**
-	 * @brief Set JPEG image as full-screen background.
+	 * @brief Set a JPEG image as the static boot logo.
+	 * @warning setBackgroundImgStream() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	 *          Keep the model-required resolution and orientation; changing dimensions, rotation or flips
+	 *          or sending noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	 * @param jpegData JPEG image data.
 	 * @param timeoutMs Transmission timeout.
 	 */

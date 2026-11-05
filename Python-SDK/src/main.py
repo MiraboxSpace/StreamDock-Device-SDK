@@ -88,8 +88,8 @@ def setup_device(device):
         f"path: {device.path}\nfirmware_version: {device.firmware_version}\nserial_number: {device.serial_number}"
     )
 
-    # Set background image
-    # the image will be written to the rom.
+    # set_background_image() / set_touchscreen_image() set the static boot logo in ROM. Do not use it as a dynamic background or write animation frames.
+    # Keep the model-required resolution and orientation; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
     # res = device.set_background_image("img/backgroud_test.png")
     device.refresh()
     time.sleep(2)
@@ -212,6 +212,8 @@ def setup_device(device):
         time.sleep(5)
         print("H1Pro special function: switching to SCREENSAVER mode")
         device.switch_mode(device.DeviceMode.SCREENSAVER)
+        # WARNING: set_background_image() / set_touchscreen_image() write a static boot logo (ROM) only; do not use it as a dynamic background or write animation frames.
+        # Keep the model-required resolution and orientation; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
         # res = device.set_background_image("img/backgroud_test.png")
         time.sleep(5)
         print("H1Pro special function: switching to KEY mode")

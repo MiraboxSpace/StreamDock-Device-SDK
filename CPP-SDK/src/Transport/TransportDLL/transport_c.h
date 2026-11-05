@@ -115,12 +115,16 @@ extern "C"
 	TRANSPORT_API TransportResult transport_heartbeat(TransportHandle handle);
 
 	// TRANSPORT_API void transport_set_key_bitmap(TransportHandle handle, const char *bitmap, size_t length, uint8_t key_value);
+	/// WARNING: transport_set_background_bitmap() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	/// Keep the model-required resolution and orientation; noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	TRANSPORT_API TransportResult transport_set_background_bitmap(TransportHandle handle, const char *bitmap, size_t length, uint32_t timeout_ms);
 
 	// TRANSPORT_API void transport_set_key_image(TransportHandle handle, const char *file_path, uint8_t key_value);
 	// TRANSPORT_API void transport_set_background_image(TransportHandle handle, const char *file_path, uint32_t timeout_ms);
 
 	TRANSPORT_API TransportResult transport_set_key_image_stream(TransportHandle handle, const char *jpeg, size_t length, uint8_t key_value);
+	/// WARNING: transport_set_background_image_stream() writes the static boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+	/// Keep the model-required resolution and orientation; noncompliant data may brick the device. We recommend using the official StreamDock software to set the boot logo.
 	TRANSPORT_API TransportResult transport_set_background_image_stream(TransportHandle handle, const char *jpeg, size_t length, uint32_t timeout_ms);
 	/// Upload an MP4 file (up to 5 MiB) to H1 Pro / H1 ProE for device-side playback.
 	TRANSPORT_API TransportResult transport_upload_h1pro_video(TransportHandle handle, const char *mp4, size_t length, uint32_t timeout_ms);

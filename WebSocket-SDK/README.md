@@ -222,9 +222,13 @@ const setKeyImage = {
 ws.send(JSON.stringify(setKeyImage));
 ```
 
-### Set the Background Image
+### Set the Static Boot Logo
+
+> ⚠️ **Boot logo safety warning:** Applies to the `setBackgroundImg` and `setBackgroundImgData` WebSocket events. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
 
 ```javascript
+// WARNING: setBackgroundImg / setBackgroundImgData events write the boot logo to ROM. Do not use it as a dynamic background or write animation frames.
+// Keep the resolution and orientation required by the model; changing them may brick the device. We recommend using the official StreamDock software to set the boot logo.
 const setBackgroundImage = {
     event: "setBackgroundImg",
     path: devicePath,
@@ -483,9 +487,11 @@ Sets the device screen brightness level.
 }
 ```
 
-#### setBackgroundImg - Set Background Image from File
+#### setBackgroundImg - Set Static Boot Logo from File
 
-Loads and sets the background image from a local file path.
+Loads and sets the static boot logo from a local file path.
+
+> ⚠️ **Boot logo safety warning:** Applies to the `setBackgroundImg` and `setBackgroundImgData` WebSocket events. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
 
 **Payload parameters:**
 
@@ -505,9 +511,11 @@ Loads and sets the background image from a local file path.
 }
 ```
 
-#### setBackgroundImgData - Set Background Image from Base64 Data
+#### setBackgroundImgData - Set Static Boot Logo from Base64 Data
 
-Sets the background image using Base64-encoded image data.
+Sets the static boot logo using Base64-encoded image data.
+
+> ⚠️ **Boot logo safety warning:** Applies to the `setBackgroundImg` and `setBackgroundImgData` WebSocket events. The boot logo is written to device ROM and is only for a static startup image. Do not use it as a dynamic background or repeatedly write it to play animation. Follow the resolution and orientation required by the device model. Do not change the SDK boot-logo dimensions, rotation or flip settings, or send data that violates these requirements; doing so may brick the device (prevent it from starting or working normally). We recommend using the official StreamDock software to set the boot logo.
 
 **Payload parameters:**
 

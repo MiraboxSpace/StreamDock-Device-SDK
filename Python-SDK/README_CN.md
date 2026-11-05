@@ -33,6 +33,8 @@
 
 M3、N4Pro、XL 的源图含透明通道时编码 PNG，否则编码 JPEG。按键 JPEG 从质量 100 开始，每次降低 2，静态图目标 9000 字节、GIF 帧目标 3000 字节（XL 为 2040）；PNG 对应目标为 29000 / 20000 字节。PNG 动图帧及超限回退使用 ARGB4444 量化，最终按键回退结果可能仍超过目标大小。
 
+> ⚠️ **开机 Logo 安全警告：** 适用接口：`set_touchscreen_image()`、`set_background_image()`。开机 Logo 写入设备 ROM，仅用于静态开机图，不能当作动态背景使用，也不能通过循环或频繁写入来播放动画。必须遵循对应型号规定的分辨率和方向，切勿擅自更改 SDK 的开机 Logo 尺寸、旋转或翻转配置，或发送不符合要求的数据，否则可能导致设备变砖（无法正常启动或使用）。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
+
 静态 Logo 会自动拉伸到表中的型号尺寸，再旋转和编码，无需预先调整图片大小。JPEG 从质量 100 编码，超过 522240 字节拒绝发送；N1 先每次降低质量 10，目标 302080 字节，且要求固件尾版本至少为 13。RAW RGB565 使用小端字节序。背景动画帧使用 JPEG 质量 60。
 
 `supportKeyGif` 表示按键动图是否可用。293 V2、293S V2、N3 V2、`V25.N3` 和 `V2.M18` 固件使用静态图；示例在支持动图时循环显示 JPG、PNG、GIF，否则交替显示 JPG、PNG。
@@ -159,7 +161,8 @@ def main():
             traceback.print_exc()
             raise
         print(f"path: {device.path}, firmware_version: {device.firmware_version} serial_number: {device.serial_number}")
-        # 设置背景图片
+        # 警告：set_touchscreen_image() / set_background_image() 将静态开机 Logo 写入 ROM，不能用作动态背景或循环写入动画帧。
+        # 必须保持对应型号规定的分辨率和方向；擅自更改可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
         res = device.set_touchscreen_image("img/backgroud_test.png")
         device.refresh()
         time.sleep(2)
@@ -226,7 +229,8 @@ if __name__ == "__main__":
 4. **设置图像**
 
    ```python
-   # 设置触摸屏背景
+   # set_touchscreen_image() / set_background_image() 设置静态开机 Logo（写入 ROM），不能用作动态背景或循环写入动画帧。
+   # 必须保持对应型号规定的分辨率和方向；擅自更改可能导致设备变砖。如需设置开机 Logo，推荐使用官方 StreamDock 软件。
    device.set_touchscreen_image("path/to/image.png")
 
    # 设置按键图标
